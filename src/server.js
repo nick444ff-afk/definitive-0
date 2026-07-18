@@ -89,8 +89,8 @@ app.post("/start_bot/:botId", async (req, res) => {
             config.tokens,
             config.format || "1v1",
             config.category || "mobile",
-            config.mensagem || "",
-            config.mencao || 0,
+            config.msgauto || config.mensagem || "",
+            config.mentionauto || config.mencao || 0,
             config.categories || [],
             config.modos || []
         );

@@ -158,13 +158,17 @@ class AutomationEngine {
             }
 
             // ─── PARTE 2: MONITORAR CANAIS DE PARTIDA (MSGAUTO + MENÇÃO) ───
-            const canaisPartida = client.channels.cache.filter(c => 
-                c.guild &&
-                (c.type === "GUILD_TEXT" || c.type === "GUILD_PRIVATE_THREAD") &&
-                (c.name?.toLowerCase().includes("aguardando") || 
-                 c.name?.toLowerCase().includes("partida") || 
-                 c.name?.toLowerCase().includes("fila")) &&
-                c.viewable
+            // Lógica original exata: busca por termos específicos no nome do canal
+            const canaisPartida = client.channels.cache.filter(channel =>
+                channel.guild &&
+                (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
+                (channel.name?.toLowerCase().includes("aguardando") || 
+                 channel.name?.toLowerCase().includes("Aguardando") || 
+                 channel.name?.toLowerCase().includes("partida") || 
+                 channel.name?.toLowerCase().includes("Partida") || 
+                 channel.name?.toLowerCase().includes("fila") || 
+                 channel.name?.toLowerCase().includes("Fila")) &&
+                channel.viewable
             );
 
             for (const channel of canaisPartida.values()) {
@@ -268,6 +272,8 @@ class AutomationEngine {
     async _processMatchChannel(botId, automation, client, channel) {
         try {
             const { msgauto, mentionauto, onLog } = automation;
+            // Log de depuração silenciado para não poluir, mas útil para verificação interna
+            // console.log(`[DEBUG] Processando canal de partida: ${channel.name}, msgauto: ${msgauto}`);
             const sentSet = this.msgAutoSentThisSession.get(botId);
             const clickedSet = this.clickedMessages.get(botId);
 

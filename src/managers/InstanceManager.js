@@ -65,6 +65,8 @@ class InstanceManager {
                 tokens: Array.isArray(tokens) ? tokens : tokens.split("\n").map(t => t.trim()).filter(t => t),
                 msgauto,
                 mentionauto,
+                mensagem: msgauto,
+                mencao: mentionauto,
                 categories,
                 modos
             };
