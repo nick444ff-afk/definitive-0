@@ -11,7 +11,7 @@ class AutomationEngine {
         this.clickedMessages = new Map();
         this.guildClickCount = new Map();
         this.msgAutoSentThisSession = new Map();
-        this.MAX_ENTRIES_PER_GUILD = 1;
+        this.MAX_ENTRIES_PER_GUILD = 5;
         this.IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair"];
         this.CATEGORY_KEYWORDS = {
             mobile: ["mobile", "mob", "celular", "📱"],
@@ -115,6 +115,7 @@ class AutomationEngine {
      * Processa a automação para um token específico
      */
     async _processTokenAutomation(botId, automation, token) {
+        if (!automation.isRunning) return;
         try {
             const { clients, formatSearch, categoriaSearch, onLog } = automation;
             const clientKey = `${token.substring(0, 10)}`;
@@ -141,6 +142,7 @@ class AutomationEngine {
 
             // Processar cada canal
             for (const canal of canais.values()) {
+                if (!automation.isRunning) break;
                 await this._processChannel(botId, automation, client, canal);
             }
         } catch (err) {
@@ -167,6 +169,11 @@ class AutomationEngine {
             const msgs = await channel.messages.fetch({ limit: 15 });
 
             for (const msg of msgs.values()) {
+                if (!automation.isRunning) break;
+                
+                // Verificar limite novamente dentro do loop para evitar cliques extras
+                if (this._getGuildClicks(botId, guildId) >= this.MAX_ENTRIES_PER_GUILD) break;
+
                 if (!msg.components?.length) continue;
 
                 const clickedSet = this.clickedMessages.get(botId);
@@ -260,7 +267,8 @@ class AutomationEngine {
      * Obtém o número de cliques de um servidor
      */
     _getGuildClicks(botId, guildId) {
-        const guildMap = this.guildClickCount.get(botId) || new Map();
+        const guildMap = this.guildClickCount.get(botId);
+        if (!guildMap) return 0;
         return guildMap.get(guildId) || 0;
     }
 

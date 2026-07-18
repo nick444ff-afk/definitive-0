@@ -599,6 +599,7 @@ let botLigado  = false;
 let uptimeInterval = null;
 let uptimeSeconds  = 0;
 let isSaving = false;
+let lastLogTimestamp = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     addLog('Sistema inicializado.', 'info');
@@ -684,7 +685,10 @@ function mudarBot(tabEl) {
     document.getElementById('controleTitle').textContent = `Controle - ${botNum}`;
     document.getElementById('botIndicator').textContent  = bot;
 
-    addLog(`Instância trocada para ${bot}.`, 'info');
+    // Limpar logs locais ao trocar de bot para carregar os logs do novo bot
+    document.getElementById('logs').innerHTML = '';
+    lastLogTimestamp = null;
+
     showToast(`Trocado para ${bot}`, 'info');
     
     uptimeSeconds = 0;
@@ -737,9 +741,19 @@ async function fetchLogs() {
         const response = await fetch(`${API_URL}/logs/${botAtivo}`);
         if (response.ok) {
             const data = await response.json();
-            data.logs.forEach(log => {
-                addLog(log.message, log.type);
-            });
+            const logs = data.logs || [];
+            
+            // Filtrar apenas logs novos baseado no timestamp
+            const newLogs = lastLogTimestamp 
+                ? logs.filter(l => new Date(l.timestamp) > new Date(lastLogTimestamp))
+                : logs;
+
+            if (newLogs.length > 0) {
+                newLogs.forEach(log => {
+                    addLog(log.message, log.type);
+                });
+                lastLogTimestamp = logs[logs.length - 1].timestamp;
+            }
         }
     } catch (e) {
     }
@@ -755,7 +769,6 @@ async function resetStats() {
             document.getElementById('dms').textContent      = '0';
             document.getElementById('uptime').textContent   = '00:00:00';
             uptimeSeconds = 0;
-            addLog('⚠️ Stats resetados via API.', 'warn');
             showToast('Stats resetados!', 'warn');
         }
     } catch (e) {
@@ -858,7 +871,6 @@ async function salvarConfiguracao() {
         const responseData = await response.json();
         
         if (response.ok) {
-            addLog(`✅ Configuração salva com sucesso para ${botAtivo}`, 'success');
             showToast('Configuração salva!', 'success');
             
             const configMsg = document.getElementById('configMessage');
@@ -879,9 +891,17 @@ async function salvarConfiguracao() {
     }
 }
 
-function limparLogs() {
-    document.getElementById('logs').innerHTML = '';
-    addLog('Logs limpos.', 'info');
+async function limparLogs() {
+    try {
+        const response = await fetch(`${API_URL}/clear_logs/${botAtivo}`, { method: 'POST' });
+        if (response.ok) {
+            document.getElementById('logs').innerHTML = '';
+            lastLogTimestamp = null;
+            showToast('Logs limpos!', 'info');
+        }
+    } catch (e) {
+        console.error("Erro ao limpar logs:", e);
+    }
 }
 
 function addLog(msg, tipo) {
