@@ -31,28 +31,25 @@ class AutomationEngine {
                 return false;
             }
 
-            const { tokens, format, category, msgauto, mentionauto } = config;
+            const { tokens, categories, modos } = config;
 
             if (!tokens || tokens.length === 0) {
                 onLog("❌ Nenhum token fornecido", "error");
                 return false;
             }
 
-            const formatSearch = format.replace("v", "x").toLowerCase();
+            // Mapear categorias para termos de busca
             const categoryMap = {
-                mobile: "mob",
-                emulador: "emu",
-                misto: "misto",
-                tatico: "tatico"
+                'Mobile': 'mobile',
+                'Emulador': 'emulador',
+                'Misto': 'misto',
+                'Tático': 'tatico'
             };
-            const categoriaSearch = categoryMap[category];
 
-            if (!categoriaSearch) {
-                onLog(`❌ Categoria inválida: ${category}`, "error");
-                return false;
-            }
+            const searchCategories = (categories || []).map(cat => cat.toLowerCase());
+            const searchFormats = (modos || []).map(m => m.toLowerCase());
 
-            onLog(`✅ Iniciando automação: ${format} - ${category}`, "success");
+            onLog(`✅ Iniciando automação: [${searchFormats.join(', ')}] - [${searchCategories.join(', ')}]`, "success");
 
             // Inicializar estruturas para esta instância
             this.clickedMessages.set(botId, new Set());
@@ -63,8 +60,8 @@ class AutomationEngine {
             const automation = {
                 botId,
                 config,
-                formatSearch,
-                categoriaSearch,
+                searchFormats,
+                searchCategories,
                 clients: new Map(),
                 interval: null,
                 isRunning: true,
@@ -117,7 +114,7 @@ class AutomationEngine {
     async _processTokenAutomation(botId, automation, token) {
         if (!automation.isRunning) return;
         try {
-            const { clients, formatSearch, categoriaSearch, onLog } = automation;
+            const { clients, searchFormats, searchCategories, onLog } = automation;
             const clientKey = `${token.substring(0, 10)}`;
 
             // Obter ou criar cliente
@@ -129,11 +126,15 @@ class AutomationEngine {
                 onLog(`✅ Logado como: ${client.user.tag}`, "success");
             }
 
-            // Buscar canais
+            // Buscar canais que correspondam a QUALQUER um dos formatos e QUALQUER uma das categorias
             const canais = client.channels.cache.filter(c => {
                 if (c.type !== "GUILD_TEXT") return false;
                 const nome = c.name.toLowerCase();
-                return nome.includes(formatSearch) && nome.includes(categoriaSearch);
+                
+                const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
+                const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat));
+                
+                return matchesFormat && matchesCategory;
             });
 
             if (canais.size === 0) {
@@ -155,14 +156,14 @@ class AutomationEngine {
      */
     async _processChannel(botId, automation, client, channel) {
         try {
-            const { categoriaSearch, onLog, onStats } = automation;
+            const { searchCategories, onLog, onStats } = automation;
             const guildId = channel.guild?.id;
             const guildName = channel.guild?.name || "?";
 
             if (!guildId) return;
 
-            const guildClicks = this._getGuildClicks(botId, guildId);
-            if (guildClicks >= this.MAX_ENTRIES_PER_GUILD) {
+            const guildAttempts = this._getGuildClicks(botId, guildId);
+            if (guildAttempts >= this.MAX_ENTRIES_PER_GUILD) {
                 return;
             }
 
@@ -171,7 +172,7 @@ class AutomationEngine {
             for (const msg of msgs.values()) {
                 if (!automation.isRunning) break;
                 
-                // Verificar limite novamente dentro do loop para evitar cliques extras
+                // Verificar limite de tentativas (não apenas cliques com sucesso)
                 if (this._getGuildClicks(botId, guildId) >= this.MAX_ENTRIES_PER_GUILD) break;
 
                 if (!msg.components?.length) continue;
@@ -191,23 +192,27 @@ class AutomationEngine {
 
                 if (allButtons.length === 0) continue;
 
-                // Encontrar botão correto
-                const correctButton = this._findCorrectButton(allButtons, categoriaSearch);
+                // Encontrar botão correto (qualquer uma das categorias selecionadas)
+                let correctButton = null;
+                for (const cat of searchCategories) {
+                    correctButton = this._findCorrectButton(allButtons, cat);
+                    if (correctButton) break;
+                }
 
                 if (correctButton) {
+                    // Incrementar contagem de TENTATIVAS imediatamente
+                    const newCount = this._addGuildClick(botId, guildId);
+                    
                     try {
                         await msg.clickButton(correctButton.customId);
                         clickedSet.add(msg.id);
 
-                        // Incrementar contagem
-                        const newCount = this._addGuildClick(botId, guildId);
-
                         onLog(
-                            `✅ Clicado em: #${channel.name} (${guildName}) - Botão: "${correctButton.label || correctButton.customId}" [${newCount}/${this.MAX_ENTRIES_PER_GUILD}]`,
+                            `✅ Tentativa ${newCount}/${this.MAX_ENTRIES_PER_GUILD} em: #${channel.name} (${guildName}) - Botão: "${correctButton.label || correctButton.customId}"`,
                             "success"
                         );
 
-                        // Atualizar estatísticas
+                        // Atualizar estatísticas de sucesso
                         if (onStats) {
                             onStats({
                                 entradas: (onStats.entradas || 0) + 1,
@@ -220,11 +225,13 @@ class AutomationEngine {
                         // Aguardar antes do próximo clique
                         await new Promise(r => setTimeout(r, 1000));
 
-                        if (newCount >= this.MAX_ENTRIES_PER_GUILD) {
-                            break;
-                        }
                     } catch (err) {
-                        onLog(`❌ Erro ao clicar: ${err.message}`, "error");
+                        onLog(`❌ Tentativa ${newCount}/${this.MAX_ENTRIES_PER_GUILD} falhou em: #${channel.name} (${guildName})`, "error");
+                    }
+
+                    if (newCount >= this.MAX_ENTRIES_PER_GUILD) {
+                        onLog(`⚠️ Limite de 5 tentativas atingido em "${guildName}". Pulando para o próximo servidor.`, "warn");
+                        break;
                     }
                 }
             }
@@ -237,7 +244,8 @@ class AutomationEngine {
      * Encontra o botão correto baseado na categoria
      */
     _findCorrectButton(buttons, category) {
-        const keywords = this.CATEGORY_KEYWORDS[category] || [];
+        // Encontrar as keywords baseadas na categoria (ex: 'mobile' -> ['mobile', 'mob', ...])
+        const keywords = this.CATEGORY_KEYWORDS[category] || [category];
 
         for (const button of buttons) {
             if (!button.customId) continue;

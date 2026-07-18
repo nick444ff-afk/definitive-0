@@ -832,7 +832,7 @@ async function salvarConfiguracao() {
                 const el = document.getElementById(id);
                 return el ? el.checked : false;
             })
-            .map(id => id.replace('modo',''));
+            .map(id => id.replace('modo','').replace('x', 'v'));
 
         const tokenValidation = validarTokens(tokens);
         const tokenErrorEl = document.getElementById('tokenError');
