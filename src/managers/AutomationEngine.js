@@ -42,7 +42,9 @@ class AutomationEngine {
             const searchFormats = (modos || []).map(m => m.toLowerCase().replace("x", "v"));
             const searchCategories = (categories || []).map(cat => cat.toLowerCase());
 
-            onLog(`✅ Iniciando automação: [${searchFormats.join(', ')}] - [${searchCategories.join(', ')}]`, "success");
+            // Corrigir log de modos para exibir o formato amigável (ex: 2x2 em vez de 2v2)
+            const displayFormats = searchFormats.map(f => f.replace("v", "x"));
+            onLog(`✅ Iniciando automação: [${displayFormats.join(', ')}] - [${categories.join(', ')}]`, "success");
 
             // Inicializar estruturas para esta instância
             this.clickedMessages.set(botId, new Set());
@@ -250,7 +252,7 @@ class AutomationEngine {
                     }
 
                     if (newCount >= this.MAX_ENTRIES_PER_GUILD) {
-                        onLog(`⚠️ Limite de 5 tentativas atingido em "${guildName}". Pulando para o próximo servidor.`, "warn");
+                        // Silenciado a pedido do usuário: onLog(`⚠️ Limite de 5 tentativas atingido em "${guildName}". Pulando para o próximo servidor.`, "warn");
                         break;
                     }
                 }

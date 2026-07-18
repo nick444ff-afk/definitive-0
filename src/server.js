@@ -144,6 +144,9 @@ app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
             tokens: tokens.split("\n").map(t => t.trim()).filter(t => t),
             mensagem: mensagem || "",
             mencao: parseFloat(mencao) || 0,
+            // Nomes originais para compatibilidade com AutomationEngine
+            msgauto: mensagem || "",
+            mentionauto: parseFloat(mencao) || 0,
             categories: categories ? JSON.parse(categories) : [],
             modos: modos ? JSON.parse(modos) : [],
             imagem_auto: req.file ? req.file.path : null,

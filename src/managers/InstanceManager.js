@@ -63,8 +63,6 @@ class InstanceManager {
             instance.start_time = Date.now();
             instance.config = {
                 tokens: Array.isArray(tokens) ? tokens : tokens.split("\n").map(t => t.trim()).filter(t => t),
-                format,
-                category,
                 msgauto,
                 mentionauto,
                 categories,
@@ -73,7 +71,8 @@ class InstanceManager {
             instance.current_format = format;
             instance.current_category = category;
 
-            this.addLog(botId, `✅ Iniciando automação: ${format} - ${category}`, "success");
+            // O AutomationEngine já faz o log detalhado dos modos e categorias selecionados
+            // this.addLog(botId, `✅ Iniciando automação: ${format} - ${category}`, "success");
 
             // Iniciar automação via AutomationEngine
             const success = await AutomationEngine.startAutomation(
