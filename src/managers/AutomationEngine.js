@@ -269,8 +269,12 @@ class AutomationEngine {
         try {
             const { msgauto, mentionauto, onLog } = automation;
             const sentSet = this.msgAutoSentThisSession.get(botId);
+            const clickedSet = this.clickedMessages.get(botId);
 
-            // 1. MENSAGEM AUTOMÁTICA
+            const msgs = await channel.messages.fetch({ limit: 5 });
+            const firstMsg = msgs.find(m => m.components?.length);
+
+            // ─── MENSAGEM AUTOMÁTICA ───
             if (msgauto && !sentSet.has(channel.id)) {
                 try {
                     await channel.send(msgauto);
@@ -278,57 +282,51 @@ class AutomationEngine {
                     onLog(`[MSG-AUTO] ✅ Mensagem enviada em #${channel.name} (${channel.guild?.name})`, "success");
                 } catch (err) {
                     onLog(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}: ${err.message}`, "error");
-                    sentSet.add(channel.id); // Evitar spam mesmo com erro
+                    sentSet.add(channel.id);
                 }
             }
 
-            // 2. MENÇÃO AUTOMÁTICA
-            if (mentionauto > 0) {
-                const msgs = await channel.messages.fetch({ limit: 5 });
-                const firstMsg = msgs.find(m => m.components?.length);
-                if (!firstMsg) return;
+            // Se não tem mensagem com componentes, pula menção
+            if (!firstMsg) return;
 
-                // Verificar se já mencionou nesta mensagem (usando ID da mensagem para persistência leve)
-                const clickedSet = this.clickedMessages.get(botId);
+            // ─── MENÇÃO AUTOMÁTICA ───
+            if (mentionauto > 0) {
                 const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
                 if (clickedSet.has(mentionKey)) return;
 
-                // Aguardar tempo configurado
-                await new Promise(r => setTimeout(r, mentionauto * 1000));
+                await new Promise(res => setTimeout(res, mentionauto * 1000));
 
-                // Extrair menções do conteúdo e embeds
                 let foundMentions = [];
                 const regex = /<@!?(\d+)>/g;
-                
-                const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+
+                const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]).filter(id => id !== client.user.id);
                 foundMentions.push(...contentMentions);
 
                 for (const embed of firstMsg.embeds) {
                     if (embed.description) {
-                        foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                        foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]).filter(id => id !== client.user.id));
                     }
-                    if (embed.fields) {
+                    if (embed.fields?.length) {
                         for (const field of embed.fields) {
-                            foundMentions.push(...[...field.value.matchAll(regex)].map(m => m[1]));
+                            foundMentions.push(...[...field.value.matchAll(regex)].map(m => m[1]).filter(id => id !== client.user.id));
                         }
                     }
                 }
 
-                // Filtrar duplicados e o próprio bot
-                foundMentions = [...new Set(foundMentions)].filter(id => id !== client.user.id);
+                foundMentions = [...new Set(foundMentions)];
 
                 for (const mentionUserId of foundMentions) {
                     try {
                         const member = await channel.guild.members.fetch(mentionUserId);
-                        // Lógica original: não mencionar se for staff (MANAGE_MESSAGES)
+                        // Lógica original exata: não mencionar se tiver MANAGE_MESSAGES
                         if (!member.permissions.has("MANAGE_MESSAGES")) {
                             await channel.send(`<@${mentionUserId}>`);
                             clickedSet.add(mentionKey);
                             onLog(`[MENÇÃO] ✅ Mencionou <@${mentionUserId}> em #${channel.name}`, "success");
-                            break; // Menciona apenas um por canal conforme original
+                            break;
                         }
                     } catch (err) {
-                        // Silencioso se falhar ao buscar membro
+                        // Silencioso
                     }
                 }
             }
