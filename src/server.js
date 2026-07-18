@@ -39,11 +39,7 @@ app.use(express.static(path.join(__dirname, "../public")));
  * Verifica se o servidor está rodando
  */
 app.get("/", (req, res) => {
-    res.json({
-        status: "ok",
-        message: "Servidor do painel web está rodando",
-        timestamp: new Date().toISOString()
-    });
+    res.redirect("/painel");
 });
 
 /**
