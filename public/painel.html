@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SystemX - Final</title>
+<style>
+* {
+    box-sizing: border-box;
+}
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(180deg, #050c1f, #0b1f47);
+    color: #e5e7eb;
+    min-height: 100vh;
+}
+.container {
+    max-width: 500px;
+    margin: auto;
+    padding: 15px;
+}
+.card {
+    background: linear-gradient(145deg, #0b1f47, #08142e);
+    border-radius: 22px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow:
+        0 10px 40px rgba(0,0,0,0.6),
+        inset 0 0 40px rgba(0,0,0,0.5);
+    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.card.bot-ligado {
+    border-color: rgba(239, 68, 68, 0.45);
+    box-shadow:
+        0 10px 40px rgba(239,68,68,0.25),
+        inset 0 0 40px rgba(0,0,0,0.5);
+}
+.header {
+    text-align: center;
+}
+.logo {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    border-radius: 22px;
+    background: linear-gradient(145deg, #1e3a8a, #1d4ed8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    box-shadow: 0 0 25px rgba(59,130,246,0.4);
+}
+.logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.title {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 4px;
+}
+.subtitle {
+    opacity: 0.6;
+    font-size: 13px;
+    margin-top: 5px;
+}
+.status {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 15px;
+}
+.badge {
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+.badge-green {
+    background: rgba(16,185,129,0.15);
+    color: #34d399;
+    border: 1px solid rgba(16,185,129,0.3);
+}
+.badge-red {
+    background: rgba(239,68,68,0.15);
+    color: #f87171;
+    border: 1px solid rgba(239,68,68,0.3);
+}
+.badge-yellow {
+    background: rgba(250,204,21,0.15);
+    color: #facc15;
+    border: 1px solid rgba(250,204,21,0.3);
+}
+.bot-tabs {
+    display: flex;
+    background: #091a36;
+    border-radius: 30px;
+    padding: 6px;
+    margin-top: 15px;
+}
+.bot-tabs div {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    user-select: none;
+}
+.bot-tabs div:hover:not(.active) {
+    background: rgba(255,255,255,0.07);
+}
+.bot-tabs .active {
+    background: #e5e7eb;
+    color: #000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.play-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 30px 0 10px;
+}
+.play {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.35s ease;
+    position: relative;
+    background: rgba(255,255,255,0.03);
+    user-select: none;
+}
+.play:hover {
+    transform: scale(1.06);
+    box-shadow: 0 0 30px rgba(255,255,255,0.2);
+}
+.play:active {
+    transform: scale(0.97);
+}
+
+.play .icon-play {
+    width: 0;
+    height: 0;
+    border-left: 32px solid #fff;
+    border-top: 20px solid transparent;
+    border-bottom: 20px solid transparent;
+    margin-left: 8px;
+    transition: opacity 0.2s;
+}
+
+.play .icon-stop {
+    width: 26px;
+    height: 26px;
+    background: #ef4444;
+    border-radius: 4px;
+    display: none;
+    animation: blink 1.2s infinite;
+}
+
+.play.ligado {
+    border-color: #ef4444;
+    box-shadow: 0 0 35px rgba(239,68,68,0.5), 0 0 60px rgba(239,68,68,0.2);
+    background: rgba(239,68,68,0.08);
+}
+.play.ligado:hover {
+    box-shadow: 0 0 45px rgba(239,68,68,0.65), 0 0 70px rgba(239,68,68,0.25);
+}
+.play.ligado .icon-play {
+    display: none;
+}
+.play.ligado .icon-stop {
+    display: block;
+}
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+}
+.play-label {
+    margin-top: 14px;
+    font-size: 13px;
+    opacity: 0.65;
+    text-align: center;
+    transition: color 0.3s;
+    letter-spacing: 0.5px;
+}
+.play-label.ligado {
+    color: #f87171;
+    opacity: 1;
+    font-weight: 600;
+}
+
+.card.stat {
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.stat-title {
+    font-size: 14px;
+    opacity: 0.65;
+    font-weight: 500;
+}
+.stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+.green-text  { color: #22c55e; }
+.purple-text { color: #a855f7; }
+.cyan-text   { color: #06b6d4; }
+.yellow-text { color: #facc15; }
+
+.reset-container {
+    margin: 0 0 20px;
+    padding: 0;
+}
+.reset-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 80, 80, 0.4);
+    background: rgba(255, 80, 80, 0.08);
+    color: #ff5a5a;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    backdrop-filter: blur(6px);
+    letter-spacing: 0.5px;
+}
+.reset-btn:hover {
+    background: rgba(255, 80, 80, 0.18);
+    border-color: rgba(255, 80, 80, 0.7);
+    box-shadow: 0 0 15px rgba(255,80,80,0.2);
+}
+.reset-btn:active {
+    transform: scale(0.97);
+}
+
+label {
+    margin-top: 15px;
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    opacity: 0.85;
+}
+input, textarea, select {
+    width: 100%;
+    padding: 14px;
+    margin-top: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: #020617;
+    color: #fff;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+input:focus, textarea:focus, select:focus {
+    border-color: rgba(34,211,238,0.4);
+}
+select option {
+    background: #0b1f47;
+}
+.orgs-box {
+    background: #020617;
+    border-radius: 14px;
+    padding: 10px 15px;
+    max-height: 180px;
+    overflow-y: auto;
+    margin-top: 8px;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
+}
+.org-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 5px;
+    cursor: pointer;
+    font-size: 15px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+.org-item:hover {
+    background: rgba(255,255,255,0.04);
+}
+.org-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #22d3ee;
+    cursor: pointer;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+}
+.org-item input:checked + span {
+    color: #22d3ee;
+}
+.save-btn {
+    width: 100%;
+    padding: 15px;
+    margin-top: 20px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 15px rgba(29,78,216,0.35);
+}
+.save-btn:hover {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    box-shadow: 0 6px 20px rgba(29,78,216,0.5);
+    transform: translateY(-1px);
+}
+.save-btn:active {
+    transform: scale(0.98) translateY(0);
+}
+.save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.logs {
+    background: #000;
+    padding: 15px;
+    border-radius: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    height: 200px;
+    overflow-y: auto;
+    line-height: 1.6;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.logs::-webkit-scrollbar { width: 5px; }
+.logs::-webkit-scrollbar-track { background: #000; }
+.logs::-webkit-scrollbar-thumb { background: #1d4ed8; border-radius: 3px; }
+.log-entry { margin: 2px 0; }
+.log-time { color: #4b5563; margin-right: 6px; }
+.log-info { color: #22d3ee; }
+.log-success { color: #22c55e; }
+.log-warn { color: #facc15; }
+.log-error { color: #f87171; }
+.clear-logs-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,90,90,0.35);
+    background: rgba(255,90,90,0.1);
+    color: #ff5a5a;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.5px;
+}
+.clear-logs-btn:hover {
+    background: rgba(255,90,90,0.2);
+    border-color: rgba(255,90,90,0.6);
+    box-shadow: 0 0 12px rgba(255,90,90,0.2);
+}
+.clear-logs-btn:active {
+    transform: scale(0.97);
+}
+
+.toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #1d4ed8;
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    z-index: 9999;
+    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease;
+    opacity: 0;
+    white-space: nowrap;
+}
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+.toast.success { background: #16a34a; }
+.toast.error   { background: #dc2626; }
+.toast.warn    { background: #ca8a04; }
+
+.instancia-text {
+    opacity: 0.6;
+    margin-top: 10px;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    transition: color 0.3s;
+}
+
+.controle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0;
+}
+.controle-header h3 {
+    margin: 0;
+}
+.bot-indicator {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(34,211,238,0.12);
+    color: #22d3ee;
+    font-weight: 600;
+    border: 1px solid rgba(34,211,238,0.25);
+    transition: all 0.3s;
+}
+.error-message {
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.3);
+    color: #f87171;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 10px;
+}
+.success-message {
+    background: rgba(34,211,238,0.1);
+    border: 1px solid rgba(34,211,238,0.3);
+    color: #22d3ee;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+</style>
+</head>
+<body>
+<div class="container">
+
+    <div class="card header">
+        <div class="logo">
+            <img src="https://i.imgur.com/llnJtbZ.png" alt="Logo">
+        </div>
+        <h1 class="title">SystemX</h1>
+        <p class="subtitle">PAINEL DE CONTROLE</p>
+
+        <div class="status">
+            <div class="badge badge-red" id="badgeConexao">Desconectado</div>
+            <div class="badge badge-red" id="badgeStatus">Parado</div>
+        </div>
+
+        <div class="bot-tabs" id="botTabs">
+            <div class="active" data-bot="BOT1" onclick="mudarBot(this)">BOT1</div>
+            <div data-bot="BOT2" onclick="mudarBot(this)">BOT2</div>
+        </div>
+
+        <p class="instancia-text" id="instancia">INSTÂNCIA ATIVA: BOT 1</p>
+    </div>
+
+    <div class="card" id="cardControle">
+        <div class="controle-header">
+            <h3 id="controleTitle">Controle - Bot 1</h3>
+            <span class="bot-indicator" id="botIndicator">BOT1</span>
+        </div>
+
+        <div class="play-wrapper">
+            <div class="play" id="playButton" onclick="toggleBot()">
+                <div class="icon-play"></div>
+                <div class="icon-stop"></div>
+            </div>
+            <p class="play-label" id="playLabel">Clique para iniciar o bot</p>
+        </div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">Entradas</div>
+        <div class="stat-value" id="entradas">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">Na Fila</div>
+        <div class="stat-value green-text" id="naFila">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">Partidas</div>
+        <div class="stat-value purple-text" id="partidas">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">DMs</div>
+        <div class="stat-value cyan-text" id="dms">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">Uptime</div>
+        <div class="stat-value yellow-text" id="uptime">00:00:00</div>
+    </div>
+
+    <div class="reset-container">
+        <button class="reset-btn" onclick="resetStats()">RESETAR STATS</button>
+    </div>
+
+    <div class="card">
+        <h3>Configuração</h3>
+
+        <label>Tokens</label>
+        <textarea id="tokens" rows="3" placeholder="Cole seus tokens aqui (um por linha)"></textarea>
+        <div id="tokenError" class="error-message" style="display: none;"></div>
+
+        <label>Categorias</label>
+        <div class="orgs-box">
+            <label class="org-item">
+                <input type="checkbox" id="catMobile" checked>
+                <span>Mobile</span>
+            </label>
+            <label class="org-item">
+                <input type="checkbox" id="catEmulador">
+                <span>Emulador</span>
+            </label>
+            <label class="org-item">
+                <input type="checkbox" id="catMisto">
+                <span>Misto</span>
+            </label>
+            <label class="org-item">
+                <input type="checkbox" id="catTatico">
+                <span>Tático</span>
+            </label>
+        </div>
+
+        <label>Modos</label>
+        <div class="orgs-box">
+            <label class="org-item">
+                <input type="checkbox" id="modo1x1">
+                <span>1x1</span>
+            </label>
+            <label class="org-item">
+                <input type="checkbox" id="modo2x2" checked>
+                <span>2x2</span>
+            </label>
+            <label class="org-item">
+                <input type="checkbox" id="modo3x3">
+                <span>3x3</span>
+            </label>
+            <label class="org-item">
+                <input type="checkbox" id="modo4x4" checked>
+                <span>4x4</span>
+            </label>
+        </div>
+
+        <label>Mensagem</label>
+        <input type="text" id="mensagem" placeholder="Digite a mensagem">
+
+        <label>Menção</label>
+        <input type="text" id="mencao" placeholder="Tempo em segundos (ex: 10)">
+
+        <label>Imagem Automática (Galeria)</label>
+        <input type="file" id="imagem_auto" accept="image/*" style="padding: 10px;">
+
+        <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
+        <div id="configMessage" class="success-message" style="display: none;"></div>
+    </div>
+
+    <div class="card">
+        <h3>Logs</h3>
+        <div class="logs" id="logs"></div>
+        <button class="clear-logs-btn" onclick="limparLogs()">Limpar Logs</button>
+    </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = window.location.origin;
+
+let botAtivo   = 'BOT1';
+let botLigado  = false;
+let uptimeInterval = null;
+let uptimeSeconds  = 0;
+let isSaving = false;
+
+document.addEventListener('DOMContentLoaded', function () {
+    addLog('Sistema inicializado.', 'info');
+    verificarConexao();
+    setInterval(verificarConexao, 5000); 
+    setInterval(atualizarStatusBot, 3000); 
+    setInterval(fetchLogs, 1000); 
+});
+
+async function verificarConexao() {
+    const badge = document.getElementById('badgeConexao');
+    try {
+        const response = await fetch(`${API_URL}/`);
+        if (response.ok) {
+            badge.textContent = 'Conectado';
+            badge.className = 'badge badge-green';
+        } else {
+            throw new Error();
+        }
+    } catch (e) {
+        badge.textContent = 'Desconectado';
+        badge.className = 'badge badge-red';
+    }
+}
+
+async function atualizarStatusBot() {
+    try {
+        const response = await fetch(`${API_URL}/status/${botAtivo}`);
+        const data = await response.json();
+        
+        const badgeStatus = document.getElementById('badgeStatus');
+        const playBtn = document.getElementById('playButton');
+        const playLabel = document.getElementById('playLabel');
+        const cardCtrl = document.getElementById('cardControle');
+
+        if (data.is_running) {
+            botLigado = true;
+            badgeStatus.textContent = 'Rodando';
+            badgeStatus.className = 'badge badge-green';
+            playBtn.classList.add('ligado');
+            cardCtrl.classList.add('bot-ligado');
+            playLabel.textContent = `${botAtivo} em execução...`;
+            playLabel.classList.add('ligado');
+            
+            if (data.stats) {
+                document.getElementById('entradas').textContent = data.stats.entradas || 0;
+                document.getElementById('naFila').textContent   = data.stats.na_fila || 0;
+                document.getElementById('partidas').textContent = data.stats.partidas || 0;
+                document.getElementById('dms').textContent      = data.stats.dms || 0;
+            }
+
+            if (!uptimeInterval) {
+                uptimeInterval = setInterval(tickUptime, 1000);
+            }
+        } else {
+            botLigado = false;
+            badgeStatus.textContent = 'Parado';
+            badgeStatus.className = 'badge badge-red';
+            playBtn.classList.remove('ligado');
+            cardCtrl.classList.remove('bot-ligado');
+            playLabel.textContent = 'Clique para iniciar o bot';
+            playLabel.classList.remove('ligado');
+            
+            clearInterval(uptimeInterval);
+            uptimeInterval = null;
+        }
+    } catch (e) {
+        console.error("Erro ao buscar status:", e);
+    }
+}
+
+function mudarBot(tabEl) {
+    const bot = tabEl.getAttribute('data-bot');
+    if (bot === botAtivo) return;
+
+    document.querySelectorAll('.bot-tabs div').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+
+    botAtivo = bot;
+    const botNum = bot.replace('BOT', 'Bot ');
+
+    document.getElementById('instancia').textContent    = `INSTÂNCIA ATIVA: ${bot}`;
+    document.getElementById('controleTitle').textContent = `Controle - ${botNum}`;
+    document.getElementById('botIndicator').textContent  = bot;
+
+    addLog(`Instância trocada para ${bot}.`, 'info');
+    showToast(`Trocado para ${bot}`, 'info');
+    
+    uptimeSeconds = 0;
+    document.getElementById('uptime').textContent = '00:00:00';
+}
+
+async function toggleBot() {
+    if (!botLigado) {
+        try {
+            const response = await fetch(`${API_URL}/start_bot/${botAtivo}`, { method: 'POST' });
+            const data = await response.json();
+            if (data.status === 'success') {
+                addLog(`✅ ${botAtivo} iniciado com sucesso via API.`, 'success');
+                showToast(`${botAtivo} ligado!`, 'success');
+            } else {
+                addLog(`❌ Erro: ${data.message}`, 'error');
+                showToast(data.message, 'error');
+            }
+        } catch (e) {
+            addLog('❌ Erro ao conectar com o servidor backend.', 'error');
+            showToast('Erro de conexão!', 'error');
+        }
+    } else {
+        try {
+            const response = await fetch(`${API_URL}/stop_bot/${botAtivo}`, { method: 'POST' });
+            const data = await response.json();
+            if (data.status === 'success') {
+                addLog(`⚠️ ${botAtivo} desligado via API.`, 'warn');
+                showToast(`${botAtivo} desligado`, 'warn');
+            } else {
+                addLog(`❌ Erro: ${data.message}`, 'error');
+            }
+        } catch (e) {
+            addLog('❌ Erro ao conectar com o servidor backend.', 'error');
+        }
+    }
+}
+
+function tickUptime() {
+    uptimeSeconds++;
+    const h = Math.floor(uptimeSeconds / 3600);
+    const m = Math.floor((uptimeSeconds % 3600) / 60);
+    const s = uptimeSeconds % 60;
+    document.getElementById('uptime').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+function pad(n) { return n.toString().padStart(2, '0'); }
+
+async function fetchLogs() {
+    try {
+        const response = await fetch(`${API_URL}/logs/${botAtivo}`);
+        if (response.ok) {
+            const data = await response.json();
+            data.logs.forEach(log => {
+                addLog(log.message, log.type);
+            });
+        }
+    } catch (e) {
+    }
+}
+
+async function resetStats() {
+    try {
+        const response = await fetch(`${API_URL}/reset_stats/${botAtivo}`, { method: 'POST' });
+        if (response.ok) {
+            document.getElementById('entradas').textContent = '0';
+            document.getElementById('naFila').textContent   = '0';
+            document.getElementById('partidas').textContent = '0';
+            document.getElementById('dms').textContent      = '0';
+            document.getElementById('uptime').textContent   = '00:00:00';
+            uptimeSeconds = 0;
+            addLog('⚠️ Stats resetados via API.', 'warn');
+            showToast('Stats resetados!', 'warn');
+        }
+    } catch (e) {
+        addLog('❌ Erro ao resetar stats via API.', 'error');
+    }
+}
+
+function validarTokens(tokensText) {
+    const tokenList = tokensText.split('\n').map(t => t.trim()).filter(t => t);
+    const errors = [];
+    
+    if (tokenList.length === 0) {
+        return { valid: false, message: 'Nenhum token fornecido' };
+    }
+    
+    for (let i = 0; i < tokenList.length; i++) {
+        const token = tokenList[i];
+        if (token.length < 59) {
+            errors.push(`Token ${i + 1}: muito curto (${token.length} caracteres)`);
+        } else if (token.length > 100) {
+            errors.push(`Token ${i + 1}: muito longo (${token.length} caracteres)`);
+        } else if (!/^[A-Za-z0-9_.-]+$/.test(token)) {
+            errors.push(`Token ${i + 1}: contém caracteres inválidos`);
+        }
+    }
+    
+    if (errors.length > 0) {
+        return { valid: false, message: errors.join('; ') };
+    }
+    
+    return { valid: true, message: `${tokenList.length} token(s) válido(s)` };
+}
+
+async function salvarConfiguracao() {
+    if (isSaving) {
+        showToast('Salvamento em progresso...', 'warn');
+        return;
+    }
+    
+    isSaving = true;
+    const saveBtn = document.getElementById('saveBtnConfig');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'SALVANDO...';
+    saveBtn.disabled = true;
+    
+    try {
+        const tokens   = document.getElementById('tokens').value.trim();
+        const mensagem = document.getElementById("mensagem").value.trim();
+        const mencao   = document.getElementById("mencao").value.trim();
+        const imagemInput = document.getElementById("imagem_auto");
+
+        const categoriasSelecionadas = [];
+        if (document.getElementById('catMobile').checked) categoriasSelecionadas.push('Mobile');
+        if (document.getElementById('catEmulador').checked) categoriasSelecionadas.push('Emulador');
+        if (document.getElementById('catMisto').checked) categoriasSelecionadas.push('Misto');
+        if (document.getElementById('catTatico').checked) categoriasSelecionadas.push('Tático');
+
+        const modoIds = ['modo1x1','modo2x2','modo3x3','modo4x4'];
+        const modosSelecionados = modoIds
+            .filter(id => {
+                const el = document.getElementById(id);
+                return el ? el.checked : false;
+            })
+            .map(id => id.replace('modo',''));
+
+        const tokenValidation = validarTokens(tokens);
+        const tokenErrorEl = document.getElementById('tokenError');
+        
+        if (!tokenValidation.valid) {
+            tokenErrorEl.textContent = '❌ ' + tokenValidation.message;
+            tokenErrorEl.style.display = 'block';
+            addLog(`❌ Erro de validação: ${tokenValidation.message}`, 'error');
+            showToast('Tokens inválidos!', 'error');
+            isSaving = false;
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
+            return;
+        }
+        
+        tokenErrorEl.style.display = 'none';
+
+        // Usar FormData para suportar upload de arquivos
+        const formData = new FormData();
+        formData.append('bot_id', botAtivo);
+        formData.append('tokens', tokens);
+        formData.append('mensagem', mensagem);
+        formData.append('mencao', mencao);
+        formData.append('categories', JSON.stringify(categoriasSelecionadas));
+        formData.append('modos', JSON.stringify(modosSelecionados));
+        
+        if (imagemInput.files[0]) {
+            formData.append('imagem_auto', imagemInput.files[0]);
+        }
+
+        const response = await fetch(`${API_URL}/save_config`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        const responseData = await response.json();
+        
+        if (response.ok) {
+            addLog(`✅ Configuração salva com sucesso para ${botAtivo}`, 'success');
+            showToast('Configuração salva!', 'success');
+            
+            const configMsg = document.getElementById('configMessage');
+            configMsg.textContent = '✅ ' + responseData.message;
+            configMsg.style.display = 'block';
+            setTimeout(() => { configMsg.style.display = 'none'; }, 3000);
+        } else {
+            addLog(`❌ Erro ao salvar: ${responseData.message}`, 'error');
+            showToast('Erro ao salvar!', 'error');
+        }
+    } catch (e) {
+        addLog(`❌ Erro de conexão: ${e.message}`, 'error');
+        showToast('Erro de conexão!', 'error');
+    } finally {
+        isSaving = false;
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
+    }
+}
+
+function limparLogs() {
+    document.getElementById('logs').innerHTML = '';
+    addLog('Logs limpos.', 'info');
+}
+
+function addLog(msg, tipo) {
+    const logsEl = document.getElementById('logs');
+    const now    = new Date();
+    const time   = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    const tipoClass = { info: 'log-info', success: 'log-success', warn: 'log-warn', error: 'log-error' }[tipo] || 'log-info';
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-time">[${time}]</span><span class="${tipoClass}">${msg}</span>`;
+    logsEl.appendChild(entry);
+    logsEl.scrollTop = logsEl.scrollHeight;
+}
+
+let toastTimeout = null;
+function showToast(msg, tipo) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.className   = 'toast';
+    if (tipo === 'success') toast.classList.add('success');
+    else if (tipo === 'error') toast.classList.add('error');
+    else if (tipo === 'warn')  toast.classList.add('warn');
+    void toast.offsetWidth;
+    toast.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+}
+</script>
+</body>
+</html>
