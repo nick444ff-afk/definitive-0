@@ -2,8 +2,8 @@ const { Client } = require("discord.js-selfbot-v13");
 
 /**
  * AutomationEngine
- * Motor de automação que implementa a lógica original do bot
- * com suporte para múltiplas instâncias independentes
+ * Motor de automação que implementa a lógica ORIGINAL do bot
+ * com suporte para múltiplas instâncias independentes e controle via Web
  */
 class AutomationEngine {
     constructor() {
@@ -11,7 +11,7 @@ class AutomationEngine {
         this.clickedMessages = new Map();
         this.guildClickCount = new Map();
         this.msgAutoSentThisSession = new Map();
-        this.MAX_ENTRIES_PER_GUILD = 5;
+        this.MAX_ENTRIES_PER_GUILD = 5; // Limite de tentativas solicitado pelo usuário
         this.IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair"];
         this.CATEGORY_KEYWORDS = {
             mobile: ["mobile", "mob", "celular", "📱"],
@@ -31,23 +31,16 @@ class AutomationEngine {
                 return false;
             }
 
-            const { tokens, categories, modos } = config;
+            const { tokens, categories, modos, mensagem, mencao } = config;
 
             if (!tokens || tokens.length === 0) {
                 onLog("❌ Nenhum token fornecido", "error");
                 return false;
             }
 
-            // Mapear categorias para termos de busca
-            const categoryMap = {
-                'Mobile': 'mobile',
-                'Emulador': 'emulador',
-                'Misto': 'misto',
-                'Tático': 'tatico'
-            };
-
+            // Mapear termos de busca (Formatos e Categorias)
+            const searchFormats = (modos || []).map(m => m.toLowerCase().replace("x", "v"));
             const searchCategories = (categories || []).map(cat => cat.toLowerCase());
-            const searchFormats = (modos || []).map(m => m.toLowerCase());
 
             onLog(`✅ Iniciando automação: [${searchFormats.join(', ')}] - [${searchCategories.join(', ')}]`, "success");
 
@@ -62,11 +55,14 @@ class AutomationEngine {
                 config,
                 searchFormats,
                 searchCategories,
+                msgauto: mensagem,
+                mentionauto: parseFloat(mencao) || 0,
                 clients: new Map(),
                 interval: null,
                 isRunning: true,
                 onLog,
-                onStats
+                onStats,
+                processing: new Set()
             };
 
             this.activeAutomations.set(botId, automation);
@@ -82,7 +78,7 @@ class AutomationEngine {
     }
 
     /**
-     * Loop principal de automação
+     * Loop principal de automação (A cada 2 segundos, conforme original)
      */
     _startAutomationLoop(botId, automation) {
         const { config, onLog } = automation;
@@ -98,6 +94,7 @@ class AutomationEngine {
             try {
                 // Processar cada token
                 for (const token of tokens) {
+                    if (!automation.isRunning) break;
                     await this._processTokenAutomation(botId, automation, token);
                 }
             } catch (err) {
@@ -115,46 +112,77 @@ class AutomationEngine {
         if (!automation.isRunning) return;
         try {
             const { clients, searchFormats, searchCategories, onLog } = automation;
-            const clientKey = `${token.substring(0, 10)}`;
+            const clientKey = `${token.substring(0, 15)}`;
 
             // Obter ou criar cliente
             let client = clients.get(clientKey);
             if (!client) {
                 client = new Client();
-                await client.login(token);
-                clients.set(clientKey, client);
-                onLog(`✅ Logado como: ${client.user.tag}`, "success");
+                try {
+                    await client.login(token);
+                    clients.set(clientKey, client);
+                    onLog(`✅ Logado como: ${client.user.tag}`, "success");
+                } catch (loginErr) {
+                    onLog(`❌ Erro de login no token ${clientKey}...: ${loginErr.message}`, "error");
+                    return;
+                }
             }
 
-            // Buscar canais que correspondam a QUALQUER um dos formatos e QUALQUER uma das categorias
-            const canais = client.channels.cache.filter(c => {
+            // ─── PARTE 1: BUSCAR CANAIS DE FILA PARA CLIQUES ───
+            const canaisFila = client.channels.cache.filter(c => {
                 if (c.type !== "GUILD_TEXT") return false;
                 const nome = c.name.toLowerCase();
                 
+                // Lógica original: deve conter o formato E a categoria
                 const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
-                const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat));
+                const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => {
+                    const keywords = this.CATEGORY_KEYWORDS[cat] || [cat.toLowerCase()];
+                    return keywords.some(kw => nome.includes(kw));
+                });
                 
                 return matchesFormat && matchesCategory;
             });
 
-            if (canais.size === 0) {
-                return;
+            for (const channel of canaisFila.values()) {
+                if (!automation.isRunning) break;
+                if (automation.processing.has(channel.id)) continue;
+                
+                const guildId = channel.guild?.id;
+                if (guildId && this._getGuildClicks(botId, guildId) >= this.MAX_ENTRIES_PER_GUILD) continue;
+
+                automation.processing.add(channel.id);
+                await this._processQueueChannel(botId, automation, client, channel);
+                setTimeout(() => automation.processing.delete(channel.id), 3000);
             }
 
-            // Processar cada canal
-            for (const canal of canais.values()) {
+            // ─── PARTE 2: MONITORAR CANAIS DE PARTIDA (MSGAUTO + MENÇÃO) ───
+            const canaisPartida = client.channels.cache.filter(c => 
+                c.guild &&
+                (c.type === "GUILD_TEXT" || c.type === "GUILD_PRIVATE_THREAD") &&
+                (c.name?.toLowerCase().includes("aguardando") || 
+                 c.name?.toLowerCase().includes("partida") || 
+                 c.name?.toLowerCase().includes("fila")) &&
+                c.viewable
+            );
+
+            for (const channel of canaisPartida.values()) {
                 if (!automation.isRunning) break;
-                await this._processChannel(botId, automation, client, canal);
+                if (automation.processing.has(channel.id)) continue;
+
+                automation.processing.add(channel.id);
+                await this._processMatchChannel(botId, automation, client, channel);
+                setTimeout(() => automation.processing.delete(channel.id), 2000);
             }
+
         } catch (err) {
             automation.onLog(`❌ Erro ao processar token: ${err.message}`, "error");
         }
     }
 
     /**
-     * Processa um canal específico
+     * Processa um canal de fila para realizar cliques
      */
-    async _processChannel(botId, automation, client, channel) {
+    async _processQueueChannel(botId, automation, client, channel) {
         try {
             const { searchCategories, onLog, onStats } = automation;
             const guildId = channel.guild?.id;
@@ -162,25 +190,20 @@ class AutomationEngine {
 
             if (!guildId) return;
 
-            const guildAttempts = this._getGuildClicks(botId, guildId);
-            if (guildAttempts >= this.MAX_ENTRIES_PER_GUILD) {
-                return;
-            }
+            // Verificar limite de tentativas
+            if (this._getGuildClicks(botId, guildId) >= this.MAX_ENTRIES_PER_GUILD) return;
 
             const msgs = await channel.messages.fetch({ limit: 15 });
 
             for (const msg of msgs.values()) {
                 if (!automation.isRunning) break;
-                
-                // Verificar limite de tentativas (não apenas cliques com sucesso)
                 if (this._getGuildClicks(botId, guildId) >= this.MAX_ENTRIES_PER_GUILD) break;
-
                 if (!msg.components?.length) continue;
 
                 const clickedSet = this.clickedMessages.get(botId);
                 if (clickedSet.has(msg.id)) continue;
 
-                // Coletar botões
+                // Coletar todos os botões
                 const allButtons = [];
                 for (const row of msg.components) {
                     for (const component of row.components) {
@@ -192,7 +215,7 @@ class AutomationEngine {
 
                 if (allButtons.length === 0) continue;
 
-                // Encontrar botão correto (qualquer uma das categorias selecionadas)
+                // Encontrar o botão correto baseado nas categorias selecionadas
                 let correctButton = null;
                 for (const cat of searchCategories) {
                     correctButton = this._findCorrectButton(allButtons, cat);
@@ -200,7 +223,7 @@ class AutomationEngine {
                 }
 
                 if (correctButton) {
-                    // Incrementar contagem de TENTATIVAS imediatamente
+                    // Incrementar contagem de TENTATIVAS (Limite rigoroso de 5)
                     const newCount = this._addGuildClick(botId, guildId);
                     
                     try {
@@ -215,14 +238,11 @@ class AutomationEngine {
                         // Atualizar estatísticas de sucesso
                         if (onStats) {
                             onStats({
-                                entradas: (onStats.entradas || 0) + 1,
-                                na_fila: onStats.na_fila || 0,
-                                partidas: onStats.partidas || 0,
-                                dms: onStats.dms || 0
+                                entradas: (this._getTotalEntradas(botId) || 0) + 1
                             });
                         }
 
-                        // Aguardar antes do próximo clique
+                        // Aguardar antes do próximo clique no mesmo canal
                         await new Promise(r => setTimeout(r, 1000));
 
                     } catch (err) {
@@ -236,7 +256,82 @@ class AutomationEngine {
                 }
             }
         } catch (err) {
-            automation.onLog(`❌ Erro ao processar canal: ${err.message}`, "error");
+            automation.onLog(`❌ Erro ao processar canal de fila: ${err.message}`, "error");
+        }
+    }
+
+    /**
+     * Processa um canal de partida (Mensagem Automática e Menção)
+     */
+    async _processMatchChannel(botId, automation, client, channel) {
+        try {
+            const { msgauto, mentionauto, onLog } = automation;
+            const sentSet = this.msgAutoSentThisSession.get(botId);
+
+            // 1. MENSAGEM AUTOMÁTICA
+            if (msgauto && !sentSet.has(channel.id)) {
+                try {
+                    await channel.send(msgauto);
+                    sentSet.add(channel.id);
+                    onLog(`[MSG-AUTO] ✅ Mensagem enviada em #${channel.name} (${channel.guild?.name})`, "success");
+                } catch (err) {
+                    onLog(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}: ${err.message}`, "error");
+                    sentSet.add(channel.id); // Evitar spam mesmo com erro
+                }
+            }
+
+            // 2. MENÇÃO AUTOMÁTICA
+            if (mentionauto > 0) {
+                const msgs = await channel.messages.fetch({ limit: 5 });
+                const firstMsg = msgs.find(m => m.components?.length);
+                if (!firstMsg) return;
+
+                // Verificar se já mencionou nesta mensagem (usando ID da mensagem para persistência leve)
+                const clickedSet = this.clickedMessages.get(botId);
+                const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
+                if (clickedSet.has(mentionKey)) return;
+
+                // Aguardar tempo configurado
+                await new Promise(r => setTimeout(r, mentionauto * 1000));
+
+                // Extrair menções do conteúdo e embeds
+                let foundMentions = [];
+                const regex = /<@!?(\d+)>/g;
+                
+                const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+                foundMentions.push(...contentMentions);
+
+                for (const embed of firstMsg.embeds) {
+                    if (embed.description) {
+                        foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                    }
+                    if (embed.fields) {
+                        for (const field of embed.fields) {
+                            foundMentions.push(...[...field.value.matchAll(regex)].map(m => m[1]));
+                        }
+                    }
+                }
+
+                // Filtrar duplicados e o próprio bot
+                foundMentions = [...new Set(foundMentions)].filter(id => id !== client.user.id);
+
+                for (const mentionUserId of foundMentions) {
+                    try {
+                        const member = await channel.guild.members.fetch(mentionUserId);
+                        // Lógica original: não mencionar se for staff (MANAGE_MESSAGES)
+                        if (!member.permissions.has("MANAGE_MESSAGES")) {
+                            await channel.send(`<@${mentionUserId}>`);
+                            clickedSet.add(mentionKey);
+                            onLog(`[MENÇÃO] ✅ Mencionou <@${mentionUserId}> em #${channel.name}`, "success");
+                            break; // Menciona apenas um por canal conforme original
+                        }
+                    } catch (err) {
+                        // Silencioso se falhar ao buscar membro
+                    }
+                }
+            }
+        } catch (err) {
+            automation.onLog(`❌ Erro no canal de partida: ${err.message}`, "error");
         }
     }
 
@@ -244,8 +339,7 @@ class AutomationEngine {
      * Encontra o botão correto baseado na categoria
      */
     _findCorrectButton(buttons, category) {
-        // Encontrar as keywords baseadas na categoria (ex: 'mobile' -> ['mobile', 'mob', ...])
-        const keywords = this.CATEGORY_KEYWORDS[category] || [category];
+        const keywords = this.CATEGORY_KEYWORDS[category.toLowerCase()] || [category.toLowerCase()];
 
         for (const button of buttons) {
             if (!button.customId) continue;
@@ -272,17 +366,13 @@ class AutomationEngine {
     }
 
     /**
-     * Obtém o número de cliques de um servidor
+     * Auxiliares de Gerenciamento
      */
     _getGuildClicks(botId, guildId) {
         const guildMap = this.guildClickCount.get(botId);
-        if (!guildMap) return 0;
-        return guildMap.get(guildId) || 0;
+        return guildMap ? (guildMap.get(guildId) || 0) : 0;
     }
 
-    /**
-     * Incrementa o número de cliques de um servidor
-     */
     _addGuildClick(botId, guildId) {
         let guildMap = this.guildClickCount.get(botId);
         if (!guildMap) {
@@ -295,35 +385,30 @@ class AutomationEngine {
         return newCount;
     }
 
+    _getTotalEntradas(botId) {
+        const guildMap = this.guildClickCount.get(botId);
+        if (!guildMap) return 0;
+        let total = 0;
+        for (const count of guildMap.values()) total += count;
+        return total;
+    }
+
     /**
      * Para a automação de uma instância
      */
     async stopAutomation(botId, onLog) {
         try {
             const automation = this.activeAutomations.get(botId);
-            if (!automation) {
-                onLog("⚠️ Nenhuma automação em execução", "warn");
-                return false;
-            }
+            if (!automation) return false;
 
             automation.isRunning = false;
+            if (automation.interval) clearInterval(automation.interval);
 
-            // Limpar intervalo
-            if (automation.interval) {
-                clearInterval(automation.interval);
-            }
-
-            // Destruir clientes
-            for (const [key, client] of automation.clients.entries()) {
-                try {
-                    await client.destroy();
-                } catch (e) {
-                    onLog(`Erro ao destruir cliente: ${e.message}`, "error");
-                }
+            for (const client of automation.clients.values()) {
+                try { await client.destroy(); } catch (e) {}
             }
             automation.clients.clear();
 
-            // Limpar estruturas
             this.clickedMessages.delete(botId);
             this.guildClickCount.delete(botId);
             this.msgAutoSentThisSession.delete(botId);
@@ -335,33 +420,6 @@ class AutomationEngine {
             onLog(`❌ Erro ao parar: ${err.message}`, "error");
             return false;
         }
-    }
-
-    /**
-     * Verifica se uma automação está rodando
-     */
-    isRunning(botId) {
-        const automation = this.activeAutomations.get(botId);
-        return automation ? automation.isRunning : false;
-    }
-
-    /**
-     * Obtém informações sobre uma automação
-     */
-    getAutomationInfo(botId) {
-        const automation = this.activeAutomations.get(botId);
-        if (!automation) {
-            return null;
-        }
-
-        return {
-            botId,
-            isRunning: automation.isRunning,
-            format: automation.config.format,
-            category: automation.config.category,
-            tokensCount: automation.config.tokens.length,
-            clientsCount: automation.clients.size
-        };
     }
 }
 
