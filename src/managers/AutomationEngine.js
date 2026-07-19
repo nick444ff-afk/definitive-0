@@ -74,6 +74,30 @@ class AutomationEngine {
             onLog(`[AUTOMAÇÃO] Buscando: [${searchFormats.join(', ')}] - [${searchCategories.join(', ')}]`, "success");
 
             // Lógica de botões original exata
+            // MAPEAMENTO AVANÇADO DE BOTÕES POR MODO E CATEGORIA
+            const BUTTON_MAP = {
+                mobile: {
+                    "1v1": ["Gel Normal", "Gel inf", "Gel Infinito", "Gelo Normal", "Gelo Infinito"],
+                    "2v2": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
+                    "3v3": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
+                    "4v4": ["Normal", "Entrar na Fila", "Full ump"]
+                },
+                emulador: {
+                    "1v1": ["Gel Normal", "Gel inf", "Gel Infinito", "Gelo Normal", "Gelo Infinito"],
+                    "2v2": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
+                    "3v3": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
+                    "4v4": ["Normal", "Entrar na Fila", "Full ump"]
+                },
+                misto: {
+                    "2v2": ["1 Emu", "1 Emulador"],
+                    "3v3": ["1 Emu", "1 Emulador", "2 Emu", "2 Emulador"],
+                    "4v4": ["1 Emu", "1 Emulador", "2 Emu", "2 Emulador", "3 Emu", "3 Emulador"]
+                },
+                tatico: {
+                    "default": ["tatico", "tático", "tat", "❗"]
+                }
+            };
+
             const CATEGORY_KEYWORDS = {
                 mobile: ["mobile", "mob", "celular", "📱"],
                 emulador: ["emulador", "emu", "emul", "🖥️", "🖥"],
@@ -105,17 +129,42 @@ class AutomationEngine {
                         }
 
                         let bestMatch = null;
+
+                        // 1. TENTAR MATCH PELO MAPEAMENTO AVANÇADO (PRIORIDADE MÁXIMA)
                         for (const cat of categories) {
-                            const keywords = CATEGORY_KEYWORDS[cat.toLowerCase()] || [cat.toLowerCase()];
-                            for (const button of allButtons) {
-                                if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
-                                const searchText = `${button.customId} ${button.label} ${button.emoji?.name}`.toLowerCase();
-                                if (keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
-                                    bestMatch = button;
-                                    break;
+                            for (const fmt of searchFormats) {
+                                const fmtKey = fmt.toLowerCase().replace("x", "v"); // normalizar para 1v1, 2v2
+                                const advancedKeywords = BUTTON_MAP[cat.toLowerCase()]?.[fmtKey] || BUTTON_MAP[cat.toLowerCase()]?.["default"];
+                                
+                                if (advancedKeywords) {
+                                    for (const button of allButtons) {
+                                        if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
+                                        const labelText = (button.label || "").toLowerCase();
+                                        if (advancedKeywords.some(kw => labelText.includes(kw.toLowerCase()))) {
+                                            bestMatch = button;
+                                            break;
+                                        }
+                                    }
                                 }
+                                if (bestMatch) break;
                             }
                             if (bestMatch) break;
+                        }
+
+                        // 2. TENTAR MATCH PELAS KEYWORDS DE CATEGORIA (SEGUNDA OPÇÃO)
+                        if (!bestMatch) {
+                            for (const cat of categories) {
+                                const keywords = CATEGORY_KEYWORDS[cat.toLowerCase()] || [cat.toLowerCase()];
+                                for (const button of allButtons) {
+                                    if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
+                                    const searchText = `${button.customId} ${button.label} ${button.emoji?.name}`.toLowerCase();
+                                    if (keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
+                                        bestMatch = button;
+                                        break;
+                                    }
+                                }
+                                if (bestMatch) break;
+                            }
                         }
 
                         if (!bestMatch) {
