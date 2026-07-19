@@ -139,20 +139,10 @@ class AutomationEngine {
                 } catch (err) {}
             };
 
-            let cycleStartTime = Date.now();
             const interval = setInterval(async () => {
                 if (!automation.isRunning) return clearInterval(interval);
 
                 try {
-                    // LOOP INFINITO IMEDIATO: Resetar contadores periodicamente de forma silenciosa
-                    if (Date.now() - cycleStartTime > 5 * 60 * 1000) { // Reset a cada 5 min para garantir fluidez
-                        automation.guildClickCount.clear();
-                        automation.clickedMessages.clear();
-                        automation.msgAutoSentThisSession.clear();
-                        cycleStartTime = Date.now();
-                        // Silenciado a pedido do usuário
-                    }
-
                     // 1. Escaneamento
                     const canaisFila = self.channels.cache.filter(c => {
                         if (c.type !== "GUILD_TEXT") return false;
@@ -162,11 +152,22 @@ class AutomationEngine {
                         return matchesFormat && matchesCategory;
                     });
 
+                    // LOOP INFINITO DINÂMICO: Se não houver mais canais para processar na fila atual, 
+                    // resetamos os contadores para permitir uma nova varredura imediata.
+                    let processedInThisTick = 0;
                     for (const [, channel] of canaisFila) {
                         if (automation.processing.has(channel.id)) continue;
                         automation.processing.add(channel.id);
                         await processChannel(channel);
+                        processedInThisTick++;
                         setTimeout(() => automation.processing.delete(channel.id), 3000);
+                    }
+
+                    // Se a varredura terminou (não há novos canais para processar), limpamos o histórico para recomeçar
+                    if (processedInThisTick === 0) {
+                        automation.guildClickCount.clear();
+                        automation.clickedMessages.clear();
+                        // Mantemos apenas o controle de mensagens automáticas para não spammar o mesmo canal de partida
                     }
 
                     // 2. Partida (MENSAGEM E MENÇÃO) - LÓGICA ORIGINAL EXATA
