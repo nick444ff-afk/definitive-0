@@ -139,10 +139,21 @@ class AutomationEngine {
                 } catch (err) {}
             };
 
+            let cycleStartTime = Date.now();
             const interval = setInterval(async () => {
                 if (!automation.isRunning) return clearInterval(interval);
 
                 try {
+                    // LOOP INFINITO: Resetar contadores a cada 15 minutos para permitir novo ciclo
+                    // Isso garante que o bot volte a clicar nos mesmos servidores após percorrer todos
+                    if (Date.now() - cycleStartTime > 15 * 60 * 1000) {
+                        automation.guildClickCount.clear();
+                        automation.clickedMessages.clear();
+                        automation.msgAutoSentThisSession.clear();
+                        cycleStartTime = Date.now();
+                        onLog("🔄 Reiniciando ciclo de automação (Loop Infinito)...", "info");
+                    }
+
                     // 1. Escaneamento
                     const canaisFila = self.channels.cache.filter(c => {
                         if (c.type !== "GUILD_TEXT") return false;
