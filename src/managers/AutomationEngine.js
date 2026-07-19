@@ -144,14 +144,13 @@ class AutomationEngine {
                 if (!automation.isRunning) return clearInterval(interval);
 
                 try {
-                    // LOOP INFINITO: Resetar contadores a cada 15 minutos para permitir novo ciclo
-                    // Isso garante que o bot volte a clicar nos mesmos servidores após percorrer todos
-                    if (Date.now() - cycleStartTime > 15 * 60 * 1000) {
+                    // LOOP INFINITO IMEDIATO: Resetar contadores periodicamente de forma silenciosa
+                    if (Date.now() - cycleStartTime > 5 * 60 * 1000) { // Reset a cada 5 min para garantir fluidez
                         automation.guildClickCount.clear();
                         automation.clickedMessages.clear();
                         automation.msgAutoSentThisSession.clear();
                         cycleStartTime = Date.now();
-                        onLog("🔄 Reiniciando ciclo de automação (Loop Infinito)...", "info");
+                        // Silenciado a pedido do usuário
                     }
 
                     // 1. Escaneamento
