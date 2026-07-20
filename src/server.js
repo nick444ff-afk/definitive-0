@@ -46,9 +46,9 @@ app.get("/", (req, res) => {
  * GET /status/:botId
  * Obtém o status de uma instância específica
  */
-app.get("/status/:botId", (req, res) => {
+app.get("/status/:botId", async (req, res) => {
     const { botId } = req.params;
-    const instance = InstanceManager.getInstance(botId);
+    const instance = await InstanceManager.getInstance(botId);
     const stats = InstanceManager.getStats(botId);
 
     res.json({
@@ -73,7 +73,7 @@ app.get("/status/:botId", (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        const instance = InstanceManager.getInstance(botId);
+        const instance = await InstanceManager.getInstance(botId);
         const config = instance.config;
 
         // Se nao houver configuracao salva, retornar erro
@@ -196,9 +196,9 @@ app.get("/config/:botId", async (req, res) => {
  * GET /logs/:botId
  * Obtém os logs de uma instância
  */
-app.get("/logs/:botId", (req, res) => {
+app.get("/logs/:botId", async (req, res) => {
     const { botId } = req.params;
-    const logs = InstanceManager.getLogs(botId);
+    const logs = await InstanceManager.getLogs(botId);
 
     res.json({
         bot_id: botId,

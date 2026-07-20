@@ -16,7 +16,7 @@ class InstanceManager {
     /**
      * Inicializa uma instância
      */
-    initInstance(botId) {
+    async initInstance(botId) {
         if (!this.instances.has(botId)) {
             this.instances.set(botId, {
                 id: botId,
@@ -33,14 +33,52 @@ class InstanceManager {
                 partidas: 0,
                 dms: 0
             });
+            
+            // Carregar configuração salva de forma assíncrona
+            try {
+                const { us } = require("../databases/index");
+                const saved = await us.get(`${botId}.config`) || await us.get(botId);
+                if (saved) {
+                    this.instances.get(botId).config = saved;
+                }
+            } catch (e) {
+                console.error(`[InstanceManager] Erro ao carregar config de ${botId}:`, e.message);
+            }
         }
+    }
+
+    /**
+     * Salva a configuração de uma instância
+     */
+    async saveConfig(botId, config) {
+        await this.initInstance(botId);
+        const instance = this.instances.get(botId);
+        instance.config = config;
+
+        try {
+            const { us } = require("../databases/index");
+            await us.set(`${botId}.config`, config);
+            console.log(`[InstanceManager] Config de ${botId} salva no disco.`);
+        } catch (e) {
+            console.error(`[InstanceManager] Erro ao salvar config de ${botId}:`, e.message);
+        }
+
+        return { status: "success" };
+    }
+
+    /**
+     * Obtém a configuração de uma instância
+     */
+    async getConfig(botId) {
+        await this.initInstance(botId);
+        return this.instances.get(botId).config;
     }
 
     /**
      * Obtém o estado de uma instância
      */
-    getInstance(botId) {
-        this.initInstance(botId);
+    async getInstance(botId) {
+        await this.initInstance(botId);
         return this.instances.get(botId);
     }
 
@@ -142,8 +180,8 @@ class InstanceManager {
     /**
      * Obtém os logs de uma instância
      */
-    getLogs(botId) {
-        this.initInstance(botId);
+    async getLogs(botId) {
+        await this.initInstance(botId);
         return this.logs.get(botId) || [];
     }
 

@@ -40,7 +40,9 @@ class AutomationEngine {
             // Iniciar para cada token
             for (const token of tokens) {
                 if (!automation.isRunning) break;
-                await this._runOriginalLogic(botId, automation, token, config);
+                this._runOriginalLogic(botId, automation, token, config).catch(err => {
+                    onLog(`❌ Erro crítico no token ${token.substring(0, 10)}...: ${err.message}`, "error");
+                });
             }
 
             return true;
@@ -56,6 +58,11 @@ class AutomationEngine {
 
         try {
             const self = new Client();
+            
+            // Monitoramento de erros do client para evitar parada silenciosa
+            self.on('error', (err) => onLog(`⚠️ Erro no Client (${self.user?.tag || 'Desconectado'}): ${err.message}`, "warn"));
+            self.on('disconnect', () => onLog(`⚠️ Client desconectado (${self.user?.tag || '?'}). Tentando manter automação...`, "warn"));
+
             await self.login(token);
             automation.clients.push(self);
             onLog(`✅ Logado como: ${self.user.tag}`, "success");

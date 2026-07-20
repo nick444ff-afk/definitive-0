@@ -629,6 +629,32 @@ async function atualizarStatusBot() {
     try {
         const response = await fetch(`${API_URL}/status/${botAtivo}`);
         const data = await response.json();
+
+        // Preencher configurações salvas se o formulário estiver vazio ou mudar de bot
+        if (data.config) {
+            const tokenInput = document.getElementById('tokenInput');
+            const msgInput = document.getElementById('msgInput');
+            const mencaoInput = document.getElementById('mencaoInput');
+
+            // Só preenche se o campo estiver vazio para não atrapalhar a digitação
+            if (!tokenInput.value && data.config.tokens) tokenInput.value = data.config.tokens.join('\n');
+            if (!msgInput.value && data.config.mensagem) msgInput.value = data.config.mensagem;
+            if (!mencaoInput.value && data.config.mencao) mencaoInput.value = data.config.mencao;
+
+            // Preencher checkboxes de modos e categorias
+            if (data.config.modos) {
+                data.config.modos.forEach(modo => {
+                    const cb = document.querySelector(`input[name="modo"][value="${modo}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
+            if (data.config.categories) {
+                data.config.categories.forEach(cat => {
+                    const cb = document.querySelector(`input[name="categoria"][value="${cat}"]`);
+                    if (cb) cb.checked = true;
+                });
+            }
+        }
         
         const badgeStatus = document.getElementById('badgeStatus');
         const playBtn = document.getElementById('playButton');
@@ -684,6 +710,12 @@ function mudarBot(tabEl) {
     document.getElementById('instancia').textContent    = `INSTÂNCIA ATIVA: ${bot}`;
     document.getElementById('controleTitle').textContent = `Controle - ${botNum}`;
     document.getElementById('botIndicator').textContent  = bot;
+
+    // Limpar formulário para recarregar do novo bot
+    document.getElementById('tokenInput').value = '';
+    document.getElementById('msgInput').value = '';
+    document.getElementById('mencaoInput').value = '';
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
 
     // Limpar logs locais ao trocar de bot para carregar os logs do novo bot
     document.getElementById('logs').innerHTML = '';
