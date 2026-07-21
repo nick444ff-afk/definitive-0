@@ -1,13 +1,13 @@
 const { Client } = require('discord.js-selfbot-v13');
 
 /**
- * AutomationEngine - TRANSPLANTE TOTAL DA LÓGICA ORIGINAL
- * Este arquivo contém a lógica EXATA do ZIP original, adaptada para Web.
+ * AutomationEngine - LÓGICA RESTAURADA DO ZIP (MELHOR VERSÃO)
+ * Com loop infinito dinâmico e limite de 5 tentativas.
  */
 class AutomationEngine {
     constructor() {
         this.activeAutomations = new Map();
-        this.MAX_ENTRIES_PER_GUILD = 5; // Mantendo o limite de 5 conforme solicitado
+        this.MAX_ENTRIES_PER_GUILD = 5;
     }
 
     async startAutomation(botId, config, onLog, onStats) {
@@ -59,15 +59,14 @@ class AutomationEngine {
         try {
             const self = new Client();
             
-            // Monitoramento de erros do client para evitar parada silenciosa
-            self.on('error', (err) => onLog(`⚠️ Erro no Client (${self.user?.tag || 'Desconectado'}): ${err.message}`, "warn"));
-            self.on('disconnect', () => onLog(`⚠️ Client desconectado (${self.user?.tag || '?'}). Tentando manter automação...`, "warn"));
+            // Monitoramento de erros para estabilidade
+            self.on('error', (err) => onLog(`⚠️ Erro no Client: ${err.message}`, "warn"));
+            self.on('disconnect', () => onLog(`⚠️ Client desconectado.`, "warn"));
 
             await self.login(token);
             automation.clients.push(self);
             onLog(`✅ Logado como: ${self.user.tag}`, "success");
 
-            // Mapeamento original exato
             const categoriaMap = {
                 mobile: "mob",
                 emulador: "emu",
@@ -75,35 +74,10 @@ class AutomationEngine {
                 tatico: "tatico"
             };
 
-            const searchFormats = (modos || []).map(m => m.toLowerCase().replace("x", "v").replace("v", "x"));
+            const searchFormats = (modos || []).map(m => m.toLowerCase().replace("x", "v"));
             const searchCategories = (categories || []).map(cat => categoriaMap[cat.toLowerCase()] || cat.toLowerCase());
 
             onLog(`[AUTOMAÇÃO] Buscando: [${searchFormats.join(', ')}] - [${searchCategories.join(', ')}]`, "success");
-
-            // Lógica de botões original exata
-            // MAPEAMENTO AVANÇADO DE BOTÕES POR MODO E CATEGORIA
-            const BUTTON_MAP = {
-                mobile: {
-                    "1v1": ["Gel Normal", "Gel inf", "Gel Infinito", "Gelo Normal", "Gelo Infinito"],
-                    "2v2": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
-                    "3v3": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
-                    "4v4": ["Normal", "Entrar na Fila", "Full ump"]
-                },
-                emulador: {
-                    "1v1": ["Gel Normal", "Gel inf", "Gel Infinito", "Gelo Normal", "Gelo Infinito"],
-                    "2v2": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
-                    "3v3": ["Normal", "Entrar na Fila", "Full ump xm8", "Full Ump e Xm8"],
-                    "4v4": ["Normal", "Entrar na Fila", "Full ump"]
-                },
-                misto: {
-                    "2v2": ["1 Emu", "1 Emulador"],
-                    "3v3": ["1 Emu", "1 Emulador", "2 Emu", "2 Emulador"],
-                    "4v4": ["1 Emu", "1 Emulador", "2 Emu", "2 Emulador", "3 Emu", "3 Emulador"]
-                },
-                tatico: {
-                    "default": ["tatico", "tático", "tat", "❗"]
-                }
-            };
 
             const CATEGORY_KEYWORDS = {
                 mobile: ["mobile", "mob", "celular", "📱"],
@@ -136,42 +110,17 @@ class AutomationEngine {
                         }
 
                         let bestMatch = null;
-
-                        // 1. TENTAR MATCH PELO MAPEAMENTO AVANÇADO (PRIORIDADE MÁXIMA)
                         for (const cat of categories) {
-                            for (const fmt of searchFormats) {
-                                const fmtKey = fmt.toLowerCase().replace("x", "v"); // normalizar para 1v1, 2v2
-                                const advancedKeywords = BUTTON_MAP[cat.toLowerCase()]?.[fmtKey] || BUTTON_MAP[cat.toLowerCase()]?.["default"];
-                                
-                                if (advancedKeywords) {
-                                    for (const button of allButtons) {
-                                        if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
-                                        const labelText = (button.label || "").toLowerCase();
-                                        if (advancedKeywords.some(kw => labelText.includes(kw.toLowerCase()))) {
-                                            bestMatch = button;
-                                            break;
-                                        }
-                                    }
+                            const keywords = CATEGORY_KEYWORDS[cat.toLowerCase()] || [cat.toLowerCase()];
+                            for (const button of allButtons) {
+                                if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
+                                const searchText = `${button.customId} ${button.label} ${button.emoji?.name}`.toLowerCase();
+                                if (keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
+                                    bestMatch = button;
+                                    break;
                                 }
-                                if (bestMatch) break;
                             }
                             if (bestMatch) break;
-                        }
-
-                        // 2. TENTAR MATCH PELAS KEYWORDS DE CATEGORIA (SEGUNDA OPÇÃO)
-                        if (!bestMatch) {
-                            for (const cat of categories) {
-                                const keywords = CATEGORY_KEYWORDS[cat.toLowerCase()] || [cat.toLowerCase()];
-                                for (const button of allButtons) {
-                                    if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
-                                    const searchText = `${button.customId} ${button.label} ${button.emoji?.name}`.toLowerCase();
-                                    if (keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
-                                        bestMatch = button;
-                                        break;
-                                    }
-                                }
-                                if (bestMatch) break;
-                            }
                         }
 
                         if (!bestMatch) {
@@ -182,10 +131,13 @@ class AutomationEngine {
                             try {
                                 const newCount = (automation.guildClickCount.get(guildId) || 0) + 1;
                                 automation.guildClickCount.set(guildId, newCount);
+                                
                                 await msg.clickButton(bestMatch.customId);
                                 automation.clickedMessages.add(msg.id);
+                                
                                 onLog(`✅ Tentativa ${newCount}/${this.MAX_ENTRIES_PER_GUILD} em #${channel.name} (${channel.guild.name})`, "success");
                                 if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
+                                
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
                             } catch (err) {
                                 onLog(`❌ Falha em #${channel.name}: ${err.message}`, "error");
@@ -208,8 +160,6 @@ class AutomationEngine {
                         return matchesFormat && matchesCategory;
                     });
 
-                    // LOOP INFINITO DINÂMICO: Se não houver mais canais para processar na fila atual, 
-                    // resetamos os contadores para permitir uma nova varredura imediata.
                     let processedInThisTick = 0;
                     for (const [, channel] of canaisFila) {
                         if (automation.processing.has(channel.id)) continue;
@@ -219,23 +169,19 @@ class AutomationEngine {
                         setTimeout(() => automation.processing.delete(channel.id), 3000);
                     }
 
-                    // Se a varredura terminou (não há novos canais para processar), limpamos o histórico para recomeçar
+                    // LOOP INFINITO DINÂMICO
                     if (processedInThisTick === 0) {
                         automation.guildClickCount.clear();
                         automation.clickedMessages.clear();
-                        // Mantemos apenas o controle de mensagens automáticas para não spammar o mesmo canal de partida
                     }
 
-                    // 2. Partida (MENSAGEM E MENÇÃO) - LÓGICA ORIGINAL EXATA
+                    // 2. Partida (MENSAGEM E MENÇÃO)
                     const canaisPartida = self.channels.cache.filter(channel =>
                         channel.guild &&
                         (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
                         (channel.name?.toLowerCase().includes("aguardando") || 
-                         channel.name?.toLowerCase().includes("Aguardando") || 
                          channel.name?.toLowerCase().includes("partida") || 
-                         channel.name?.toLowerCase().includes("Partida") || 
-                         channel.name?.toLowerCase().includes("fila") || 
-                         channel.name?.toLowerCase().includes("Fila")) &&
+                         channel.name?.toLowerCase().includes("fila")) &&
                         channel.viewable
                     );
 
@@ -244,14 +190,12 @@ class AutomationEngine {
                         automation.processing.add(channel.id);
 
                         try {
-                            // MENSAGEM AUTOMÁTICA
                             if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
                                 await channel.send(msgauto);
                                 automation.msgAutoSentThisSession.add(channel.id);
                                 onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
                             }
 
-                            // MENÇÃO AUTOMÁTICA
                             if (mentionauto > 0) {
                                 const msgs = await channel.messages.fetch({ limit: 5 });
                                 const firstMsg = msgs.find(m => m.components?.length);
