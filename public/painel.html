@@ -3,710 +3,616 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SystemX - Final</title>
+<title>SystemX - Pirate Edition</title>
 <style>
+:root {
+    --primary: #FF8C00; /* Laranja vibrante */
+    --primary-glow: rgba(255, 140, 0, 0.4);
+    --secondary: #FFD700; /* Amarelo Ouro */
+    --danger: #FF4500; /* Vermelho Alaranjado */
+    --bg-dark: #0d0d0d;
+    --card-bg: #1a1a1a;
+    --card-border: rgba(255, 140, 0, 0.2);
+    --text-main: #f2f2f2;
+    --text-muted: #a6a6a6;
+}
+
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
+
 body {
     margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(180deg, #050c1f, #0b1f47);
-    color: #e5e7eb;
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: radial-gradient(circle at center, #1a0f00 0%, #0d0d0d 100%);
+    color: var(--text-main);
     min-height: 100vh;
+    overflow-x: hidden;
 }
+
 .container {
     max-width: 500px;
     margin: auto;
     padding: 15px;
+    animation: fadeIn 0.5s ease-out;
 }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 .card {
-    background: linear-gradient(145deg, #0b1f47, #08142e);
-    border-radius: 22px;
+    background: var(--card-bg);
+    border-radius: 24px;
     padding: 20px;
     margin-bottom: 20px;
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow:
-        0 10px 40px rgba(0,0,0,0.6),
-        inset 0 0 40px rgba(0,0,0,0.5);
-    transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
 }
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    opacity: 0.5;
+}
+
 .card.bot-ligado {
-    border-color: rgba(239, 68, 68, 0.45);
-    box-shadow:
-        0 10px 40px rgba(239,68,68,0.25),
-        inset 0 0 40px rgba(0,0,0,0.5);
+    border-color: var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
 }
+
 .header {
     text-align: center;
+    padding-top: 30px;
 }
-.logo {
-    width: 80px;
-    height: 80px;
+
+.logo-container {
+    position: relative;
+    width: 100px;
+    height: 100px;
     margin: 0 auto 20px;
-    border-radius: 22px;
-    background: linear-gradient(145deg, #1e3a8a, #1d4ed8);
+}
+
+.logo {
+    width: 100%;
+    height: 100%;
+    border-radius: 24px;
+    background: #000;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    box-shadow: 0 0 25px rgba(59,130,246,0.4);
+    box-shadow: 0 0 20px rgba(255, 140, 0, 0.3);
+    border: 2px solid var(--primary);
+    transition: transform 0.5s ease;
 }
+
+.logo:hover {
+    transform: rotate(5deg) scale(1.05);
+}
+
 .logo img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
+
 .title {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 4px;
-}
-.subtitle {
-    opacity: 0.6;
-    font-size: 13px;
-    margin-top: 5px;
-}
-.status {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 15px;
-}
-.badge {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-.badge-green {
-    background: rgba(16,185,129,0.15);
-    color: #34d399;
-    border: 1px solid rgba(16,185,129,0.3);
-}
-.badge-red {
-    background: rgba(239,68,68,0.15);
-    color: #f87171;
-    border: 1px solid rgba(239,68,68,0.3);
-}
-.badge-yellow {
-    background: rgba(250,204,21,0.15);
-    color: #facc15;
-    border: 1px solid rgba(250,204,21,0.3);
-}
-.bot-tabs {
-    display: flex;
-    background: #091a36;
-    border-radius: 30px;
-    padding: 6px;
-    margin-top: 15px;
-    flex-wrap: wrap;
-    gap: 4px;
-}
-.bot-tabs div {
-    flex: 1;
-    min-width: 60px;
-    text-align: center;
-    padding: 8px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 600;
-    user-select: none;
-    font-size: 12px;
-}
-.bot-tabs div:hover:not(.active) {
-    background: rgba(255,255,255,0.07);
-}
-.bot-tabs .active {
-    background: #e5e7eb;
-    color: #000;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(135deg, var(--secondary), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0;
 }
 
-.play-wrapper {
+.subtitle {
+    color: var(--text-muted);
+    font-size: 12px;
+    margin-top: 5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+}
+
+.status-badges {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.badge {
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.badge-green { background: rgba(0, 255, 127, 0.1); color: #00ff7f; border: 1px solid rgba(0, 255, 127, 0.3); }
+.badge-red { background: rgba(255, 69, 0, 0.1); color: #ff4500; border: 1px solid rgba(255, 69, 0, 0.3); }
+
+.bot-tabs {
+    display: flex;
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    padding: 4px;
+    margin-top: 25px;
+    gap: 4px;
+}
+
+.bot-tabs div {
+    flex: 1;
+    text-align: center;
+    padding: 10px 5px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.bot-tabs div.active {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.play-section {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 30px 0 10px;
+    margin: 20px 0;
 }
-.play {
-    width: 140px;
-    height: 140px;
+
+.play-btn-circle {
+    width: 120px;
+    height: 120px;
     border-radius: 50%;
-    border: 3px solid rgba(255,255,255,0.7);
+    background: #111;
+    border: 4px solid var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.35s ease;
-    position: relative;
-    background: rgba(255,255,255,0.03);
-    user-select: none;
-}
-.play:hover {
-    transform: scale(1.06);
-    box-shadow: 0 0 30px rgba(255,255,255,0.2);
-}
-.play:active {
-    transform: scale(0.97);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
 }
 
-.play .icon-play {
+.play-btn-circle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px var(--primary-glow);
+}
+
+.play-btn-circle:active {
+    transform: scale(0.95);
+}
+
+.icon-play {
     width: 0;
     height: 0;
-    border-left: 32px solid #fff;
-    border-top: 20px solid transparent;
-    border-bottom: 20px solid transparent;
+    border-left: 30px solid var(--primary);
+    border-top: 18px solid transparent;
+    border-bottom: 18px solid transparent;
     margin-left: 8px;
-    transition: opacity 0.2s;
 }
 
-.play .icon-stop {
-    width: 26px;
-    height: 26px;
-    background: #ef4444;
-    border-radius: 4px;
+.icon-stop {
+    width: 30px;
+    height: 30px;
+    background: var(--danger);
+    border-radius: 6px;
     display: none;
-    animation: blink 1.2s infinite;
+    box-shadow: 0 0 15px var(--danger);
 }
 
-.play.ligado {
-    border-color: #ef4444;
-    box-shadow: 0 0 35px rgba(239,68,68,0.5), 0 0 60px rgba(239,68,68,0.2);
-    background: rgba(239,68,68,0.08);
-}
-.play.ligado:hover {
-    box-shadow: 0 0 45px rgba(239,68,68,0.65), 0 0 70px rgba(239,68,68,0.25);
-}
-.play.ligado .icon-play {
-    display: none;
-}
-.play.ligado .icon-stop {
-    display: block;
-}
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
-}
-.play-label {
-    margin-top: 14px;
-    font-size: 13px;
-    opacity: 0.65;
-    text-align: center;
-    transition: color 0.3s;
-    letter-spacing: 0.5px;
-}
-.play-label.ligado {
-    color: #f87171;
-    opacity: 1;
-    font-weight: 600;
+.play-btn-circle.ligado {
+    border-color: var(--danger);
 }
 
-.card.stat {
-    padding: 18px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.stat-title {
-    font-size: 14px;
-    opacity: 0.65;
-    font-weight: 500;
-}
-.stat-value {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-.green-text  { color: #22c55e; }
-.purple-text { color: #a855f7; }
-.cyan-text   { color: #06b6d4; }
-.yellow-text { color: #facc15; }
+.play-btn-circle.ligado .icon-play { display: none; }
+.play-btn-circle.ligado .icon-stop { display: block; }
 
-.reset-container {
-    margin: 0 0 20px;
-    padding: 0;
-}
-.reset-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 80, 80, 0.4);
-    background: rgba(255, 80, 80, 0.08);
-    color: #ff5a5a;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    backdrop-filter: blur(6px);
-    letter-spacing: 0.5px;
-}
-.reset-btn:hover {
-    background: rgba(255, 80, 80, 0.18);
-    border-color: rgba(255, 80, 80, 0.7);
-    box-shadow: 0 0 15px rgba(255,80,80,0.2);
-}
-.reset-btn:active {
-    transform: scale(0.97);
-}
-
-label {
-    margin-top: 15px;
-    display: block;
-    font-size: 14px;
-    font-weight: 500;
-    opacity: 0.85;
-}
-input, textarea, select {
-    width: 100%;
-    padding: 14px;
-    margin-top: 6px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: #020617;
-    color: #fff;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-}
-input:focus, textarea:focus, select:focus {
-    border-color: rgba(34,211,238,0.4);
-}
-select option {
-    background: #0b1f47;
-}
-.orgs-box {
-    background: #020617;
-    border-radius: 14px;
-    padding: 10px 15px;
-    max-height: 180px;
-    overflow-y: auto;
-    margin-top: 8px;
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
-}
-.org-item {
-    display: flex;
-    align-items: center;
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    padding: 9px 5px;
-    cursor: pointer;
-    font-size: 15px;
-    border-radius: 8px;
-    transition: background 0.2s;
-}
-.org-item:hover {
-    background: rgba(255,255,255,0.04);
-}
-.org-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: #22d3ee;
-    cursor: pointer;
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: none;
-}
-.org-item input:checked + span {
-    color: #22d3ee;
-}
-.save-btn {
-    width: 100%;
-    padding: 15px;
-    margin-top: 20px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #1d4ed8, #2563eb);
-    color: #fff;
-    font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.25s ease;
-    box-shadow: 0 4px 15px rgba(29,78,216,0.35);
-}
-.save-btn:hover {
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
-    box-shadow: 0 6px 20px rgba(29,78,216,0.5);
-    transform: translateY(-1px);
-}
-.save-btn:active {
-    transform: scale(0.98) translateY(0);
-}
-.save-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
 }
 
-.logs {
-    background: #000;
+.stat-card {
+    background: rgba(255,255,255,0.03);
     padding: 15px;
-    border-radius: 12px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    height: 200px;
-    overflow-y: auto;
-    line-height: 1.6;
+    border-radius: 16px;
     border: 1px solid rgba(255,255,255,0.05);
 }
-.logs::-webkit-scrollbar { width: 5px; }
-.logs::-webkit-scrollbar-track { background: #000; }
-.logs::-webkit-scrollbar-thumb { background: #1d4ed8; border-radius: 3px; }
-.log-entry { margin: 2px 0; }
-.log-time { color: #4b5563; margin-right: 6px; }
-.log-info { color: #22d3ee; }
-.log-success { color: #22c55e; }
-.log-warn { color: #facc15; }
-.log-error { color: #f87171; }
-.clear-logs-btn {
-    margin-top: 12px;
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,90,90,0.35);
-    background: rgba(255,90,90,0.1);
-    color: #ff5a5a;
+
+.stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+.stat-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+
+.orange-text { color: var(--primary); }
+.yellow-text { color: var(--secondary); }
+.red-text { color: var(--danger); }
+
+.config-form label {
+    display: block;
+    font-size: 12px;
     font-weight: 700;
+    color: var(--text-muted);
+    margin-top: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+input, textarea {
+    width: 100%;
+    background: #0d0d0d;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 12px 15px;
+    color: #fff;
     font-size: 14px;
+    margin-top: 6px;
+    outline: none;
+    transition: border-color 0.3s;
+}
+
+input:focus, textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary-glow);
+}
+
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.check-item {
+    background: #0d0d0d;
+    border: 1px solid var(--card-border);
+    border-radius: 10px;
+    padding: 8px 12px;
     cursor: pointer;
-    transition: all 0.25s ease;
-    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    transition: all 0.2s;
 }
-.clear-logs-btn:hover {
-    background: rgba(255,90,90,0.2);
-    border-color: rgba(255,90,90,0.6);
-    box-shadow: 0 0 12px rgba(255,90,90,0.2);
+
+.check-item input { width: auto; margin: 0; accent-color: var(--primary); }
+.check-item:hover { background: rgba(255, 140, 0, 0.05); }
+.check-item.active { border-color: var(--primary); background: rgba(255, 140, 0, 0.1); }
+
+.action-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: none;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 20px;
 }
-.clear-logs-btn:active {
-    transform: scale(0.97);
+
+.btn-save { background: var(--primary); color: #000; }
+.btn-save:hover { background: var(--secondary); transform: translateY(-2px); }
+.btn-reset { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
+.btn-reset:hover { background: rgba(255, 69, 0, 0.1); color: var(--danger); border-color: var(--danger); }
+
+.logs-container {
+    background: #000;
+    border-radius: 16px;
+    padding: 15px;
+    height: 250px;
+    overflow-y: auto;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    border: 1px solid var(--card-border);
 }
+
+.log-line { margin-bottom: 4px; line-height: 1.4; border-left: 2px solid transparent; padding-left: 8px; }
+.log-time { color: #555; font-size: 10px; margin-right: 6px; }
+.log-info { color: #00bfff; }
+.log-success { color: #00ff7f; border-left-color: #00ff7f; }
+.log-warn { color: #ffd700; border-left-color: #ffd700; }
+.log-error { color: #ff4500; border-left-color: #ff4500; }
 
 .toast {
     position: fixed;
     bottom: 30px;
     left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #1d4ed8;
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 30px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-    z-index: 9999;
-    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--primary);
+    color: #000;
+    padding: 12px 25px;
+    border-radius: 50px;
+    font-weight: 800;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 1000;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     opacity: 0;
-    white-space: nowrap;
-}
-.toast.show {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-}
-.toast.success { background: #16a34a; }
-.toast.error   { background: #dc2626; }
-.toast.warn    { background: #ca8a04; }
-
-.instancia-text {
-    opacity: 0.6;
-    margin-top: 10px;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-    transition: color 0.3s;
 }
 
-.controle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0;
-}
-.controle-header h3 {
-    margin: 0;
-}
-.bot-indicator {
-    font-size: 12px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    background: rgba(34,211,238,0.12);
-    color: #22d3ee;
-    font-weight: 600;
-    border: 1px solid rgba(34,211,238,0.25);
-    transition: all 0.3s;
-}
-.error-message {
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.3);
-    color: #f87171;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-top: 10px;
-}
-.success-message {
-    background: rgba(34,211,238,0.1);
-    border: 1px solid rgba(34,211,238,0.3);
-    color: #22d3ee;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-top: 10px;
-}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
 </style>
 </head>
 <body>
+
 <div class="container">
-
-    <div class="card header">
-        <div class="logo">
-            <img src="https://i.imgur.com/llnJtbZ.png" alt="Logo">
+    <div class="header">
+        <div class="logo-container">
+            <div class="logo">
+                <img src="logo.png" alt="Pirate Logo">
+            </div>
         </div>
-        <h1 class="title">SystemX</h1>
-        <p class="subtitle">PAINEL DE CONTROLE</p>
+        <h1 class="title">SYSTEMX</h1>
+        <p class="subtitle">Pirate Automation Panel</p>
 
-        <div class="status">
-            <div class="badge badge-red" id="badgeConexao">Desconectado</div>
+        <div class="status-badges">
+            <div class="badge badge-red" id="badgeConexao">Offline</div>
             <div class="badge badge-red" id="badgeStatus">Parado</div>
         </div>
 
         <div class="bot-tabs" id="botTabs">
-            <div class="active" data-bot="BOT1" onclick="mudarBot(this)">BOT1</div>
-            <div data-bot="BOT2" onclick="mudarBot(this)">BOT2</div>
-            <div data-bot="BOT3" onclick="mudarBot(this)">BOT3</div>
-            <div data-bot="BOT4" onclick="mudarBot(this)">BOT4</div>
-            <div data-bot="BOT5" onclick="mudarBot(this)">BOT5</div>
+            <div class="active" data-bot="BOT1" onclick="mudarBot(this)">BOT 1</div>
+            <div data-bot="BOT2" onclick="mudarBot(this)">BOT 2</div>
+            <div data-bot="BOT3" onclick="mudarBot(this)">BOT 3</div>
+            <div data-bot="BOT4" onclick="mudarBot(this)">BOT 4</div>
+            <div data-bot="BOT5" onclick="mudarBot(this)">BOT 5</div>
         </div>
-
-        <p class="instancia-text" id="instancia">INSTÂNCIA ATIVA: BOT 1</p>
     </div>
 
     <div class="card" id="cardControle">
-        <div class="controle-header">
-            <h3 id="controleTitle">Controle - Bot 1</h3>
-            <span class="bot-indicator" id="botIndicator">BOT1</span>
-        </div>
-
-        <div class="play-wrapper">
-            <div class="play" id="playButton" onclick="toggleBot()">
+        <div class="play-section">
+            <div class="play-btn-circle" id="playButton" onclick="toggleBot()">
                 <div class="icon-play"></div>
                 <div class="icon-stop"></div>
             </div>
-            <p class="play-label" id="playLabel">Clique para iniciar o bot</p>
+            <p class="play-label" id="playLabel" style="margin-top: 15px; font-size: 13px; font-weight: 700; color: var(--text-muted);">INICIAR NAVEGAÇÃO</p>
         </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Entradas</div>
+                <div class="stat-value orange-text" id="entradas">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value yellow-text" id="uptime">00:00:00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Partidas</div>
+                <div class="stat-value" style="color: #00ff7f;" id="partidas">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">DMs</div>
+                <div class="stat-value" style="color: #00bfff;" id="dms">0</div>
+            </div>
+        </div>
+        
+        <button class="action-btn btn-reset" onclick="resetStats()">Resetar Estatísticas</button>
     </div>
 
-    <div class="card stat">
-        <div class="stat-title">Entradas</div>
-        <div class="stat-value" id="entradas">0</div>
-    </div>
+    <div class="card config-form">
+        <h3 style="margin: 0; font-size: 16px; color: var(--primary);">CONFIGURAÇÕES</h3>
+        
+        <label>Tokens de Acesso</label>
+        <textarea id="tokens" rows="3" placeholder="Insira seus tokens (um por linha)"></textarea>
 
-    <div class="card stat">
-        <div class="stat-title">Na Fila</div>
-        <div class="stat-value green-text" id="naFila">0</div>
-    </div>
+        <label>Categorias de Busca</label>
+        <div class="checkbox-group">
+            <label class="check-item active"><input type="checkbox" id="catMobile" name="categoria" value="Mobile" checked onchange="updateCheckStyle(this)"><span>Mobile</span></label>
+            <label class="check-item"><input type="checkbox" id="catEmulador" name="categoria" value="Emulador" onchange="updateCheckStyle(this)"><span>Emulador</span></label>
+            <label class="check-item"><input type="checkbox" id="catMisto" name="categoria" value="Misto" onchange="updateCheckStyle(this)"><span>Misto</span></label>
+            <label class="check-item"><input type="checkbox" id="catTatico" name="categoria" value="Tático" onchange="updateCheckStyle(this)"><span>Tático</span></label>
+        </div>
 
-    <div class="card stat">
-        <div class="stat-title">Partidas</div>
-        <div class="stat-value purple-text" id="partidas">0</div>
-    </div>
+        <label>Modos de Jogo</label>
+        <div class="checkbox-group">
+            <label class="check-item"><input type="checkbox" id="modo1x1" name="modo" value="1v1" onchange="updateCheckStyle(this)"><span>1x1</span></label>
+            <label class="check-item active"><input type="checkbox" id="modo2x2" name="modo" value="2v2" checked onchange="updateCheckStyle(this)"><span>2x2</span></label>
+            <label class="check-item"><input type="checkbox" id="modo3x3" name="modo" value="3v3" onchange="updateCheckStyle(this)"><span>3x3</span></label>
+            <label class="check-item active"><input type="checkbox" id="modo4x4" name="modo" value="4v4" checked onchange="updateCheckStyle(this)"><span>4x4</span></label>
+        </div>
 
-    <div class="card stat">
-        <div class="stat-title">DMs</div>
-        <div class="stat-value cyan-text" id="dms">0</div>
-    </div>
+        <label>Mensagem Automática</label>
+        <input type="text" id="mensagem" placeholder="Mensagem para o canal de partida">
 
-    <div class="card stat">
-        <div class="stat-title">Uptime</div>
-        <div class="stat-value yellow-text" id="uptime">00:00:00</div>
-    </div>
+        <label>Menção Automática (s)</label>
+        <input type="text" id="mencao" placeholder="Tempo para mencionar (ex: 5)">
 
-    <div class="reset-container">
-        <button class="reset-btn" onclick="resetStats()">RESETAR STATS</button>
+        <label>Confirmação Automática (s)</label>
+        <input type="text" id="confirmauto" placeholder="Tempo para confirmar (ex: 2)">
+
+        <button class="action-btn btn-save" id="saveBtnConfig" onclick="salvarConfiguracao()">Salvar Configuração</button>
     </div>
 
     <div class="card">
-        <h3>Configuração</h3>
-
-        <label>Tokens</label>
-        <textarea id="tokens" rows="3" placeholder="Cole seus tokens aqui (um por linha)"></textarea>
-        <div id="tokenError" class="error-message" style="display: none;"></div>
-
-        <label>Categorias</label>
-        <div class="orgs-box">
-            <label class="org-item">
-                <input type="checkbox" id="catMobile" name="categoria" value="Mobile" checked>
-                <span>Mobile</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="catEmulador" name="categoria" value="Emulador">
-                <span>Emulador</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="catMisto" name="categoria" value="Misto">
-                <span>Misto</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="catTatico" name="categoria" value="Tático">
-                <span>Tático</span>
-            </label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="margin: 0; font-size: 16px; color: var(--primary);">LOGS DE ATIVIDADE</h3>
+            <span style="font-size: 10px; color: var(--text-muted); cursor: pointer;" onclick="limparLogs()">LIMPAR</span>
         </div>
-
-        <label>Modos</label>
-        <div class="orgs-box">
-            <label class="org-item">
-                <input type="checkbox" id="modo1x1" name="modo" value="1v1">
-                <span>1x1</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="modo2x2" name="modo" value="2v2" checked>
-                <span>2x2</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="modo3x3" name="modo" value="3v3">
-                <span>3x3</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="modo4x4" name="modo" value="4v4" checked>
-                <span>4x4</span>
-            </label>
-        </div>
-
-        <label>Mensagem</label>
-        <input type="text" id="mensagem" placeholder="Digite a mensagem">
-
-        <label>Menção</label>
-        <input type="text" id="mencao" placeholder="Tempo em segundos (ex: 10)">
-
-        <label>Confirmação Automática (Segundos)</label>
-        <input type="text" id="confirmauto" placeholder="Tempo para confirmar a fila (ex: 2)">
-
-        <label>Imagem Automática (Galeria)</label>
-        <input type="file" id="imagem_auto" accept="image/*" style="padding: 10px;">
-
-        <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
-        <div id="configMessage" class="success-message" style="display: none;"></div>
+        <div class="logs-container" id="logs"></div>
     </div>
-
-    <div class="card">
-        <h3>Logs</h3>
-        <div class="logs" id="logs"></div>
-        <button class="clear-logs-btn" onclick="limparLogs()">Limpar Logs</button>
-    </div>
-
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
 const API_URL = window.location.origin;
-
-let botAtivo   = 'BOT1';
-let botLigado  = false;
-let uptimeInterval = null;
-let uptimeSeconds  = 0;
-let isSaving = false;
+let botAtivo = 'BOT1';
+let botLigado = false;
+let uptimeSeconds = 0;
 let lastLogTimestamp = null;
+let updateInterval = null;
 
-document.addEventListener('DOMContentLoaded', function () {
-    addLog('Sistema inicializado.', 'info');
-    verificarConexao();
-    setInterval(verificarConexao, 5000); 
-    setInterval(atualizarStatusBot, 3000); 
-    setInterval(fetchLogs, 1000); 
+// Otimização: Cache de elementos DOM frequentemente acessados
+const elements = {
+    badgeConexao: document.getElementById('badgeConexao'),
+    badgeStatus: document.getElementById('badgeStatus'),
+    playButton: document.getElementById('playButton'),
+    playLabel: document.getElementById('playLabel'),
+    cardControle: document.getElementById('cardControle'),
+    entradas: document.getElementById('entradas'),
+    uptime: document.getElementById('uptime'),
+    partidas: document.getElementById('partidas'),
+    dms: document.getElementById('dms'),
+    logs: document.getElementById('logs'),
+    tokens: document.getElementById('tokens'),
+    mensagem: document.getElementById('mensagem'),
+    mencao: document.getElementById('mencao'),
+    confirmauto: document.getElementById('confirmauto'),
+    toast: document.getElementById('toast')
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    addLog('Sistema Pirate inicializado.', 'info');
+    startFastUpdate();
 });
 
-async function verificarConexao() {
-    const badge = document.getElementById('badgeConexao');
+// Otimização: Loop de atualização unificado e mais rápido
+function startFastUpdate() {
+    if (updateInterval) clearInterval(updateInterval);
+    
+    // Atualização rápida de logs e status (cada 1s)
+    updateInterval = setInterval(() => {
+        fetchStatus();
+        fetchLogs();
+    }, 1000);
+
+    // Verificação de conexão menos frequente (cada 5s)
+    setInterval(checkConnection, 5000);
+    checkConnection();
+}
+
+async function checkConnection() {
     try {
-        const response = await fetch(`${API_URL}/`);
-        if (response.ok) {
-            badge.textContent = 'Conectado';
-            badge.className = 'badge badge-green';
-        } else {
-            throw new Error();
+        const start = performance.now();
+        const res = await fetch(`${API_URL}/`, { method: 'HEAD' });
+        const end = performance.now();
+        
+        if (res.ok) {
+            elements.badgeConexao.textContent = `Online (${Math.round(end - start)}ms)`;
+            elements.badgeConexao.className = 'badge badge-green';
         }
     } catch (e) {
-        badge.textContent = 'Desconectado';
-        badge.className = 'badge badge-red';
+        elements.badgeConexao.textContent = 'Offline';
+        elements.badgeConexao.className = 'badge badge-red';
     }
 }
 
-async function atualizarStatusBot() {
+async function fetchStatus() {
     try {
-        const response = await fetch(`${API_URL}/status/${botAtivo}`);
-        const data = await response.json();
+        const res = await fetch(`${API_URL}/status/${botAtivo}`);
+        const data = await res.json();
 
-        // Preencher configurações salvas se o formulário estiver vazio ou mudar de bot
-        if (data.config) {
-            const tokensArea = document.getElementById('tokens');
-            const msgInput = document.getElementById('mensagem');
-            const mencaoInput = document.getElementById('mencao');
-            const confirmautoInput = document.getElementById('confirmauto');
+        // Atualizar UI de Status
+        if (data.is_running) {
+            if (!botLigado) {
+                botLigado = true;
+                elements.badgeStatus.textContent = 'Rodando';
+                elements.badgeStatus.className = 'badge badge-green';
+                elements.playButton.classList.add('ligado');
+                elements.cardControle.classList.add('bot-ligado');
+                elements.playLabel.textContent = 'NAVEGANDO...';
+                elements.playLabel.style.color = 'var(--danger)';
+            }
+            
+            if (data.stats) {
+                elements.entradas.textContent = data.stats.entradas || 0;
+                elements.partidas.textContent = data.stats.partidas || 0;
+                elements.dms.textContent = data.stats.dms || 0;
+            }
+            
+            if (data.uptime) {
+                uptimeSeconds = Math.floor(data.uptime / 1000);
+                elements.uptime.textContent = formatUptime(uptimeSeconds);
+            }
+        } else {
+            if (botLigado) {
+                botLigado = false;
+                elements.badgeStatus.textContent = 'Parado';
+                elements.badgeStatus.className = 'badge badge-red';
+                elements.playButton.classList.remove('ligado');
+                elements.cardControle.classList.remove('bot-ligado');
+                elements.playLabel.textContent = 'INICIAR NAVEGAÇÃO';
+                elements.playLabel.style.color = 'var(--text-muted)';
+                elements.uptime.textContent = '00:00:00';
+            }
+        }
 
-            // Só preenche se o campo estiver vazio para não atrapalhar a digitação
-            if (tokensArea && !tokensArea.value && data.config.tokens) tokensArea.value = data.config.tokens.join('\n');
-            if (msgInput && !msgInput.value && (data.config.msgauto || data.config.mensagem)) msgInput.value = data.config.msgauto || data.config.mensagem;
-            if (mencaoInput && !mencaoInput.value && (data.config.mentionauto || data.config.mencao)) mencaoInput.value = data.config.mentionauto || data.config.mencao;
-            if (confirmautoInput && !confirmautoInput.value && data.config.confirmauto) confirmautoInput.value = data.config.confirmauto;
-
-            // Preencher checkboxes de modos e categorias
+        // Auto-preenchimento inteligente (apenas se campos estiverem vazios)
+        if (data.config && !elements.tokens.value) {
+            if (data.config.tokens) elements.tokens.value = data.config.tokens.join('\n');
+            if (data.config.msgauto || data.config.mensagem) elements.mensagem.value = data.config.msgauto || data.config.mensagem;
+            if (data.config.mentionauto || data.config.mencao) elements.mencao.value = data.config.mentionauto || data.config.mencao;
+            if (data.config.confirmauto) elements.confirmauto.value = data.config.confirmauto;
+            
             if (data.config.modos) {
-                data.config.modos.forEach(modo => {
-                    const cb = document.querySelector(`input[name="modo"][value="${modo}"]`);
-                    if (cb) cb.checked = true;
+                data.config.modos.forEach(m => {
+                    const cb = document.querySelector(`input[name="modo"][value="${m}"]`);
+                    if (cb) { cb.checked = true; updateCheckStyle(cb); }
                 });
             }
             if (data.config.categories) {
-                data.config.categories.forEach(cat => {
-                    const cb = document.querySelector(`input[name="categoria"][value="${cat}"]`);
-                    if (cb) cb.checked = true;
+                data.config.categories.forEach(c => {
+                    const cb = document.querySelector(`input[name="categoria"][value="${c}"]`);
+                    if (cb) { cb.checked = true; updateCheckStyle(cb); }
                 });
             }
         }
+    } catch (e) {}
+}
+
+async function fetchLogs() {
+    try {
+        const res = await fetch(`${API_URL}/logs/${botAtivo}`);
+        const data = await res.json();
+        const logs = data.logs || [];
         
-        const badgeStatus = document.getElementById('badgeStatus');
-        const playBtn = document.getElementById('playButton');
-        const playLabel = document.getElementById('playLabel');
-        const cardCtrl = document.getElementById('cardControle');
+        const newLogs = lastLogTimestamp 
+            ? logs.filter(l => new Date(l.timestamp) > new Date(lastLogTimestamp))
+            : logs;
 
-        if (data.is_running) {
-            botLigado = true;
-            badgeStatus.textContent = 'Rodando';
-            badgeStatus.className = 'badge badge-green';
-            playBtn.classList.add('ligado');
-            cardCtrl.classList.add('bot-ligado');
-            playLabel.textContent = `${botAtivo} em execução...`;
-            playLabel.classList.add('ligado');
-            
-            if (data.stats) {
-                document.getElementById('entradas').textContent = data.stats.entradas || 0;
-                document.getElementById('naFila').textContent   = data.stats.na_fila || 0;
-                document.getElementById('partidas').textContent = data.stats.partidas || 0;
-                document.getElementById('dms').textContent      = data.stats.dms || 0;
-            }
-
-            if (!uptimeInterval) {
-                uptimeInterval = setInterval(tickUptime, 1000);
-            }
-        } else {
-            botLigado = false;
-            badgeStatus.textContent = 'Parado';
-            badgeStatus.className = 'badge badge-red';
-            playBtn.classList.remove('ligado');
-            cardCtrl.classList.remove('bot-ligado');
-            playLabel.textContent = 'Clique para iniciar o bot';
-            playLabel.classList.remove('ligado');
-            
-            clearInterval(uptimeInterval);
-            uptimeInterval = null;
+        if (newLogs.length > 0) {
+            const fragment = document.createDocumentFragment();
+            newLogs.forEach(log => {
+                const entry = document.createElement('div');
+                entry.className = 'log-line';
+                const time = new Date(log.timestamp).toLocaleTimeString();
+                entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${log.type}">${log.message}</span>`;
+                fragment.appendChild(entry);
+            });
+            elements.logs.appendChild(fragment);
+            elements.logs.scrollTop = elements.logs.scrollHeight;
+            lastLogTimestamp = logs[logs.length - 1].timestamp;
         }
-    } catch (e) {
-        console.error("Erro ao buscar status:", e);
-    }
+    } catch (e) {}
 }
 
 function mudarBot(tabEl) {
@@ -715,283 +621,134 @@ function mudarBot(tabEl) {
 
     document.querySelectorAll('.bot-tabs div').forEach(t => t.classList.remove('active'));
     tabEl.classList.add('active');
-
     botAtivo = bot;
-    const botNum = bot.replace('BOT', 'Bot ');
 
-    document.getElementById('instancia').textContent    = `INSTÂNCIA ATIVA: ${botNum}`;
-    document.getElementById('controleTitle').textContent = `Controle - ${botNum}`;
-    document.getElementById('botIndicator').textContent  = bot;
-
-    // Limpar formulário para recarregar do novo bot
-    document.getElementById('tokens').value = '';
-    document.getElementById('mensagem').value = '';
-    document.getElementById('mencao').value = '';
-    document.getElementById('confirmauto').value = '';
-    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-
-    // Limpar logs locais ao trocar de bot para carregar os logs do novo bot
-    document.getElementById('logs').innerHTML = '';
+    // Reset UI para novo bot
+    elements.logs.innerHTML = '';
     lastLogTimestamp = null;
-
-    showToast(`Trocado para ${bot}`, 'info');
+    elements.tokens.value = '';
+    elements.mensagem.value = '';
+    elements.mencao.value = '';
+    elements.confirmauto.value = '';
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; updateCheckStyle(cb); });
     
-    uptimeSeconds = 0;
-    document.getElementById('uptime').textContent = '00:00:00';
+    showToast(`Navegando para ${bot}`, 'info');
+    fetchStatus();
 }
 
 async function toggleBot() {
-    if (!botLigado) {
-        try {
-            const tokens   = document.getElementById('tokens').value.trim();
-            const mensagem = document.getElementById("mensagem").value.trim();
-            const mencao   = document.getElementById("mencao").value.trim();
-            const confirmauto = document.getElementById("confirmauto").value.trim();
-
-            const categoriasSelecionadas = [];
-            document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categoriasSelecionadas.push(cb.value));
-
-            const modosSelecionados = [];
-            document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modosSelecionados.push(cb.value));
-
-            const body = {
-                tokens,
-                mensagem,
-                mencao,
-                confirmauto,
-                categories: JSON.stringify(categoriasSelecionadas),
-                modos: JSON.stringify(modosSelecionados)
+    const action = botLigado ? 'stop_bot' : 'start_bot';
+    try {
+        let body = {};
+        if (!botLigado) {
+            const categories = [];
+            document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categories.push(cb.value));
+            const modos = [];
+            document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modos.push(cb.value));
+            
+            body = {
+                tokens: elements.tokens.value.trim(),
+                mensagem: elements.mensagem.value.trim(),
+                mencao: elements.mencao.value.trim(),
+                confirmauto: elements.confirmauto.value.trim(),
+                categories: JSON.stringify(categories),
+                modos: JSON.stringify(modos)
             };
+        }
 
-            const response = await fetch(`${API_URL}/start_bot/${botAtivo}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            const data = await response.json();
-            if (data.status === 'success') {
-                addLog(`✅ ${botAtivo} iniciado com sucesso via API.`, 'success');
-                showToast(`${botAtivo} ligado!`, 'success');
-            } else {
-                addLog(`❌ Erro: ${data.message}`, 'error');
-                showToast(data.message, 'error');
-            }
-        } catch (e) {
-            addLog('❌ Erro ao conectar com o servidor backend.', 'error');
-            showToast('Erro de conexão!', 'error');
+        const res = await fetch(`${API_URL}/${action}/${botAtivo}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: botLigado ? null : JSON.stringify(body)
+        });
+        const data = await res.json();
+        
+        if (data.status === 'success') {
+            showToast(botLigado ? 'Âncora lançada!' : 'Velas ao vento!', 'success');
+        } else {
+            showToast(data.message, 'error');
         }
-    } else {
-        try {
-            const response = await fetch(`${API_URL}/stop_bot/${botAtivo}`, { method: 'POST' });
-            const data = await response.json();
-            if (data.status === 'success') {
-                addLog(`⚠️ ${botAtivo} desligado via API.`, 'warn');
-                showToast(`${botAtivo} desligado`, 'warn');
-            } else {
-                addLog(`❌ Erro: ${data.message}`, 'error');
-            }
-        } catch (e) {
-            addLog('❌ Erro ao conectar com o servidor backend.', 'error');
-        }
+    } catch (e) {
+        showToast('Falha na comunicação!', 'error');
     }
 }
 
-function tickUptime() {
-    uptimeSeconds++;
-    const h = Math.floor(uptimeSeconds / 3600);
-    const m = Math.floor((uptimeSeconds % 3600) / 60);
-    const s = uptimeSeconds % 60;
-    document.getElementById('uptime').textContent = `${pad(h)}:${pad(m)}:${pad(s)}`;
-}
-function pad(n) { return n.toString().padStart(2, '0'); }
+async function salvarConfiguracao() {
+    const btn = document.getElementById('saveBtnConfig');
+    btn.disabled = true;
+    btn.textContent = 'SALVANDO...';
 
-async function fetchLogs() {
     try {
-        const response = await fetch(`${API_URL}/logs/${botAtivo}`);
-        if (response.ok) {
-            const data = await response.json();
-            const logs = data.logs || [];
-            
-            // Filtrar apenas logs novos baseado no timestamp
-            const newLogs = lastLogTimestamp 
-                ? logs.filter(l => new Date(l.timestamp) > new Date(lastLogTimestamp))
-                : logs;
+        const categories = [];
+        document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categories.push(cb.value));
+        const modos = [];
+        document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modos.push(cb.value));
 
-            if (newLogs.length > 0) {
-                newLogs.forEach(log => {
-                    addLog(log.message, log.type);
-                });
-                lastLogTimestamp = logs[logs.length - 1].timestamp;
-            }
+        const formData = new FormData();
+        formData.append('bot_id', botAtivo);
+        formData.append('tokens', elements.tokens.value.trim());
+        formData.append('mensagem', elements.mensagem.value.trim());
+        formData.append('mencao', elements.mencao.value.trim());
+        formData.append('confirmauto', elements.confirmauto.value.trim());
+        formData.append('categories', JSON.stringify(categories));
+        formData.append('modos', JSON.stringify(modos));
+
+        const res = await fetch(`${API_URL}/save_config`, { method: 'POST', body: formData });
+        if (res.ok) {
+            showToast('Tesouro salvo!', 'success');
+        } else {
+            showToast('Erro ao salvar!', 'error');
         }
     } catch (e) {
+        showToast('Erro de conexão!', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar Configuração';
     }
 }
 
 async function resetStats() {
+    if (!confirm('Deseja resetar as estatísticas deste bot?')) return;
     try {
-        const response = await fetch(`${API_URL}/reset_stats/${botAtivo}`, { method: 'POST' });
-        if (response.ok) {
-            document.getElementById('entradas').textContent = '0';
-            document.getElementById('naFila').textContent   = '0';
-            document.getElementById('partidas').textContent = '0';
-            document.getElementById('dms').textContent      = '0';
-            document.getElementById('uptime').textContent   = '00:00:00';
-            uptimeSeconds = 0;
-            showToast('Stats resetados!', 'warn');
-        }
-    } catch (e) {
-        addLog('❌ Erro ao resetar stats via API.', 'error');
-    }
+        await fetch(`${API_URL}/reset_stats/${botAtivo}`, { method: 'POST' });
+        showToast('Estatísticas resetadas!', 'warn');
+    } catch (e) {}
 }
 
-function validarTokens(tokensText) {
-    const tokenList = tokensText.split('\n').map(t => t.trim()).filter(t => t);
-    const errors = [];
-    
-    if (tokenList.length === 0) {
-        return { valid: false, message: 'Nenhum token fornecido' };
-    }
-    
-    for (let i = 0; i < tokenList.length; i++) {
-        const token = tokenList[i];
-        if (token.length < 59) {
-            errors.push(`Token ${i + 1}: muito curto (${token.length} caracteres)`);
-        } else if (token.length > 100) {
-            errors.push(`Token ${i + 1}: muito longo (${token.length} caracteres)`);
-        } else if (!/^[A-Za-z0-9_.-]+$/.test(token)) {
-            errors.push(`Token ${i + 1}: contém caracteres inválidos`);
-        }
-    }
-    
-    if (errors.length > 0) {
-        return { valid: false, message: errors.join('; ') };
-    }
-    
-    return { valid: true, message: `${tokenList.length} token(s) válido(s)` };
+function updateCheckStyle(cb) {
+    const label = cb.parentElement;
+    if (cb.checked) label.classList.add('active');
+    else label.classList.remove('active');
 }
 
-async function salvarConfiguracao() {
-    if (isSaving) {
-        showToast('Salvamento em progresso...', 'warn');
-        return;
-    }
-    
-    isSaving = true;
-    const saveBtn = document.getElementById('saveBtnConfig');
-    const originalText = saveBtn.textContent;
-    saveBtn.textContent = 'SALVANDO...';
-    saveBtn.disabled = true;
-    
-    try {
-        const tokens   = document.getElementById('tokens').value.trim();
-        const mensagem = document.getElementById("mensagem").value.trim();
-        const mencao   = document.getElementById("mencao").value.trim();
-        const confirmauto = document.getElementById("confirmauto").value.trim();
-        const imagemInput = document.getElementById("imagem_auto");
-
-        const categoriasSelecionadas = [];
-        document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categoriasSelecionadas.push(cb.value));
-
-        const modosSelecionados = [];
-        document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modosSelecionados.push(cb.value));
-
-        const tokenValidation = validarTokens(tokens);
-        const tokenErrorEl = document.getElementById('tokenError');
-        
-        if (!tokenValidation.valid) {
-            tokenErrorEl.textContent = '❌ ' + tokenValidation.message;
-            tokenErrorEl.style.display = 'block';
-            addLog(`❌ Erro de validação: ${tokenValidation.message}`, 'error');
-            showToast('Tokens inválidos!', 'error');
-            isSaving = false;
-            saveBtn.textContent = originalText;
-            saveBtn.disabled = false;
-            return;
-        }
-        
-        tokenErrorEl.style.display = 'none';
-
-        // Usar FormData para suportar upload de arquivos
-        const formData = new FormData();
-        formData.append('bot_id', botAtivo);
-        formData.append('tokens', tokens);
-        formData.append('mensagem', mensagem);
-        formData.append('mencao', mencao);
-        formData.append('confirmauto', confirmauto);
-        formData.append('categories', JSON.stringify(categoriasSelecionadas));
-        formData.append('modos', JSON.stringify(modosSelecionados));
-        
-        if (imagemInput.files[0]) {
-            formData.append('imagem_auto', imagemInput.files[0]);
-        }
-
-        const response = await fetch(`${API_URL}/save_config`, {
-            method: 'POST',
-            body: formData
-        });
-        
-        const responseData = await response.json();
-        
-        if (response.ok) {
-            showToast('Configuração salva!', 'success');
-            
-            const configMsg = document.getElementById('configMessage');
-            configMsg.textContent = '✅ ' + responseData.message;
-            configMsg.style.display = 'block';
-            setTimeout(() => { configMsg.style.display = 'none'; }, 3000);
-            addLog(`✅ Configuração de ${botAtivo} salva.`, 'success');
-        } else {
-            addLog(`❌ Erro ao salvar: ${responseData.message}`, 'error');
-            showToast('Erro ao salvar!', 'error');
-        }
-    } catch (e) {
-        addLog(`❌ Erro de conexão: ${e.message}`, 'error');
-        showToast('Erro de conexão!', 'error');
-    } finally {
-        isSaving = false;
-        saveBtn.textContent = originalText;
-        saveBtn.disabled = false;
-    }
+function formatUptime(s) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = s % 60;
+    return `${pad(h)}:${pad(m)}:${pad(sec)}`;
 }
 
-async function limparLogs() {
-    try {
-        const response = await fetch(`${API_URL}/clear_logs/${botAtivo}`, { method: 'POST' });
-        if (response.ok) {
-            document.getElementById('logs').innerHTML = '';
-            lastLogTimestamp = null;
-            showToast('Logs limpos!', 'info');
-        }
-    } catch (e) {
-        console.error("Erro ao limpar logs:", e);
-    }
-}
+function pad(n) { return n.toString().padStart(2, '0'); }
 
 function addLog(msg, type = 'info') {
-    const logsDiv = document.getElementById('logs');
     const entry = document.createElement('div');
-    entry.className = 'log-entry';
-    
+    entry.className = 'log-line';
     const time = new Date().toLocaleTimeString();
-    entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${msg}</span>`;
-    
-    logsDiv.appendChild(entry);
-    logsDiv.scrollTop = logsDiv.scrollHeight;
+    entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${msg}</span>`;
+    elements.logs.appendChild(entry);
+    elements.logs.scrollTop = elements.logs.scrollHeight;
 }
 
 function showToast(msg, type = 'info') {
-    const toast = document.getElementById('toast');
-    toast.textContent = msg;
-    
-    toast.className = 'toast show';
-    if (type === 'success') toast.classList.add('success');
-    if (type === 'error') toast.classList.add('error');
-    if (type === 'warn') toast.classList.add('warn');
-    
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
+    elements.toast.textContent = msg;
+    elements.toast.style.background = type === 'error' ? 'var(--danger)' : (type === 'warn' ? 'var(--secondary)' : 'var(--primary)');
+    elements.toast.classList.add('show');
+    setTimeout(() => elements.toast.classList.remove('show'), 3000);
+}
+
+function limparLogs() {
+    elements.logs.innerHTML = '';
+    showToast('Logs limpos', 'info');
 }
 </script>
 </body>
