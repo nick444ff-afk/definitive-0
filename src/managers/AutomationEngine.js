@@ -331,7 +331,8 @@ class AutomationEngine {
                     }
                 } catch (err) {
                     // Erro silencioso no loop principal
-                            }, 3000);
+                }
+            }, 3000);
 
             automation.intervals.push(interval);
 
