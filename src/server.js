@@ -136,9 +136,11 @@ app.post("/stop_bot/:botId", async (req, res) => {
  */
 app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
     try {
+        console.log("[API] Recebendo save_config:", req.body);
         const { bot_id, tokens, mensagem, mencao, categories, modos } = req.body;
 
         if (!bot_id || !tokens) {
+            console.error("[API] Falha no save_config: bot_id ou tokens ausentes");
             return res.status(400).json({
                 status: "error",
                 message: "bot_id e tokens são obrigatórios"

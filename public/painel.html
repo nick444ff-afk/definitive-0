@@ -853,6 +853,16 @@ async function salvarConfiguracao() {
         const tokens   = document.getElementById('tokens').value.trim();
         const mensagem = document.getElementById("mensagem").value.trim();
         const mencao   = document.getElementById("mencao").value.trim();
+        
+        // Garantir que os tokens sejam enviados mesmo que o formulário tenha acabado de ser preenchido
+        if (!tokens) {
+            addLog('❌ Nenhum token preenchido no campo.', 'error');
+            showToast('Preencha os tokens!', 'error');
+            isSaving = false;
+            saveBtn.textContent = originalText;
+            saveBtn.disabled = false;
+            return;
+        }
         const imagemInput = document.getElementById("imagem_auto");
 
         const categoriasSelecionadas = [];
