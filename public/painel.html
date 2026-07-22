@@ -632,14 +632,14 @@ async function atualizarStatusBot() {
 
         // Preencher configurações salvas se o formulário estiver vazio ou mudar de bot
         if (data.config) {
-            const tokenInput = document.getElementById('tokenInput');
-            const msgInput = document.getElementById('msgInput');
-            const mencaoInput = document.getElementById('mencaoInput');
+            const tokensArea = document.getElementById('tokens');
+            const msgInput = document.getElementById('mensagem');
+            const mencaoInput = document.getElementById('mencao');
 
             // Só preenche se o campo estiver vazio para não atrapalhar a digitação
-            if (!tokenInput.value && data.config.tokens) tokenInput.value = data.config.tokens.join('\n');
-            if (!msgInput.value && data.config.mensagem) msgInput.value = data.config.mensagem;
-            if (!mencaoInput.value && data.config.mencao) mencaoInput.value = data.config.mencao;
+            if (tokensArea && !tokensArea.value && data.config.tokens) tokensArea.value = data.config.tokens.join('\n');
+            if (msgInput && !msgInput.value && data.config.mensagem) msgInput.value = data.config.mensagem;
+            if (mencaoInput && !mencaoInput.value && data.config.mencao) mencaoInput.value = data.config.mencao;
 
             // Preencher checkboxes de modos e categorias
             if (data.config.modos) {
@@ -712,9 +712,9 @@ function mudarBot(tabEl) {
     document.getElementById('botIndicator').textContent  = bot;
 
     // Limpar formulário para recarregar do novo bot
-    document.getElementById('tokenInput').value = '';
-    document.getElementById('msgInput').value = '';
-    document.getElementById('mencaoInput').value = '';
+    document.getElementById('tokens').value = '';
+    document.getElementById('mensagem').value = '';
+    document.getElementById('mencao').value = '';
     document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
 
     // Limpar logs locais ao trocar de bot para carregar os logs do novo bot
@@ -730,10 +730,37 @@ function mudarBot(tabEl) {
 async function toggleBot() {
     if (!botLigado) {
         try {
-            // Salvar automaticamente antes de ligar para garantir que o token mais recente seja usado
-            await salvarConfiguracao();
-            
-            const response = await fetch(`${API_URL}/start_bot/${botAtivo}`, { method: 'POST' });
+            const tokens   = document.getElementById('tokens').value.trim();
+            const mensagem = document.getElementById("mensagem").value.trim();
+            const mencao   = document.getElementById("mencao").value.trim();
+
+            const categoriasSelecionadas = [];
+            if (document.getElementById('catMobile').checked) categoriasSelecionadas.push('Mobile');
+            if (document.getElementById('catEmulador').checked) categoriasSelecionadas.push('Emulador');
+            if (document.getElementById('catMisto').checked) categoriasSelecionadas.push('Misto');
+            if (document.getElementById('catTatico').checked) categoriasSelecionadas.push('Tático');
+
+            const modoIds = ['modo1x1','modo2x2','modo3x3','modo4x4'];
+            const modosSelecionados = modoIds
+                .filter(id => {
+                    const el = document.getElementById(id);
+                    return el ? el.checked : false;
+                })
+                .map(id => id.replace('modo','').replace('x', 'v'));
+
+            const body = {
+                tokens,
+                mensagem,
+                mencao,
+                categories: JSON.stringify(categoriasSelecionadas),
+                modos: JSON.stringify(modosSelecionados)
+            };
+
+            const response = await fetch(`${API_URL}/start_bot/${botAtivo}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
             const data = await response.json();
             if (data.status === 'success') {
                 addLog(`✅ ${botAtivo} iniciado com sucesso via API.`, 'success');

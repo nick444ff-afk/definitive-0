@@ -73,11 +73,25 @@ app.get("/status/:botId", async (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        let instance = await InstanceManager.getInstance(botId);
-        let config = instance.config;
-
-        // Tentar carregar do disco se a memória estiver vazia
-        if (!config || !config.tokens || config.tokens.length === 0) {
+        const { tokens, mensagem, mencao, categories, modos } = req.body;
+        
+        let config;
+        
+        // Se tokens foram enviados no corpo da requisição, usar e salvar
+        if (tokens) {
+            config = {
+                tokens: tokens.split("\n").map(t => t.trim()).filter(t => t),
+                mensagem: mensagem || "",
+                mencao: parseFloat(mencao) || 0,
+                msgauto: mensagem || "",
+                mentionauto: parseFloat(mencao) || 0,
+                categories: categories ? JSON.parse(categories) : [],
+                modos: modos ? JSON.parse(modos) : [],
+                saved_at: new Date().toISOString()
+            };
+            await InstanceManager.saveConfig(botId, config);
+        } else {
+            // Caso contrário, tentar carregar o que já está salvo
             config = await InstanceManager.getConfig(botId);
         }
 
