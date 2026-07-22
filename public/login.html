@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SystemX - Pirate Login</title>
+<style>
+:root {
+    --primary: #FF8C00;
+    --primary-glow: rgba(255, 140, 0, 0.4);
+    --secondary: #FFD700;
+    --danger: #FF4500;
+    --bg-dark: #0d0d0d;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: radial-gradient(circle at center, #1a0f00 0%, #0d0d0d 100%);
+    color: #fff;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.login-card {
+    background: linear-gradient(145deg, #1a1a1a, #0d0d0d);
+    border-radius: 24px;
+    padding: 40px;
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid rgba(255, 140, 0, 0.2);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+    text-align: center;
+    animation: slideUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.logo {
+    width: 100px;
+    height: 100px;
+    margin: 0 auto 20px;
+    border-radius: 20px;
+    border: 2px solid var(--primary);
+    box-shadow: 0 0 20px var(--primary-glow);
+    overflow: hidden;
+}
+
+.logo img { width: 100%; height: 100%; object-fit: cover; }
+
+h1 {
+    font-size: 24px;
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+    background: linear-gradient(135deg, var(--secondary), var(--primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.input-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+input {
+    width: 100%;
+    padding: 15px;
+    background: #000;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    color: #fff;
+    outline: none;
+    transition: all 0.3s;
+}
+
+input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.login-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, var(--primary), var(--danger));
+    color: #000;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(255, 140, 0, 0.3);
+}
+
+.error-msg {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 15px;
+    display: none;
+}
+
+</style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="logo">
+        <img src="logo.png" alt="Logo">
+    </div>
+    <h1>PIRATE LOGIN</h1>
+    
+    <form id="loginForm">
+        <div class="input-group">
+            <label>Usuário</label>
+            <input type="text" id="username" required placeholder="Nick">
+        </div>
+        <div class="input-group">
+            <label>Senha</label>
+            <input type="password" id="password" required placeholder="••">
+        </div>
+        <button type="submit" class="login-btn">ENTRAR NO NAVIO</button>
+        <div id="error" class="error-msg">Dados incorretos, marujo!</div>
+    </form>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+    const errorEl = document.getElementById('error');
+
+    try {
+        const res = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+
+        if (res.ok) {
+            window.location.href = '/painel';
+        } else {
+            errorEl.style.display = 'block';
+            setTimeout(() => { errorEl.style.display = 'none'; }, 3000);
+        }
+    } catch (err) {
+        alert('Erro ao conectar ao servidor');
+    }
+});
+</script>
+
+</body>
+</html>

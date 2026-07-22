@@ -3,11 +3,35 @@ const cors = require("cors");
 const path = require("path");
 const multer = require("multer");
 const bodyParser = require("body-parser");
+const session = require("express-session");
 const InstanceManager = require("./managers/InstanceManager");
 const { us } = require("./databases");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
+
+// ═══════════════════════════════════════════════════════════════
+// CONFIGURAÇÃO DE SESSÃO
+// ═══════════════════════════════════════════════════════════════
+app.use(session({
+    secret: 'pirate-secret-key',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24 horas
+}));
+
+// Middleware de Autenticação
+const authMiddleware = (req, res, next) => {
+    if (req.session.authenticated) {
+        next();
+    } else {
+        if (req.xhr || req.headers.accept.indexOf('json') > -1) {
+            res.status(401).json({ status: 'error', message: 'Não autenticado' });
+        } else {
+            res.redirect('/login');
+        }
+    }
+};
 
 // ═══════════════════════════════════════════════════════════════
 // MIDDLEWARE
@@ -27,7 +51,41 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Servir arquivos estáticos (painel web)
+// Rota de Login (Pública)
+app.get("/login", (req, res) => {
+    res.sendFile(path.join(__dirname, "../public/login.html"));
+});
+
+app.post("/login", (req, res) => {
+    const { username, password } = req.body;
+    if (username === "Nick" && password === "00") {
+        req.session.authenticated = true;
+        res.json({ status: "success" });
+    } else {
+        res.status(401).json({ status: "error", message: "Credenciais inválidas" });
+    }
+});
+
+app.get("/logout", (req, res) => {
+    req.session.destroy();
+    res.redirect("/login");
+});
+
+// Proteger arquivos estáticos do painel (logo.png deve ser pública para o login)
+app.get("/logo.png", (req, res) => res.sendFile(path.join(__dirname, "../public/logo.png")));
+
+// Middleware de proteção para as rotas abaixo
+app.use("/painel", authMiddleware);
+app.use("/status", authMiddleware);
+app.use("/start_bot", authMiddleware);
+app.use("/stop_bot", authMiddleware);
+app.use("/save_config", authMiddleware);
+app.use("/config", authMiddleware);
+app.use("/logs", authMiddleware);
+app.use("/clear_logs", authMiddleware);
+app.use("/reset_stats", authMiddleware);
+
+// Servir arquivos estáticos protegidos
 app.use(express.static(path.join(__dirname, "../public")));
 
 // ═══════════════════════════════════════════════════════════════
@@ -38,7 +96,7 @@ app.use(express.static(path.join(__dirname, "../public")));
  * GET /
  * Verifica se o servidor está rodando
  */
-app.get("/", (req, res) => {
+app.get("/", authMiddleware, (req, res) => {
     res.redirect("/painel");
 });
 
