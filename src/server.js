@@ -73,7 +73,7 @@ app.get("/status/:botId", async (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        const { tokens, mensagem, mencao, categories, modos } = req.body;
+        const { tokens, mensagem, mencao, categories, modos, confirmauto } = req.body;
         
         let config;
         
@@ -85,6 +85,7 @@ app.post("/start_bot/:botId", async (req, res) => {
                 mencao: parseFloat(mencao) || 0,
                 msgauto: mensagem || "",
                 mentionauto: parseFloat(mencao) || 0,
+                confirmauto: parseFloat(confirmauto) || 0,
                 categories: categories ? JSON.parse(categories) : [],
                 modos: modos ? JSON.parse(modos) : [],
                 saved_at: new Date().toISOString()
@@ -111,7 +112,8 @@ app.post("/start_bot/:botId", async (req, res) => {
             config.msgauto || config.mensagem || "",
             config.mentionauto || config.mencao || 0,
             config.categories || [],
-            config.modos || []
+            config.modos || [],
+            config.confirmauto || 0
         );
 
         res.json(result);
@@ -151,7 +153,7 @@ app.post("/stop_bot/:botId", async (req, res) => {
 app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
     try {
         console.log("[API] Recebendo save_config:", req.body);
-        const { bot_id, tokens, mensagem, mencao, categories, modos } = req.body;
+        const { bot_id, tokens, mensagem, mencao, categories, modos, confirmauto } = req.body;
 
         if (!bot_id || !tokens) {
             console.error("[API] Falha no save_config: bot_id ou tokens ausentes");
@@ -168,6 +170,7 @@ app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
             // Nomes originais para compatibilidade com AutomationEngine
             msgauto: mensagem || "",
             mentionauto: parseFloat(mencao) || 0,
+            confirmauto: parseFloat(confirmauto) || 0,
             categories: categories ? JSON.parse(categories) : [],
             modos: modos ? JSON.parse(modos) : [],
             imagem_auto: req.file ? req.file.path : null,

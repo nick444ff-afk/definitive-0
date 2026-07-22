@@ -1,592 +1,441 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SystemX - Final</title>
-<style>
-* {
-    box-sizing: border-box;
-}
-body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(180deg, #050c1f, #0b1f47);
-    color: #e5e7eb;
-    min-height: 100vh;
-}
-.container {
-    max-width: 500px;
-    margin: auto;
-    padding: 15px;
-}
-.card {
-    background: linear-gradient(145deg, #0b1f47, #08142e);
-    border-radius: 22px;
-    padding: 20px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow:
-        0 10px 40px rgba(0,0,0,0.6),
-        inset 0 0 40px rgba(0,0,0,0.5);
-    transition: border-color 0.4s ease, box-shadow 0.4s ease;
-}
-.card.bot-ligado {
-    border-color: rgba(239, 68, 68, 0.45);
-    box-shadow:
-        0 10px 40px rgba(239,68,68,0.25),
-        inset 0 0 40px rgba(0,0,0,0.5);
-}
-.header {
-    text-align: center;
-}
-.logo {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 20px;
-    border-radius: 22px;
-    background: linear-gradient(145deg, #1e3a8a, #1d4ed8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    box-shadow: 0 0 25px rgba(59,130,246,0.4);
-}
-.logo img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-.title {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 4px;
-}
-.subtitle {
-    opacity: 0.6;
-    font-size: 13px;
-    margin-top: 5px;
-}
-.status {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 15px;
-}
-.badge {
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-}
-.badge-green {
-    background: rgba(16,185,129,0.15);
-    color: #34d399;
-    border: 1px solid rgba(16,185,129,0.3);
-}
-.badge-red {
-    background: rgba(239,68,68,0.15);
-    color: #f87171;
-    border: 1px solid rgba(239,68,68,0.3);
-}
-.badge-yellow {
-    background: rgba(250,204,21,0.15);
-    color: #facc15;
-    border: 1px solid rgba(250,204,21,0.3);
-}
-.bot-tabs {
-    display: flex;
-    background: #091a36;
-    border-radius: 30px;
-    padding: 6px;
-    margin-top: 15px;
-}
-.bot-tabs div {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-weight: 600;
-    user-select: none;
-}
-.bot-tabs div:hover:not(.active) {
-    background: rgba(255,255,255,0.07);
-}
-.bot-tabs .active {
-    background: #e5e7eb;
-    color: #000;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Controle - Automação</title>
+    <style>
+        :root {
+            --primary: #5865F2;
+            --primary-hover: #4752C4;
+            --bg-dark: #0a0a0c;
+            --card-bg: #18191c;
+            --text-main: #ffffff;
+            --text-muted: #b9bbbe;
+            --green: #2ecc71;
+            --red: #e74c3c;
+            --yellow: #f1c40f;
+            --border: #2f3136;
+        }
 
-.play-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 30px 0 10px;
-}
-.play {
-    width: 140px;
-    height: 140px;
-    border-radius: 50%;
-    border: 3px solid rgba(255,255,255,0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.35s ease;
-    position: relative;
-    background: rgba(255,255,255,0.03);
-    user-select: none;
-}
-.play:hover {
-    transform: scale(1.06);
-    box-shadow: 0 0 30px rgba(255,255,255,0.2);
-}
-.play:active {
-    transform: scale(0.97);
-}
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-.play .icon-play {
-    width: 0;
-    height: 0;
-    border-left: 32px solid #fff;
-    border-top: 20px solid transparent;
-    border-bottom: 20px solid transparent;
-    margin-left: 8px;
-    transition: opacity 0.2s;
-}
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
 
-.play .icon-stop {
-    width: 26px;
-    height: 26px;
-    background: #ef4444;
-    border-radius: 4px;
-    display: none;
-    animation: blink 1.2s infinite;
-}
+        .container {
+            width: 100%;
+            max-width: 1000px;
+        }
 
-.play.ligado {
-    border-color: #ef4444;
-    box-shadow: 0 0 35px rgba(239,68,68,0.5), 0 0 60px rgba(239,68,68,0.2);
-    background: rgba(239,68,68,0.08);
-}
-.play.ligado:hover {
-    box-shadow: 0 0 45px rgba(239,68,68,0.65), 0 0 70px rgba(239,68,68,0.25);
-}
-.play.ligado .icon-play {
-    display: none;
-}
-.play.ligado .icon-stop {
-    display: block;
-}
-@keyframes blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.35; }
-}
-.play-label {
-    margin-top: 14px;
-    font-size: 13px;
-    opacity: 0.65;
-    text-align: center;
-    transition: color 0.3s;
-    letter-spacing: 0.5px;
-}
-.play-label.ligado {
-    color: #f87171;
-    opacity: 1;
-    font-weight: 600;
-}
+        header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border);
+        }
 
-.card.stat {
-    padding: 18px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.stat-title {
-    font-size: 14px;
-    opacity: 0.65;
-    font-weight: 500;
-}
-.stat-value {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-.green-text  { color: #22c55e; }
-.purple-text { color: #a855f7; }
-.cyan-text   { color: #06b6d4; }
-.yellow-text { color: #facc15; }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-.reset-container {
-    margin: 0 0 20px;
-    padding: 0;
-}
-.reset-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 80, 80, 0.4);
-    background: rgba(255, 80, 80, 0.08);
-    color: #ff5a5a;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    backdrop-filter: blur(6px);
-    letter-spacing: 0.5px;
-}
-.reset-btn:hover {
-    background: rgba(255, 80, 80, 0.18);
-    border-color: rgba(255, 80, 80, 0.7);
-    box-shadow: 0 0 15px rgba(255,80,80,0.2);
-}
-.reset-btn:active {
-    transform: scale(0.97);
-}
+        .status-badges {
+            display: flex;
+            gap: 10px;
+        }
 
-label {
-    margin-top: 15px;
-    display: block;
-    font-size: 14px;
-    font-weight: 500;
-    opacity: 0.85;
-}
-input, textarea, select {
-    width: 100%;
-    padding: 14px;
-    margin-top: 6px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,255,255,0.07);
-    background: #020617;
-    color: #fff;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-}
-input:focus, textarea:focus, select:focus {
-    border-color: rgba(34,211,238,0.4);
-}
-select option {
-    background: #0b1f47;
-}
-.orgs-box {
-    background: #020617;
-    border-radius: 14px;
-    padding: 10px 15px;
-    max-height: 180px;
-    overflow-y: auto;
-    margin-top: 8px;
-    border: 1px solid rgba(255,255,255,0.06);
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.6);
-}
-.org-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 9px 5px;
-    cursor: pointer;
-    font-size: 15px;
-    border-radius: 8px;
-    transition: background 0.2s;
-}
-.org-item:hover {
-    background: rgba(255,255,255,0.04);
-}
-.org-item input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
-    accent-color: #22d3ee;
-    cursor: pointer;
-    margin: 0;
-    padding: 0;
-    border: none;
-    background: none;
-}
-.org-item input:checked + span {
-    color: #22d3ee;
-}
-.save-btn {
-    width: 100%;
-    padding: 15px;
-    margin-top: 20px;
-    border: none;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #1d4ed8, #2563eb);
-    color: #fff;
-    font-weight: 700;
-    font-size: 15px;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-    transition: all 0.25s ease;
-    box-shadow: 0 4px 15px rgba(29,78,216,0.35);
-}
-.save-btn:hover {
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
-    box-shadow: 0 6px 20px rgba(29,78,216,0.5);
-    transform: translateY(-1px);
-}
-.save-btn:active {
-    transform: scale(0.98) translateY(0);
-}
-.save-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-}
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
 
-.logs {
-    background: #000;
-    padding: 15px;
-    border-radius: 12px;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    height: 200px;
-    overflow-y: auto;
-    line-height: 1.6;
-    border: 1px solid rgba(255,255,255,0.05);
-}
-.logs::-webkit-scrollbar { width: 5px; }
-.logs::-webkit-scrollbar-track { background: #000; }
-.logs::-webkit-scrollbar-thumb { background: #1d4ed8; border-radius: 3px; }
-.log-entry { margin: 2px 0; }
-.log-time { color: #4b5563; margin-right: 6px; }
-.log-info { color: #22d3ee; }
-.log-success { color: #22c55e; }
-.log-warn { color: #facc15; }
-.log-error { color: #f87171; }
-.clear-logs-btn {
-    margin-top: 12px;
-    width: 100%;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(255,90,90,0.35);
-    background: rgba(255,90,90,0.1);
-    color: #ff5a5a;
-    font-weight: 700;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.25s ease;
-    letter-spacing: 0.5px;
-}
-.clear-logs-btn:hover {
-    background: rgba(255,90,90,0.2);
-    border-color: rgba(255,90,90,0.6);
-    box-shadow: 0 0 12px rgba(255,90,90,0.2);
-}
-.clear-logs-btn:active {
-    transform: scale(0.97);
-}
+        .badge-green { background: rgba(46, 204, 113, 0.2); color: var(--green); border: 1px solid var(--green); }
+        .badge-red { background: rgba(231, 76, 60, 0.2); color: var(--red); border: 1px solid var(--red); }
 
-.toast {
-    position: fixed;
-    bottom: 30px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #1d4ed8;
-    color: #fff;
-    padding: 12px 24px;
-    border-radius: 30px;
-    font-size: 14px;
-    font-weight: 600;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
-    z-index: 9999;
-    transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease;
-    opacity: 0;
-    white-space: nowrap;
-}
-.toast.show {
-    transform: translateX(-50%) translateY(0);
-    opacity: 1;
-}
-.toast.success { background: #16a34a; }
-.toast.error   { background: #dc2626; }
-.toast.warn    { background: #ca8a04; }
+        .bot-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
 
-.instancia-text {
-    opacity: 0.6;
-    margin-top: 10px;
-    font-size: 13px;
-    letter-spacing: 0.5px;
-    transition: color 0.3s;
-}
+        .bot-tabs div {
+            padding: 10px 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            color: var(--text-muted);
+            transition: 0.3s;
+        }
 
-.controle-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0;
-}
-.controle-header h3 {
-    margin: 0;
-}
-.bot-indicator {
-    font-size: 12px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    background: rgba(34,211,238,0.12);
-    color: #22d3ee;
-    font-weight: 600;
-    border: 1px solid rgba(34,211,238,0.25);
-    transition: all 0.3s;
-}
-.error-message {
-    background: rgba(239,68,68,0.1);
-    border: 1px solid rgba(239,68,68,0.3);
-    color: #f87171;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-top: 10px;
-}
-.success-message {
-    background: rgba(34,211,238,0.1);
-    border: 1px solid rgba(34,211,238,0.3);
-    color: #22d3ee;
-    padding: 10px 12px;
-    border-radius: 8px;
-    font-size: 13px;
-    margin-top: 10px;
-}
+        .bot-tabs div.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
 
-</style>
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+
+        .card h3 {
+            margin-bottom: 15px;
+            font-size: 18px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: #202225;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            background: #202225;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 10px;
+            color: white;
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--primary);
+        }
+
+        .orgs-box {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .org-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: #202225;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+        }
+
+        .org-item input { cursor: pointer; }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border-radius: 4px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+
+        .play-btn {
+            background: var(--green);
+            color: white;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 16px;
+        }
+
+        .play-btn:hover { background: #27ae60; }
+        .play-btn.ligado { background: var(--red); }
+
+        .save-btn {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+        }
+
+        .save-btn:hover { background: var(--primary-hover); }
+
+        .reset-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+
+        .reset-btn:hover { background: rgba(255,255,255,0.05); }
+
+        .logs {
+            height: 300px;
+            background: #000;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            overflow-y: auto;
+            color: #ccc;
+        }
+
+        .log-entry { margin-bottom: 5px; border-bottom: 1px solid #111; padding-bottom: 2px; }
+        .log-time { color: #666; margin-right: 5px; }
+        .log-success { color: var(--green); }
+        .log-error { color: var(--red); }
+        .log-warn { color: var(--yellow); }
+        .log-info { color: var(--primary); }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateY(100px);
+            transition: 0.3s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .toast.show { transform: translateY(0); }
+
+        /* Estilos específicos para o card de controle quando ligado */
+        .bot-ligado {
+            border-color: var(--green);
+            box-shadow: 0 0 10px rgba(46, 204, 113, 0.2);
+        }
+        
+        .play-label {
+            display: block;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        
+        .play-label.ligado { color: var(--green); font-weight: bold; }
+
+        .error-message { color: var(--red); font-size: 12px; margin-top: -10px; margin-bottom: 10px; }
+        .success-message { color: var(--green); font-size: 12px; margin-top: 10px; text-align: center; }
+
+        .clear-logs-btn {
+            margin-top: 10px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 11px;
+            padding: 5px 10px;
+            border: 1px solid var(--border);
+        }
+    </style>
 </head>
 <body>
+
 <div class="container">
-
-    <div class="card header">
+    <header>
         <div class="logo">
-            <img src="https://i.imgur.com/llnJtbZ.png" alt="Logo">
+            <span>⚡ DEFINITIVE-0</span>
         </div>
-        <h1 class="title">SystemX</h1>
-        <p class="subtitle">PAINEL DE CONTROLE</p>
-
-        <div class="status">
-            <div class="badge badge-red" id="badgeConexao">Desconectado</div>
-            <div class="badge badge-red" id="badgeStatus">Parado</div>
+        <div class="status-badges">
+            <span class="badge" id="badgeStatus">Parado</span>
+            <span class="badge" id="badgeConexao">Conectando...</span>
         </div>
+    </header>
 
-        <div class="bot-tabs" id="botTabs">
-            <div class="active" data-bot="BOT1" onclick="mudarBot(this)">BOT1</div>
-            <div data-bot="BOT2" onclick="mudarBot(this)">BOT2</div>
-        </div>
-
-        <p class="instancia-text" id="instancia">INSTÂNCIA ATIVA: BOT 1</p>
+    <div class="bot-tabs">
+        <div class="active" data-bot="BOT1" onclick="mudarBot(this)">BOT 1</div>
+        <div class="active" data-bot="BOT2" onclick="mudarBot(this)">BOT 2</div>
+        <div class="active" data-bot="BOT3" onclick="mudarBot(this)">BOT 3</div>
+        <div class="active" data-bot="BOT4" onclick="mudarBot(this)">BOT 4</div>
+        <div class="active" data-bot="BOT5" onclick="mudarBot(this)">BOT 5</div>
     </div>
 
-    <div class="card" id="cardControle">
-        <div class="controle-header">
-            <h3 id="controleTitle">Controle - Bot 1</h3>
-            <span class="bot-indicator" id="botIndicator">BOT1</span>
-        </div>
-
-        <div class="play-wrapper">
-            <div class="play" id="playButton" onclick="toggleBot()">
-                <div class="icon-play"></div>
-                <div class="icon-stop"></div>
+    <div class="grid">
+        <div class="left-col">
+            <div class="card" id="cardControle">
+                <h3 id="controleTitle">Controle - Bot 1</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value" id="entradas">0</span>
+                        <span class="stat-label">Entradas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="uptime">00:00:00</span>
+                        <span class="stat-label">Uptime</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="partidas">0</span>
+                        <span class="stat-label">Partidas</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="dms">0</span>
+                        <span class="stat-label">DMs</span>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="play-btn" id="playButton" onclick="toggleBot()">
+                        <span id="playIcon">▶</span> <span id="playText">INICIAR BOT</span>
+                    </button>
+                    <button class="reset-btn" onclick="resetStats()">Reset</button>
+                </div>
+                <span class="play-label" id="playLabel">Clique para iniciar o bot</span>
             </div>
-            <p class="play-label" id="playLabel">Clique para iniciar o bot</p>
-        </div>
-    </div>
 
-    <div class="card stat">
-        <div class="stat-title">Entradas</div>
-        <div class="stat-value" id="entradas">0</div>
-    </div>
-
-    <div class="card stat">
-        <div class="stat-title">Na Fila</div>
-        <div class="stat-value green-text" id="naFila">0</div>
-    </div>
-
-    <div class="card stat">
-        <div class="stat-title">Partidas</div>
-        <div class="stat-value purple-text" id="partidas">0</div>
-    </div>
-
-    <div class="card stat">
-        <div class="stat-title">DMs</div>
-        <div class="stat-value cyan-text" id="dms">0</div>
-    </div>
-
-    <div class="card stat">
-        <div class="stat-title">Uptime</div>
-        <div class="stat-value yellow-text" id="uptime">00:00:00</div>
-    </div>
-
-    <div class="reset-container">
-        <button class="reset-btn" onclick="resetStats()">RESETAR STATS</button>
-    </div>
-
-    <div class="card">
-        <h3>Configuração</h3>
-
-        <label>Tokens</label>
-        <textarea id="tokens" rows="3" placeholder="Cole seus tokens aqui (um por linha)"></textarea>
-        <div id="tokenError" class="error-message" style="display: none;"></div>
-
-        <label>Categorias</label>
-        <div class="orgs-box">
-            <label class="org-item">
-                <input type="checkbox" id="catMobile" checked>
-                <span>Mobile</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="catEmulador">
-                <span>Emulador</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="catMisto">
-                <span>Misto</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="catTatico">
-                <span>Tático</span>
-            </label>
+            <div class="card">
+                <h3>Informações</h3>
+                <p id="instancia" style="font-size: 14px; color: var(--text-muted);">INSTÂNCIA ATIVA: BOT1</p>
+                <div style="margin-top: 15px; font-size: 12px; color: var(--text-muted);">
+                    <p>• Os tokens são usados para login via selfbot.</p>
+                    <p>• O bot escaneia canais e threads automaticamente.</p>
+                    <p>• Mensagens e menções são enviadas após o match.</p>
+                </div>
+            </div>
         </div>
 
-        <label>Modos</label>
-        <div class="orgs-box">
-            <label class="org-item">
-                <input type="checkbox" id="modo1x1">
-                <span>1x1</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="modo2x2" checked>
-                <span>2x2</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="modo3x3">
-                <span>3x3</span>
-            </label>
-            <label class="org-item">
-                <input type="checkbox" id="modo4x4" checked>
-                <span>4x4</span>
-            </label>
+        <div class="right-col">
+            <div class="card">
+                <h3>Configuração</h3>
+
+                <label>Tokens</label>
+                <textarea id="tokens" rows="3" placeholder="Cole seus tokens aqui (um por linha)"></textarea>
+                <div id="tokenError" class="error-message" style="display: none;"></div>
+
+                <label>Categorias</label>
+                <div class="orgs-box">
+                    <label class="org-item">
+                        <input type="checkbox" id="catMobile" name="categoria" value="Mobile" checked>
+                        <span>Mobile</span>
+                    </label>
+                    <label class="org-item">
+                        <input type="checkbox" id="catEmulador" name="categoria" value="Emulador">
+                        <span>Emulador</span>
+                    </label>
+                    <label class="org-item">
+                        <input type="checkbox" id="catMisto" name="categoria" value="Misto">
+                        <span>Misto</span>
+                    </label>
+                    <label class="org-item">
+                        <input type="checkbox" id="catTatico" name="categoria" value="Tático">
+                        <span>Tático</span>
+                    </label>
+                </div>
+
+                <label>Modos</label>
+                <div class="orgs-box">
+                    <label class="org-item">
+                        <input type="checkbox" id="modo1x1" name="modo" value="1v1">
+                        <span>1x1</span>
+                    </label>
+                    <label class="org-item">
+                        <input type="checkbox" id="modo2x2" name="modo" value="2v2" checked>
+                        <span>2x2</span>
+                    </label>
+                    <label class="org-item">
+                        <input type="checkbox" id="modo3x3" name="modo" value="3v3">
+                        <span>3x3</span>
+                    </label>
+                    <label class="org-item">
+                        <input type="checkbox" id="modo4x4" name="modo" value="4v4" checked>
+                        <span>4x4</span>
+                    </label>
+                </div>
+
+                <label>Mensagem Automática</label>
+                <input type="text" id="mensagem" placeholder="Digite a mensagem para enviar no canal de partida">
+
+                <label>Menção Automática (Segundos)</label>
+                <input type="text" id="mencao" placeholder="Tempo para mencionar o adversário (ex: 5)">
+
+                <label>Confirmação Automática (Segundos)</label>
+                <input type="text" id="confirmauto" placeholder="Tempo para confirmar a fila (ex: 2)">
+
+                <label>Imagem Automática (Galeria)</label>
+                <input type="file" id="imagem_auto" accept="image/*" style="padding: 10px;">
+
+                <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
+                <div id="configMessage" class="success-message" style="display: none;"></div>
+            </div>
+
+            <div class="card">
+                <h3>Logs</h3>
+                <div class="logs" id="logs"></div>
+                <button class="clear-logs-btn" onclick="limparLogs()">Limpar Logs</button>
+            </div>
         </div>
-
-        <label>Mensagem</label>
-        <input type="text" id="mensagem" placeholder="Digite a mensagem">
-
-        <label>Menção</label>
-        <input type="text" id="mencao" placeholder="Tempo em segundos (ex: 10)">
-
-        <label>Imagem Automática (Galeria)</label>
-        <input type="file" id="imagem_auto" accept="image/*" style="padding: 10px;">
-
-        <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
-        <div id="configMessage" class="success-message" style="display: none;"></div>
     </div>
-
-    <div class="card">
-        <h3>Logs</h3>
-        <div class="logs" id="logs"></div>
-        <button class="clear-logs-btn" onclick="limparLogs()">Limpar Logs</button>
-    </div>
-
 </div>
 
 <div class="toast" id="toast"></div>
@@ -635,11 +484,13 @@ async function atualizarStatusBot() {
             const tokensArea = document.getElementById('tokens');
             const msgInput = document.getElementById('mensagem');
             const mencaoInput = document.getElementById('mencao');
+            const confirmautoInput = document.getElementById('confirmauto');
 
             // Só preenche se o campo estiver vazio para não atrapalhar a digitação
             if (tokensArea && !tokensArea.value && data.config.tokens) tokensArea.value = data.config.tokens.join('\n');
-            if (msgInput && !msgInput.value && data.config.mensagem) msgInput.value = data.config.mensagem;
-            if (mencaoInput && !mencaoInput.value && data.config.mencao) mencaoInput.value = data.config.mencao;
+            if (msgInput && !msgInput.value && (data.config.msgauto || data.config.mensagem)) msgInput.value = data.config.msgauto || data.config.mensagem;
+            if (mencaoInput && !mencaoInput.value && (data.config.mentionauto || data.config.mencao)) mencaoInput.value = data.config.mentionauto || data.config.mencao;
+            if (confirmautoInput && !confirmautoInput.value && data.config.confirmauto) confirmautoInput.value = data.config.confirmauto;
 
             // Preencher checkboxes de modos e categorias
             if (data.config.modos) {
@@ -672,7 +523,6 @@ async function atualizarStatusBot() {
             
             if (data.stats) {
                 document.getElementById('entradas').textContent = data.stats.entradas || 0;
-                document.getElementById('naFila').textContent   = data.stats.na_fila || 0;
                 document.getElementById('partidas').textContent = data.stats.partidas || 0;
                 document.getElementById('dms').textContent      = data.stats.dms || 0;
             }
@@ -709,12 +559,12 @@ function mudarBot(tabEl) {
 
     document.getElementById('instancia').textContent    = `INSTÂNCIA ATIVA: ${bot}`;
     document.getElementById('controleTitle').textContent = `Controle - ${botNum}`;
-    document.getElementById('botIndicator').textContent  = bot;
 
     // Limpar formulário para recarregar do novo bot
     document.getElementById('tokens').value = '';
     document.getElementById('mensagem').value = '';
     document.getElementById('mencao').value = '';
+    document.getElementById('confirmauto').value = '';
     document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
 
     // Limpar logs locais ao trocar de bot para carregar os logs do novo bot
@@ -733,25 +583,19 @@ async function toggleBot() {
             const tokens   = document.getElementById('tokens').value.trim();
             const mensagem = document.getElementById("mensagem").value.trim();
             const mencao   = document.getElementById("mencao").value.trim();
+            const confirmauto = document.getElementById("confirmauto").value.trim();
 
             const categoriasSelecionadas = [];
-            if (document.getElementById('catMobile').checked) categoriasSelecionadas.push('Mobile');
-            if (document.getElementById('catEmulador').checked) categoriasSelecionadas.push('Emulador');
-            if (document.getElementById('catMisto').checked) categoriasSelecionadas.push('Misto');
-            if (document.getElementById('catTatico').checked) categoriasSelecionadas.push('Tático');
+            document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categoriasSelecionadas.push(cb.value));
 
-            const modoIds = ['modo1x1','modo2x2','modo3x3','modo4x4'];
-            const modosSelecionados = modoIds
-                .filter(id => {
-                    const el = document.getElementById(id);
-                    return el ? el.checked : false;
-                })
-                .map(id => id.replace('modo','').replace('x', 'v'));
+            const modosSelecionados = [];
+            document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modosSelecionados.push(cb.value));
 
             const body = {
                 tokens,
                 mensagem,
                 mencao,
+                confirmauto,
                 categories: JSON.stringify(categoriasSelecionadas),
                 modos: JSON.stringify(modosSelecionados)
             };
@@ -805,7 +649,6 @@ async function fetchLogs() {
             const data = await response.json();
             const logs = data.logs || [];
             
-            // Filtrar apenas logs novos baseado no timestamp
             const newLogs = lastLogTimestamp 
                 ? logs.filter(l => new Date(l.timestamp) > new Date(lastLogTimestamp))
                 : logs;
@@ -817,8 +660,7 @@ async function fetchLogs() {
                 lastLogTimestamp = logs[logs.length - 1].timestamp;
             }
         }
-    } catch (e) {
-    }
+    } catch (e) {}
 }
 
 async function resetStats() {
@@ -826,7 +668,6 @@ async function resetStats() {
         const response = await fetch(`${API_URL}/reset_stats/${botAtivo}`, { method: 'POST' });
         if (response.ok) {
             document.getElementById('entradas').textContent = '0';
-            document.getElementById('naFila').textContent   = '0';
             document.getElementById('partidas').textContent = '0';
             document.getElementById('dms').textContent      = '0';
             document.getElementById('uptime').textContent   = '00:00:00';
@@ -838,37 +679,8 @@ async function resetStats() {
     }
 }
 
-function validarTokens(tokensText) {
-    const tokenList = tokensText.split('\n').map(t => t.trim()).filter(t => t);
-    const errors = [];
-    
-    if (tokenList.length === 0) {
-        return { valid: false, message: 'Nenhum token fornecido' };
-    }
-    
-    for (let i = 0; i < tokenList.length; i++) {
-        const token = tokenList[i];
-        if (token.length < 59) {
-            errors.push(`Token ${i + 1}: muito curto (${token.length} caracteres)`);
-        } else if (token.length > 100) {
-            errors.push(`Token ${i + 1}: muito longo (${token.length} caracteres)`);
-        } else if (!/^[A-Za-z0-9_.-]+$/.test(token)) {
-            errors.push(`Token ${i + 1}: contém caracteres inválidos`);
-        }
-    }
-    
-    if (errors.length > 0) {
-        return { valid: false, message: errors.join('; ') };
-    }
-    
-    return { valid: true, message: `${tokenList.length} token(s) válido(s)` };
-}
-
 async function salvarConfiguracao() {
-    if (isSaving) {
-        showToast('Salvamento em progresso...', 'warn');
-        return;
-    }
+    if (isSaving) return;
     
     isSaving = true;
     const saveBtn = document.getElementById('saveBtnConfig');
@@ -880,57 +692,32 @@ async function salvarConfiguracao() {
         const tokens   = document.getElementById('tokens').value.trim();
         const mensagem = document.getElementById("mensagem").value.trim();
         const mencao   = document.getElementById("mencao").value.trim();
+        const confirmauto = document.getElementById("confirmauto").value.trim();
         
-        // Garantir que os tokens sejam enviados mesmo que o formulário tenha acabado de ser preenchido
         if (!tokens) {
-            addLog('❌ Nenhum token preenchido no campo.', 'error');
             showToast('Preencha os tokens!', 'error');
             isSaving = false;
             saveBtn.textContent = originalText;
             saveBtn.disabled = false;
             return;
         }
-        const imagemInput = document.getElementById("imagem_auto");
 
         const categoriasSelecionadas = [];
-        if (document.getElementById('catMobile').checked) categoriasSelecionadas.push('Mobile');
-        if (document.getElementById('catEmulador').checked) categoriasSelecionadas.push('Emulador');
-        if (document.getElementById('catMisto').checked) categoriasSelecionadas.push('Misto');
-        if (document.getElementById('catTatico').checked) categoriasSelecionadas.push('Tático');
+        document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categoriasSelecionadas.push(cb.value));
 
-        const modoIds = ['modo1x1','modo2x2','modo3x3','modo4x4'];
-        const modosSelecionados = modoIds
-            .filter(id => {
-                const el = document.getElementById(id);
-                return el ? el.checked : false;
-            })
-            .map(id => id.replace('modo','').replace('x', 'v'));
+        const modosSelecionados = [];
+        document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modosSelecionados.push(cb.value));
 
-        const tokenValidation = validarTokens(tokens);
-        const tokenErrorEl = document.getElementById('tokenError');
-        
-        if (!tokenValidation.valid) {
-            tokenErrorEl.textContent = '❌ ' + tokenValidation.message;
-            tokenErrorEl.style.display = 'block';
-            addLog(`❌ Erro de validação: ${tokenValidation.message}`, 'error');
-            showToast('Tokens inválidos!', 'error');
-            isSaving = false;
-            saveBtn.textContent = originalText;
-            saveBtn.disabled = false;
-            return;
-        }
-        
-        tokenErrorEl.style.display = 'none';
-
-        // Usar FormData para suportar upload de arquivos
         const formData = new FormData();
         formData.append('bot_id', botAtivo);
         formData.append('tokens', tokens);
         formData.append('mensagem', mensagem);
         formData.append('mencao', mencao);
+        formData.append('confirmauto', confirmauto);
         formData.append('categories', JSON.stringify(categoriasSelecionadas));
         formData.append('modos', JSON.stringify(modosSelecionados));
-        
+
+        const imagemInput = document.getElementById("imagem_auto");
         if (imagemInput.files[0]) {
             formData.append('imagem_auto', imagemInput.files[0]);
         }
@@ -940,22 +727,15 @@ async function salvarConfiguracao() {
             body: formData
         });
         
-        const responseData = await response.json();
-        
-        if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'success') {
             showToast('Configuração salva!', 'success');
-            
-            const configMsg = document.getElementById('configMessage');
-            configMsg.textContent = '✅ ' + responseData.message;
-            configMsg.style.display = 'block';
-            setTimeout(() => { configMsg.style.display = 'none'; }, 3000);
+            addLog(`✅ Configuração de ${botAtivo} salva.`, 'success');
         } else {
-            addLog(`❌ Erro ao salvar: ${responseData.message}`, 'error');
-            showToast('Erro ao salvar!', 'error');
+            showToast(data.message, 'error');
         }
     } catch (e) {
-        addLog(`❌ Erro de conexão: ${e.message}`, 'error');
-        showToast('Erro de conexão!', 'error');
+        showToast('Erro ao salvar!', 'error');
     } finally {
         isSaving = false;
         saveBtn.textContent = originalText;
@@ -963,44 +743,40 @@ async function salvarConfiguracao() {
     }
 }
 
-async function limparLogs() {
-    try {
-        const response = await fetch(`${API_URL}/clear_logs/${botAtivo}`, { method: 'POST' });
-        if (response.ok) {
-            document.getElementById('logs').innerHTML = '';
-            lastLogTimestamp = null;
-            showToast('Logs limpos!', 'info');
-        }
-    } catch (e) {
-        console.error("Erro ao limpar logs:", e);
-    }
-}
-
-function addLog(msg, tipo) {
-    const logsEl = document.getElementById('logs');
-    const now    = new Date();
-    const time   = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    const tipoClass = { info: 'log-info', success: 'log-success', warn: 'log-warn', error: 'log-error' }[tipo] || 'log-info';
+function addLog(msg, type = 'info') {
+    const logsDiv = document.getElementById('logs');
     const entry = document.createElement('div');
     entry.className = 'log-entry';
-    entry.innerHTML = `<span class="log-time">[${time}]</span><span class="${tipoClass}">${msg}</span>`;
-    logsEl.appendChild(entry);
-    logsEl.scrollTop = logsEl.scrollHeight;
+    
+    const time = new Date().toLocaleTimeString();
+    entry.innerHTML = `<span class="log-time">[${time}]</span> <span class="log-${type}">${msg}</span>`;
+    
+    logsDiv.appendChild(entry);
+    logsDiv.scrollTop = logsDiv.scrollHeight;
 }
 
-let toastTimeout = null;
-function showToast(msg, tipo) {
+function showToast(msg, type = 'info') {
     const toast = document.getElementById('toast');
     toast.textContent = msg;
-    toast.className   = 'toast';
-    if (tipo === 'success') toast.classList.add('success');
-    else if (tipo === 'error') toast.classList.add('error');
-    else if (tipo === 'warn')  toast.classList.add('warn');
-    void toast.offsetWidth;
+    
+    let color = 'var(--primary)';
+    if (type === 'success') color = 'var(--green)';
+    if (type === 'error') color = 'var(--red)';
+    if (type === 'warn') color = 'var(--yellow)';
+    
+    toast.style.backgroundColor = color;
     toast.classList.add('show');
-    clearTimeout(toastTimeout);
-    toastTimeout = setTimeout(() => { toast.classList.remove('show'); }, 2500);
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
+
+function limparLogs() {
+    document.getElementById('logs').innerHTML = '';
+    showToast('Logs limpos', 'info');
 }
 </script>
+
 </body>
 </html>

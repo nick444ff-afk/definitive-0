@@ -85,9 +85,10 @@ class InstanceManager {
     /**
      * Inicia a automação de uma instância
      */
-    async startAutomation(botId, tokens, format, category, msgauto, mentionauto, categories, modos) {
+    async startAutomation(botId, tokens, format, category, msgauto, mentionauto, categories, modos, confirmauto) {
         try {
-            const instance = this.getInstance(botId);
+            await this.initInstance(botId);
+            const instance = this.instances.get(botId);
             
             if (instance.is_running) {
                 this.addLog(botId, "⚠️ Automação já está em execução", "warn");
@@ -103,6 +104,7 @@ class InstanceManager {
                 tokens: Array.isArray(tokens) ? tokens : tokens.split("\n").map(t => t.trim()).filter(t => t),
                 msgauto,
                 mentionauto,
+                confirmauto: parseFloat(confirmauto) || 0,
                 mensagem: msgauto,
                 mencao: mentionauto,
                 categories,

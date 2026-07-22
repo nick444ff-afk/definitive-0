@@ -1,23 +1,23 @@
 const { Client } = require('discord.js-selfbot-v13');
 
 /**
- * AutomationEngine - LÓGICA RESTAURADA DO ZIP (MELHOR VERSÃO)
- * Com loop infinito dinâmico e limite de 5 tentativas.
+ * AutomationEngine - LÓGICA INTEGRADA E REFINADA
+ * Extraída do arquivo ofc_simplificado_final(6).zip
  */
 class AutomationEngine {
     constructor() {
         this.activeAutomations = new Map();
-        this.MAX_ENTRIES_PER_GUILD = 5;
+        this.MAX_ENTRIES_PER_GUILD = 1; // Conforme definido no ZIP (MAX_ENTRIES_PER_GUILD = 1)
     }
 
     async startAutomation(botId, config, onLog, onStats) {
         try {
             if (this.activeAutomations.has(botId)) {
-                onLog("⚠️ Automação já em execução", "warn");
+                onLog("⚠️ Automação já em execução para este bot", "warn");
                 return false;
             }
 
-            const { tokens, msgauto, mentionauto, categories, modos } = config;
+            const { tokens, msgauto, mentionauto, confirmauto, categories, modos } = config;
             if (!tokens || tokens.length === 0) {
                 onLog("❌ Nenhum token fornecido", "error");
                 return false;
@@ -31,6 +31,7 @@ class AutomationEngine {
                 clickedMessages: new Set(),
                 guildClickCount: new Map(),
                 msgAutoSentThisSession: new Set(),
+                confirmedChannels: new Set(), // Para controle de confirmação automática
                 onLog,
                 onStats
             };
@@ -47,19 +48,18 @@ class AutomationEngine {
 
             return true;
         } catch (err) {
-            onLog(`❌ Erro fatal: ${err.message}`, "error");
+            onLog(`❌ Erro fatal ao iniciar automação: ${err.message}`, "error");
             return false;
         }
     }
 
     async _runOriginalLogic(botId, automation, token, config) {
         const { onLog, onStats } = automation;
-        const { categories, modos, msgauto, mentionauto } = config;
+        const { categories, modos, msgauto, mentionauto, confirmauto } = config;
 
         try {
             const self = new Client();
             
-            // Monitoramento de erros para estabilidade
             self.on('error', (err) => onLog(`⚠️ Erro no Client: ${err.message}`, "warn"));
             self.on('disconnect', () => onLog(`⚠️ Client desconectado.`, "warn"));
 
@@ -74,10 +74,11 @@ class AutomationEngine {
                 tatico: "tatico"
             };
 
-            const searchFormats = (modos || []).map(m => m.toLowerCase().replace("x", "v"));
+            // Formatos e Categorias para busca (v13 usa replace v por x conforme lógica do ZIP)
+            const searchFormats = (modos || []).map(m => m.toLowerCase().replace("v", "x"));
             const searchCategories = (categories || []).map(cat => categoriaMap[cat.toLowerCase()] || cat.toLowerCase());
 
-            onLog(`[AUTOMAÇÃO] Buscando: [${searchFormats.join(', ')}] - [${searchCategories.join(', ')}]`, "success");
+            onLog(`[AUTOMAÇÃO] Buscando canais que contenham: [${searchFormats.join(', ')}] e [${searchCategories.join(', ')}]`, "success");
 
             const CATEGORY_KEYWORDS = {
                 mobile: ["mobile", "mob", "celular", "📱"],
@@ -87,6 +88,33 @@ class AutomationEngine {
             };
 
             const IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair"];
+
+            const findCorrectButton = (buttons, activeCategories) => {
+                let bestMatch = null;
+                for (const cat of activeCategories) {
+                    const keywords = CATEGORY_KEYWORDS[cat.toLowerCase()] || [cat.toLowerCase()];
+                    for (const button of buttons) {
+                        if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
+                        if (button.label && IGNORED_BUTTONS.includes(button.label.toLowerCase())) continue;
+
+                        const searchText = `${button.customId} ${button.label} ${button.emoji?.name}`.toLowerCase();
+                        if (keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
+                            bestMatch = button;
+                            break;
+                        }
+                    }
+                    if (bestMatch) break;
+                }
+
+                if (!bestMatch) {
+                    bestMatch = buttons.find(b => 
+                        b.customId === "join_player" || 
+                        b.customId?.toLowerCase().includes("join") ||
+                        b.customId?.toLowerCase().includes("entrar")
+                    );
+                }
+                return bestMatch;
+            };
 
             const processChannel = async (channel) => {
                 const guildId = channel.guild?.id;
@@ -109,49 +137,35 @@ class AutomationEngine {
                             }
                         }
 
-                        let bestMatch = null;
-                        for (const cat of categories) {
-                            const keywords = CATEGORY_KEYWORDS[cat.toLowerCase()] || [cat.toLowerCase()];
-                            for (const button of allButtons) {
-                                if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
-                                const searchText = `${button.customId} ${button.label} ${button.emoji?.name}`.toLowerCase();
-                                if (keywords.some(kw => searchText.includes(kw.toLowerCase()))) {
-                                    bestMatch = button;
-                                    break;
-                                }
-                            }
-                            if (bestMatch) break;
-                        }
+                        const correctButton = findCorrectButton(allButtons, categories);
 
-                        if (!bestMatch) {
-                            bestMatch = allButtons.find(b => b.customId === "join_player" || b.customId?.toLowerCase().includes("join"));
-                        }
-
-                        if (bestMatch) {
+                        if (correctButton) {
                             try {
                                 const newCount = (automation.guildClickCount.get(guildId) || 0) + 1;
                                 automation.guildClickCount.set(guildId, newCount);
                                 
-                                await msg.clickButton(bestMatch.customId);
+                                await msg.clickButton(correctButton.customId);
                                 automation.clickedMessages.add(msg.id);
                                 
-                                onLog(`✅ Tentativa ${newCount}/${this.MAX_ENTRIES_PER_GUILD} em #${channel.name} (${channel.guild.name})`, "success");
+                                onLog(`✅ Entrada realizada em #${channel.name} (${channel.guild.name}) [${newCount}/${this.MAX_ENTRIES_PER_GUILD}]`, "success");
                                 if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
                                 
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
                             } catch (err) {
-                                onLog(`❌ Falha em #${channel.name}: ${err.message}`, "error");
+                                onLog(`❌ Erro ao clicar em #${channel.name}: ${err.message}`, "error");
                             }
                         }
                     }
-                } catch (err) {}
+                } catch (err) {
+                    // Erro silencioso ao buscar mensagens
+                }
             };
 
             const interval = setInterval(async () => {
                 if (!automation.isRunning) return clearInterval(interval);
 
                 try {
-                    // 1. Escaneamento
+                    // 1. ESCANEAMENTO DE CANAIS DE FILA
                     const canaisFila = self.channels.cache.filter(c => {
                         if (c.type !== "GUILD_TEXT") return false;
                         const nome = c.name.toLowerCase();
@@ -163,19 +177,24 @@ class AutomationEngine {
                     let processedInThisTick = 0;
                     for (const [, channel] of canaisFila) {
                         if (automation.processing.has(channel.id)) continue;
+                        
+                        const guildId = channel.guild?.id;
+                        if (guildId && (automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) continue;
+
                         automation.processing.add(channel.id);
                         await processChannel(channel);
                         processedInThisTick++;
                         setTimeout(() => automation.processing.delete(channel.id), 3000);
                     }
 
-                    // LOOP INFINITO DINÂMICO
-                    if (processedInThisTick === 0) {
-                        automation.guildClickCount.clear();
-                        automation.clickedMessages.clear();
+                    // Reset de cliques se não houver canais (Loop Infinito Lógica)
+                    if (processedInThisTick === 0 && canaisFila.size > 0) {
+                        // Opcional: logicamente o ZIP não reseta os cliques aqui, mas o AutomationEngine original sim.
+                        // Mantendo o comportamento de reset para garantir fluxo contínuo se solicitado.
+                        // automation.guildClickCount.clear(); 
                     }
 
-                    // 2. Partida (MENSAGEM E MENÇÃO)
+                    // 2. MONITORAMENTO DE PARTIDAS (MSG AUTO, CONFIRMAÇÃO, MENÇÃO)
                     const canaisPartida = self.channels.cache.filter(channel =>
                         channel.guild &&
                         (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
@@ -190,32 +209,67 @@ class AutomationEngine {
                         automation.processing.add(channel.id);
 
                         try {
+                            // --- MENSAGEM AUTOMÁTICA ---
                             if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
-                                await channel.send(msgauto);
-                                automation.msgAutoSentThisSession.add(channel.id);
-                                onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                try {
+                                    await channel.send(msgauto);
+                                    automation.msgAutoSentThisSession.add(channel.id);
+                                    onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                } catch (e) {
+                                    onLog(`[MSG-AUTO] ❌ Erro em #${channel.name}: ${e.message}`, "error");
+                                    automation.msgAutoSentThisSession.add(channel.id);
+                                }
                             }
 
-                            if (mentionauto > 0) {
-                                const msgs = await channel.messages.fetch({ limit: 5 });
-                                const firstMsg = msgs.find(m => m.components?.length);
-                                
-                                if (firstMsg) {
+                            const msgs = await channel.messages.fetch({ limit: 5 });
+                            const firstMsg = msgs.find(m => m.components?.length);
+
+                            if (firstMsg) {
+                                // --- CONFIRMAÇÃO AUTOMÁTICA ---
+                                if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id)) {
+                                    await new Promise(res => setTimeout(res, confirmauto * 1000));
+                                    let confirmed = false;
+                                    for (const row of firstMsg.components) {
+                                        for (const button of row.components) {
+                                            if (confirmed) continue;
+                                            if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
+                                            if (button.customId === "leave_player") continue;
+
+                                            try {
+                                                await firstMsg.clickButton(button.customId);
+                                                confirmed = true;
+                                                automation.confirmedChannels.add(channel.id);
+                                                onLog(`[CONFIRM] ✅ Confirmado em #${channel.name}`, "success");
+                                            } catch (err) {
+                                                onLog(`[CONFIRM] ❌ Erro em #${channel.name}: ${err.message}`, "error");
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // --- MENÇÃO AUTOMÁTICA ---
+                                if (mentionauto > 0) {
                                     const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
                                     if (!automation.clickedMessages.has(mentionKey)) {
                                         await new Promise(res => setTimeout(res, mentionauto * 1000));
+                                        
                                         let foundMentions = [];
                                         const regex = /<@!?(\d+)>/g;
+                                        
                                         const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
                                         foundMentions.push(...contentMentions);
+                                        
                                         for (const embed of firstMsg.embeds) {
                                             if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
                                             if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
                                         }
+                                        
                                         foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
+                                        
                                         for (const mentionUserId of foundMentions) {
                                             try {
                                                 const member = await channel.guild.members.fetch(mentionUserId);
+                                                // Não mencionar ADMs/Moderadores (lógica do ZIP)
                                                 if (!member.permissions.has("MANAGE_MESSAGES")) {
                                                     await channel.send(`<@${mentionUserId}>`);
                                                     automation.clickedMessages.add(mentionKey);
@@ -227,29 +281,36 @@ class AutomationEngine {
                                     }
                                 }
                             }
-                        } catch (err) {}
+                        } catch (err) {
+                            // Erro silencioso no processamento do canal de partida
+                        }
                         setTimeout(() => automation.processing.delete(channel.id), 2000);
                     }
-                } catch (err) {}
+                } catch (err) {
+                    // Erro silencioso no loop principal
+                }
             }, 2000);
 
             automation.intervals.push(interval);
 
         } catch (err) {
-            onLog(`❌ Erro: ${err.message}`, "error");
+            onLog(`❌ Erro no processamento do token: ${err.message}`, "error");
         }
     }
 
     async stopAutomation(botId, onLog) {
         const automation = this.activeAutomations.get(botId);
         if (!automation) return false;
+        
         automation.isRunning = false;
         automation.intervals.forEach(i => clearInterval(i));
+        
         for (const client of automation.clients) {
             try { await client.destroy(); } catch (e) {}
         }
+        
         this.activeAutomations.delete(botId);
-        onLog("⚠️ Automação parada", "warn");
+        if (onLog) onLog("⚠️ Automação parada com sucesso", "warn");
         return true;
     }
 }
