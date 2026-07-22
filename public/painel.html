@@ -499,6 +499,9 @@ input:focus, textarea:focus {
         <label>Mensagem Automática</label>
         <input type="text" id="mensagem" placeholder="Digite a mensagem">
 
+        <label>Delay da Mensagem (s)</label>
+        <input type="text" id="msgdelay" placeholder="Tempo para enviar a mensagem (ex: 12)">
+
         <label>Menção Automática (s)</label>
         <input type="text" id="mencao" placeholder="Tempo para mencionar (ex: 5)">
 
@@ -525,7 +528,7 @@ let botLigado = false;
 let lastLogTimestamp = null;
 let updateInterval = null;
 
-const elements = {
+    const elements = {
     badgeConexao: document.getElementById('badgeConexao'),
     badgeStatus: document.getElementById('badgeStatus'),
     playButton: document.getElementById('playButton'),
@@ -538,6 +541,7 @@ const elements = {
     logs: document.getElementById('logs'),
     tokens: document.getElementById('tokens'),
     mensagem: document.getElementById('mensagem'),
+    msgdelay: document.getElementById('msgdelay'),
     mencao: document.getElementById('mencao'),
     confirmauto: document.getElementById('confirmauto'),
     toast: document.getElementById('toast')
@@ -610,6 +614,7 @@ async function fetchStatus() {
         if (data.config && !elements.tokens.value) {
             if (data.config.tokens) elements.tokens.value = data.config.tokens.join('\n');
             if (data.config.msgauto || data.config.mensagem) elements.mensagem.value = data.config.msgauto || data.config.mensagem;
+            if (data.config.msgdelay) elements.msgdelay.value = data.config.msgdelay;
             if (data.config.mentionauto || data.config.mencao) elements.mencao.value = data.config.mentionauto || data.config.mencao;
             if (data.config.confirmauto) elements.confirmauto.value = data.config.confirmauto;
             if (data.config.modos) data.config.modos.forEach(m => {
@@ -647,6 +652,7 @@ function mudarBot(tabEl) {
     lastLogTimestamp = null;
     elements.tokens.value = '';
     elements.mensagem.value = '';
+    elements.msgdelay.value = '';
     elements.mencao.value = '';
     elements.confirmauto.value = '';
     document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -667,6 +673,7 @@ async function toggleBot() {
             body = {
                 tokens: elements.tokens.value.trim(),
                 mensagem: elements.mensagem.value.trim(),
+                msgdelay: elements.msgdelay.value.trim(),
                 mencao: elements.mencao.value.trim(),
                 confirmauto: elements.confirmauto.value.trim(),
                 categories: JSON.stringify(categories),
@@ -696,6 +703,7 @@ async function salvarConfiguracao() {
         formData.append('bot_id', botAtivo);
         formData.append('tokens', elements.tokens.value.trim());
         formData.append('mensagem', elements.mensagem.value.trim());
+        formData.append('msgdelay', elements.msgdelay.value.trim());
         formData.append('mencao', elements.mencao.value.trim());
         formData.append('confirmauto', elements.confirmauto.value.trim());
         formData.append('categories', JSON.stringify(categories));

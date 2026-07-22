@@ -85,7 +85,7 @@ class InstanceManager {
     /**
      * Inicia a automação de uma instância
      */
-    async startAutomation(botId, tokens, format, category, msgauto, mentionauto, categories, modos, confirmauto) {
+    async startAutomation(botId, tokens, format, category, msgauto, mentionauto, categories, modos, confirmauto, msgdelay) {
         try {
             await this.initInstance(botId);
             const instance = this.instances.get(botId);
@@ -103,6 +103,7 @@ class InstanceManager {
             instance.config = {
                 tokens: Array.isArray(tokens) ? tokens : tokens.split("\n").map(t => t.trim()).filter(t => t),
                 msgauto,
+                msgdelay: parseFloat(msgdelay) || 0,
                 mentionauto,
                 confirmauto: parseFloat(confirmauto) || 0,
                 mensagem: msgauto,

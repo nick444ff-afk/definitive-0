@@ -222,9 +222,17 @@ class AutomationEngine {
                             // --- MENSAGEM AUTOMÁTICA ---
                             if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
                                 try {
-                                    await channel.send(msgauto);
-                                    automation.msgAutoSentThisSession.add(channel.id);
-                                    onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                    const msgDelaySec = parseInt(config.msgdelay) || 0;
+                                    if (msgDelaySec > 0) {
+                                        onLog(`[MSG-AUTO] ⏳ Aguardando ${msgDelaySec}s para enviar mensagem em #${channel.name}`, "info");
+                                        await new Promise(res => setTimeout(res, msgDelaySec * 1000));
+                                    }
+                                    
+                                    if (automation.isRunning) {
+                                        await channel.send(msgauto);
+                                        automation.msgAutoSentThisSession.add(channel.id);
+                                        onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                    }
                                 } catch (e) {
                                     onLog(`[MSG-AUTO] ❌ Erro em #${channel.name}: ${e.message}`, "error");
                                     automation.msgAutoSentThisSession.add(channel.id);

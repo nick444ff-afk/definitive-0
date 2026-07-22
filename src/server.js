@@ -131,7 +131,7 @@ app.get("/status/:botId", async (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        const { tokens, mensagem, mencao, categories, modos, confirmauto } = req.body;
+        const { tokens, mensagem, msgdelay, mencao, categories, modos, confirmauto } = req.body;
         
         let config;
         
@@ -140,6 +140,7 @@ app.post("/start_bot/:botId", async (req, res) => {
             config = {
                 tokens: tokens.split("\n").map(t => t.trim()).filter(t => t),
                 mensagem: mensagem || "",
+                msgdelay: parseFloat(msgdelay) || 0,
                 mencao: parseFloat(mencao) || 0,
                 msgauto: mensagem || "",
                 mentionauto: parseFloat(mencao) || 0,
@@ -171,7 +172,8 @@ app.post("/start_bot/:botId", async (req, res) => {
             config.mentionauto || config.mencao || 0,
             config.categories || [],
             config.modos || [],
-            config.confirmauto || 0
+            config.confirmauto || 0,
+            config.msgdelay || 0
         );
 
         res.json(result);
@@ -211,7 +213,7 @@ app.post("/stop_bot/:botId", async (req, res) => {
 app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
     try {
         console.log("[API] Recebendo save_config:", req.body);
-        const { bot_id, tokens, mensagem, mencao, categories, modos, confirmauto } = req.body;
+        const { bot_id, tokens, mensagem, msgdelay, mencao, categories, modos, confirmauto } = req.body;
 
         if (!bot_id || !tokens) {
             console.error("[API] Falha no save_config: bot_id ou tokens ausentes");
@@ -224,6 +226,7 @@ app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
         const config = {
             tokens: tokens.split("\n").map(t => t.trim()).filter(t => t),
             mensagem: mensagem || "",
+            msgdelay: parseFloat(msgdelay) || 0,
             mencao: parseFloat(mencao) || 0,
             // Nomes originais para compatibilidade com AutomationEngine
             msgauto: mensagem || "",
