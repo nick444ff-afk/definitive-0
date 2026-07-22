@@ -730,6 +730,9 @@ function mudarBot(tabEl) {
 async function toggleBot() {
     if (!botLigado) {
         try {
+            // Salvar automaticamente antes de ligar para garantir que o token mais recente seja usado
+            await salvarConfiguracao();
+            
             const response = await fetch(`${API_URL}/start_bot/${botAtivo}`, { method: 'POST' });
             const data = await response.json();
             if (data.status === 'success') {

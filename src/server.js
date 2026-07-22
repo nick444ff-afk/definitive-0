@@ -73,10 +73,15 @@ app.get("/status/:botId", async (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        const instance = await InstanceManager.getInstance(botId);
-        const config = instance.config;
+        let instance = await InstanceManager.getInstance(botId);
+        let config = instance.config;
 
-        // Se nao houver configuracao salva, retornar erro
+        // Tentar carregar do disco se a memória estiver vazia
+        if (!config || !config.tokens || config.tokens.length === 0) {
+            config = await InstanceManager.getConfig(botId);
+        }
+
+        // Se ainda assim nao houver configuracao, retornar erro
         if (!config || !config.tokens || config.tokens.length === 0) {
             return res.status(400).json({
                 status: "error",
