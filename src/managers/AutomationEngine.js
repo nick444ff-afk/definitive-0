@@ -32,6 +32,7 @@ class AutomationEngine {
                 guildClickCount: new Map(),
                 msgAutoSentThisSession: new Set(),
                 confirmedChannels: new Set(), // Para controle de confirmação automática
+                lastClickTime: 0, // Controle de delay global entre cliques
                 onLog,
                 onStats
             };
@@ -141,6 +142,15 @@ class AutomationEngine {
 
                         if (correctButton) {
                             try {
+                                // --- DELAY DE 2 SEGUNDOS ENTRE CLIQUES ---
+                                const now = Date.now();
+                                const timeSinceLastClick = now - (automation.lastClickTime || 0);
+                                if (timeSinceLastClick < 2000) {
+                                    const waitTime = 2000 - timeSinceLastClick;
+                                    await new Promise(res => setTimeout(res, waitTime));
+                                }
+                                automation.lastClickTime = Date.now();
+
                                 const newCount = (automation.guildClickCount.get(guildId) || 0) + 1;
                                 automation.guildClickCount.set(guildId, newCount);
                                 
