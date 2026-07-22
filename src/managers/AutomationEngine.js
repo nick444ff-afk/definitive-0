@@ -215,13 +215,6 @@ class AutomationEngine {
                         setTimeout(() => automation.processing.delete(channel.id), 5000);
                     }
 
-                    // Reset de cliques se não houver canais (Loop Infinito Lógica)
-                    if (processedInThisTick === 0 && canaisFila.size > 0) {
-                        // Opcional: logicamente o ZIP não reseta os cliques aqui, mas o AutomationEngine original sim.
-                        // Mantendo o comportamento de reset para garantir fluxo contínuo se solicitado.
-                        // automation.guildClickCount.clear(); 
-                    }
-
                     // 2. MONITORAMENTO DE PARTIDAS (MSG AUTO, CONFIRMAÇÃO, MENÇÃO)
                     const canaisPartida = self.channels.cache.filter(channel =>
                         channel.guild &&
