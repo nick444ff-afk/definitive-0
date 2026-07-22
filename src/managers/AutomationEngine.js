@@ -17,7 +17,7 @@ class AutomationEngine {
                 return false;
             }
 
-            const { tokens, msgauto, mentionauto, confirmauto, categories, modos } = config;
+            const { tokens, msgauto, mentionauto, confirmauto, categories, modos, msgdelay } = config;
             if (!tokens || tokens.length === 0) {
                 onLog("❌ Nenhum token fornecido", "error");
                 return false;
@@ -39,9 +39,17 @@ class AutomationEngine {
 
             this.activeAutomations.set(botId, automation);
 
-            // Iniciar para cada token
-            for (const token of tokens) {
+            // --- LOGIN ESCALONADO ---
+            onLog(`🚀 Iniciando ${tokens.length} tokens com intervalo de segurança...`, "info");
+            for (let i = 0; i < tokens.length; i++) {
                 if (!automation.isRunning) break;
+                
+                const token = tokens[i];
+                if (i > 0) {
+                    const loginDelay = 3000 + Math.random() * 2000; // 3-5 segundos entre logins
+                    await new Promise(res => setTimeout(res, loginDelay));
+                }
+                
                 this._runOriginalLogic(botId, automation, token, config).catch(err => {
                     onLog(`❌ Erro crítico no token ${token.substring(0, 10)}...: ${err.message}`, "error");
                 });
@@ -142,11 +150,15 @@ class AutomationEngine {
 
                         if (correctButton) {
                             try {
-                                // --- DELAY DE 2 SEGUNDOS ENTRE CLIQUES ---
+                                // --- DELAY COM JITTER (ALEATÓRIO) ENTRE CLIQUES ---
                                 const now = Date.now();
                                 const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                                if (timeSinceLastClick < 2000) {
-                                    const waitTime = 2000 - timeSinceLastClick;
+                                const baseDelay = 2000;
+                                const jitter = Math.random() * 1500; // Adiciona 0-1.5s aleatório
+                                const targetDelay = baseDelay + jitter;
+
+                                if (timeSinceLastClick < targetDelay) {
+                                    const waitTime = targetDelay - timeSinceLastClick;
                                     await new Promise(res => setTimeout(res, waitTime));
                                 }
                                 automation.lastClickTime = Date.now();
@@ -171,6 +183,7 @@ class AutomationEngine {
                 }
             };
 
+            // --- ESCANEAMENTO SUAVE (INTERVALO DE 3 SEGUNDOS) ---
             const interval = setInterval(async () => {
                 if (!automation.isRunning) return clearInterval(interval);
 
@@ -185,7 +198,9 @@ class AutomationEngine {
                     });
 
                     let processedInThisTick = 0;
+                    // --- PROCESSAMENTO SEQUENCIAL COM DELAY ---
                     for (const [, channel] of canaisFila) {
+                        if (!automation.isRunning) break;
                         if (automation.processing.has(channel.id)) continue;
                         
                         const guildId = channel.guild?.id;
@@ -194,7 +209,10 @@ class AutomationEngine {
                         automation.processing.add(channel.id);
                         await processChannel(channel);
                         processedInThisTick++;
-                        setTimeout(() => automation.processing.delete(channel.id), 3000);
+                        
+                        // Pequeno delay entre processar um canal e outro (1s + jitter)
+                        await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
+                        setTimeout(() => automation.processing.delete(channel.id), 5000);
                     }
 
                     // Reset de cliques se não houver canais (Loop Infinito Lógica)
@@ -229,9 +247,16 @@ class AutomationEngine {
                                     }
                                     
                                     if (automation.isRunning) {
-                                        await channel.send(msgauto);
-                                        automation.msgAutoSentThisSession.add(channel.id);
-                                        onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                        // --- SIMULAÇÃO DE DIGITAÇÃO ---
+                                        await channel.sendTyping();
+                                        const typingTime = 2000 + Math.random() * 3000; // Digita por 2-5 segundos
+                                        await new Promise(res => setTimeout(res, typingTime));
+
+                                        if (automation.isRunning) {
+                                            await channel.send(msgauto);
+                                            automation.msgAutoSentThisSession.add(channel.id);
+                                            onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                        }
                                     }
                                 } catch (e) {
                                     onLog(`[MSG-AUTO] ❌ Erro em #${channel.name}: ${e.message}`, "error");
@@ -306,8 +331,7 @@ class AutomationEngine {
                     }
                 } catch (err) {
                     // Erro silencioso no loop principal
-                }
-            }, 2000);
+                            }, 3000);
 
             automation.intervals.push(interval);
 
