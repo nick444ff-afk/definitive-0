@@ -10,95 +10,62 @@
     --primary-glow: rgba(255, 140, 0, 0.4);
     --secondary: #FFD700; /* Amarelo Ouro */
     --danger: #FF4500; /* Vermelho Alaranjado */
-    --bg-dark: #0d0d0d;
-    --card-bg: #1a1a1a;
-    --card-border: rgba(255, 140, 0, 0.2);
-    --text-main: #f2f2f2;
-    --text-muted: #a6a6a6;
+    --bg-dark: #050c1f;
+    --card-bg: #0b1f47;
+    --card-gradient: linear-gradient(145deg, #1a0f00, #0d0d0d);
+    --text-main: #e5e7eb;
+    --text-muted: rgba(255,255,255,0.6);
 }
 
 * {
     box-sizing: border-box;
-    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     margin: 0;
-    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background: radial-gradient(circle at center, #1a0f00 0%, #0d0d0d 100%);
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(180deg, #0d0d0d, #1a0f00);
     color: var(--text-main);
     min-height: 100vh;
-    overflow-x: hidden;
 }
 
 .container {
     max-width: 500px;
     margin: auto;
     padding: 15px;
-    animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .card {
-    background: var(--card-bg);
-    border-radius: 24px;
+    background: var(--card-gradient);
+    border-radius: 22px;
     padding: 20px;
     margin-bottom: 20px;
-    border: 1px solid var(--card-border);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-}
-
-.card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--primary), transparent);
-    opacity: 0.5;
+    border: 1px solid rgba(255, 140, 0, 0.1);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    transition: all 0.4s ease;
 }
 
 .card.bot-ligado {
     border-color: var(--primary);
-    box-shadow: 0 0 20px var(--primary-glow);
+    box-shadow: 0 0 30px var(--primary-glow);
 }
 
 .header {
     text-align: center;
-    padding-top: 30px;
-}
-
-.logo-container {
-    position: relative;
-    width: 100px;
-    height: 100px;
-    margin: 0 auto 20px;
 }
 
 .logo {
-    width: 100%;
-    height: 100%;
-    border-radius: 24px;
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 20px;
+    border-radius: 22px;
     background: #000;
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
-    box-shadow: 0 0 20px rgba(255, 140, 0, 0.3);
+    box-shadow: 0 0 25px var(--primary-glow);
     border: 2px solid var(--primary);
-    transition: transform 0.5s ease;
-}
-
-.logo:hover {
-    transform: rotate(5deg) scale(1.05);
 }
 
 .logo img {
@@ -108,340 +75,429 @@ body {
 }
 
 .title {
-    font-size: 28px;
-    font-weight: 800;
-    letter-spacing: 2px;
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 4px;
     background: linear-gradient(135deg, var(--secondary), var(--primary));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin: 0;
 }
 
 .subtitle {
-    color: var(--text-muted);
-    font-size: 12px;
+    opacity: 0.6;
+    font-size: 13px;
     margin-top: 5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 3px;
 }
 
-.status-badges {
+.status {
     display: flex;
     justify-content: center;
-    gap: 8px;
-    margin-top: 20px;
+    gap: 10px;
+    margin-top: 15px;
 }
 
 .badge {
-    padding: 6px 14px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
-.badge-green { background: rgba(0, 255, 127, 0.1); color: #00ff7f; border: 1px solid rgba(0, 255, 127, 0.3); }
-.badge-red { background: rgba(255, 69, 0, 0.1); color: #ff4500; border: 1px solid rgba(255, 69, 0, 0.3); }
+.badge-green {
+    background: rgba(0, 255, 127, 0.1);
+    color: #00ff7f;
+    border: 1px solid rgba(0, 255, 127, 0.3);
+}
+
+.badge-red {
+    background: rgba(255, 69, 0, 0.1);
+    color: #ff4500;
+    border: 1px solid rgba(255, 69, 0, 0.3);
+}
 
 .bot-tabs {
     display: flex;
-    background: rgba(0,0,0,0.3);
-    border-radius: 16px;
-    padding: 4px;
-    margin-top: 25px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 30px;
+    padding: 6px;
+    margin-top: 15px;
     gap: 4px;
 }
 
 .bot-tabs div {
     flex: 1;
     text-align: center;
-    padding: 10px 5px;
-    border-radius: 12px;
+    padding: 10px;
+    border-radius: 20px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    font-weight: 700;
-    font-size: 11px;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    user-select: none;
+    font-size: 12px;
     color: var(--text-muted);
 }
 
-.bot-tabs div.active {
-    background: var(--primary);
-    color: #000;
-    box-shadow: 0 4px 12px var(--primary-glow);
+.bot-tabs div:hover:not(.active) {
+    background: rgba(255,255,255,0.07);
 }
 
-.play-section {
+.bot-tabs .active {
+    background: var(--primary);
+    color: #000;
+    box-shadow: 0 2px 8px var(--primary-glow);
+}
+
+.play-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 20px 0;
+    margin: 30px 0 10px;
 }
 
-.play-btn-circle {
-    width: 120px;
-    height: 120px;
+.play {
+    width: 140px;
+    height: 140px;
     border-radius: 50%;
-    background: #111;
     border: 4px solid var(--primary);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    transition: all 0.35s ease;
+    position: relative;
+    background: rgba(255, 140, 0, 0.05);
+    user-select: none;
 }
 
-.play-btn-circle:hover {
-    transform: scale(1.05);
+.play:hover {
+    transform: scale(1.06);
     box-shadow: 0 0 30px var(--primary-glow);
 }
 
-.play-btn-circle:active {
-    transform: scale(0.95);
+.play:active {
+    transform: scale(0.97);
 }
 
-.icon-play {
+.play .icon-play {
     width: 0;
     height: 0;
-    border-left: 30px solid var(--primary);
-    border-top: 18px solid transparent;
-    border-bottom: 18px solid transparent;
+    border-left: 32px solid var(--primary);
+    border-top: 20px solid transparent;
+    border-bottom: 20px solid transparent;
     margin-left: 8px;
 }
 
-.icon-stop {
-    width: 30px;
-    height: 30px;
+.play .icon-stop {
+    width: 26px;
+    height: 26px;
     background: var(--danger);
-    border-radius: 6px;
+    border-radius: 4px;
     display: none;
-    box-shadow: 0 0 15px var(--danger);
+    animation: blink 1.2s infinite;
 }
 
-.play-btn-circle.ligado {
+.play.ligado {
     border-color: var(--danger);
+    box-shadow: 0 0 35px var(--danger), 0 0 60px rgba(255,69,0,0.2);
+    background: rgba(255,69,0,0.08);
 }
 
-.play-btn-circle.ligado .icon-play { display: none; }
-.play-btn-circle.ligado .icon-stop { display: block; }
+.play.ligado .icon-play { display: none; }
+.play.ligado .icon-stop { display: block; }
 
-.stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
 }
 
-.stat-card {
-    background: rgba(255,255,255,0.03);
-    padding: 15px;
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.05);
+.play-label {
+    margin-top: 14px;
+    font-size: 13px;
+    opacity: 0.65;
+    text-align: center;
+    transition: color 0.3s;
+    letter-spacing: 0.5px;
+    font-weight: 700;
 }
 
-.stat-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
-.stat-value { font-size: 20px; font-weight: 800; margin-top: 4px; }
+.play-label.ligado {
+    color: var(--danger);
+    opacity: 1;
+}
+
+.card.stat {
+    padding: 18px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-title {
+    font-size: 14px;
+    opacity: 0.65;
+    font-weight: 500;
+}
+
+.stat-value {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
 
 .orange-text { color: var(--primary); }
 .yellow-text { color: var(--secondary); }
-.red-text { color: var(--danger); }
+.green-text  { color: #00ff7f; }
+.cyan-text   { color: #00bfff; }
 
-.config-form label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
+.reset-container {
+    margin: 0 0 20px;
+}
+
+.reset-btn {
+    width: 100%;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 140, 0, 0.2);
+    background: rgba(255, 140, 0, 0.05);
+    color: var(--primary);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    letter-spacing: 0.5px;
+}
+
+.reset-btn:hover {
+    background: rgba(255, 140, 0, 0.15);
+    border-color: var(--primary);
+}
+
+label {
     margin-top: 15px;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    opacity: 0.85;
+    color: var(--primary);
 }
 
 input, textarea {
     width: 100%;
-    background: #0d0d0d;
-    border: 1px solid var(--card-border);
+    padding: 14px;
+    margin-top: 6px;
     border-radius: 12px;
-    padding: 12px 15px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: #000;
     color: #fff;
     font-size: 14px;
-    margin-top: 6px;
     outline: none;
-    transition: border-color 0.3s;
+    transition: border-color 0.2s;
 }
 
 input:focus, textarea:focus {
     border-color: var(--primary);
-    box-shadow: 0 0 10px var(--primary-glow);
 }
 
-.checkbox-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+.orgs-box {
+    background: #000;
+    border-radius: 14px;
+    padding: 10px 15px;
+    max-height: 180px;
+    overflow-y: auto;
     margin-top: 8px;
+    border: 1px solid rgba(255, 140, 0, 0.1);
 }
 
-.check-item {
-    background: #0d0d0d;
-    border: 1px solid var(--card-border);
-    border-radius: 10px;
-    padding: 8px 12px;
-    cursor: pointer;
+.org-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    transition: all 0.2s;
-}
-
-.check-item input { width: auto; margin: 0; accent-color: var(--primary); }
-.check-item:hover { background: rgba(255, 140, 0, 0.05); }
-.check-item.active { border-color: var(--primary); background: rgba(255, 140, 0, 0.1); }
-
-.action-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 14px;
-    border: none;
-    font-weight: 800;
+    gap: 12px;
+    padding: 9px 5px;
     cursor: pointer;
-    transition: all 0.3s;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    margin-top: 20px;
+    font-size: 15px;
+    border-radius: 8px;
+    transition: background 0.2s;
 }
 
-.btn-save { background: var(--primary); color: #000; }
-.btn-save:hover { background: var(--secondary); transform: translateY(-2px); }
-.btn-reset { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
-.btn-reset:hover { background: rgba(255, 69, 0, 0.1); color: var(--danger); border-color: var(--danger); }
+.org-item:hover {
+    background: rgba(255,255,255,0.04);
+}
 
-.logs-container {
-    background: #000;
-    border-radius: 16px;
+.org-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+}
+
+.save-btn {
+    width: 100%;
     padding: 15px;
-    height: 250px;
-    overflow-y: auto;
-    font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 12px;
-    border: 1px solid var(--card-border);
+    margin-top: 20px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: #000;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: all 0.25s ease;
 }
 
-.log-line { margin-bottom: 4px; line-height: 1.4; border-left: 2px solid transparent; padding-left: 8px; }
-.log-time { color: #555; font-size: 10px; margin-right: 6px; }
+.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px var(--primary-glow);
+}
+
+.logs {
+    background: #000;
+    padding: 15px;
+    border-radius: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    height: 200px;
+    overflow-y: auto;
+    line-height: 1.6;
+    border: 1px solid rgba(255, 140, 0, 0.1);
+}
+
+.log-line { margin-bottom: 4px; }
+.log-time { color: #555; margin-right: 6px; }
 .log-info { color: #00bfff; }
-.log-success { color: #00ff7f; border-left-color: #00ff7f; }
-.log-warn { color: #ffd700; border-left-color: #ffd700; }
-.log-error { color: #ff4500; border-left-color: #ff4500; }
+.log-success { color: #00ff7f; }
+.log-warn { color: #ffd700; }
+.log-error { color: #ff4500; }
+
+.clear-logs-btn {
+    margin-top: 12px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+}
 
 .toast {
     position: fixed;
     bottom: 30px;
     left: 50%;
-    transform: translateX(-50%) translateY(100px);
+    transform: translateX(-50%) translateY(80px);
     background: var(--primary);
     color: #000;
-    padding: 12px 25px;
-    border-radius: 50px;
-    font-weight: 800;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    z-index: 1000;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+    z-index: 9999;
+    transition: all 0.35s cubic-bezier(0.34,1.56,0.64,1);
     opacity: 0;
 }
 
-.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
 
-/* Custom Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
 
 </style>
 </head>
 <body>
-
 <div class="container">
-    <div class="header">
-        <div class="logo-container">
-            <div class="logo">
-                <img src="logo.png" alt="Pirate Logo">
-            </div>
-        </div>
-        <h1 class="title">SYSTEMX</h1>
-        <p class="subtitle">Pirate Automation Panel</p>
 
-        <div class="status-badges">
+    <div class="card header">
+        <div class="logo">
+            <img src="logo.png" alt="Pirate Logo">
+        </div>
+        <h1 class="title">SystemX</h1>
+        <p class="subtitle">PIRATE AUTOMATION PANEL</p>
+
+        <div class="status">
             <div class="badge badge-red" id="badgeConexao">Offline</div>
             <div class="badge badge-red" id="badgeStatus">Parado</div>
         </div>
 
         <div class="bot-tabs" id="botTabs">
-            <div class="active" data-bot="BOT1" onclick="mudarBot(this)">BOT 1</div>
-            <div data-bot="BOT2" onclick="mudarBot(this)">BOT 2</div>
-            <div data-bot="BOT3" onclick="mudarBot(this)">BOT 3</div>
-            <div data-bot="BOT4" onclick="mudarBot(this)">BOT 4</div>
-            <div data-bot="BOT5" onclick="mudarBot(this)">BOT 5</div>
+            <div class="active" data-bot="BOT1" onclick="mudarBot(this)">BOT1</div>
+            <div data-bot="BOT2" onclick="mudarBot(this)">BOT2</div>
+            <div data-bot="BOT3" onclick="mudarBot(this)">BOT3</div>
+            <div data-bot="BOT4" onclick="mudarBot(this)">BOT4</div>
+            <div data-bot="BOT5" onclick="mudarBot(this)">BOT5</div>
         </div>
+
+        <p class="play-label" id="instancia" style="margin-top: 15px;">INSTÂNCIA ATIVA: BOT 1</p>
     </div>
 
     <div class="card" id="cardControle">
-        <div class="play-section">
-            <div class="play-btn-circle" id="playButton" onclick="toggleBot()">
+        <div class="play-wrapper">
+            <div class="play" id="playButton" onclick="toggleBot()">
                 <div class="icon-play"></div>
                 <div class="icon-stop"></div>
             </div>
-            <p class="play-label" id="playLabel" style="margin-top: 15px; font-size: 13px; font-weight: 700; color: var(--text-muted);">INICIAR NAVEGAÇÃO</p>
+            <p class="play-label" id="playLabel">Clique para iniciar o bot</p>
         </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Entradas</div>
-                <div class="stat-value orange-text" id="entradas">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Uptime</div>
-                <div class="stat-value yellow-text" id="uptime">00:00:00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Partidas</div>
-                <div class="stat-value" style="color: #00ff7f;" id="partidas">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">DMs</div>
-                <div class="stat-value" style="color: #00bfff;" id="dms">0</div>
-            </div>
-        </div>
-        
-        <button class="action-btn btn-reset" onclick="resetStats()">Resetar Estatísticas</button>
     </div>
 
-    <div class="card config-form">
-        <h3 style="margin: 0; font-size: 16px; color: var(--primary);">CONFIGURAÇÕES</h3>
-        
+    <div class="card stat">
+        <div class="stat-title">Entradas</div>
+        <div class="stat-value orange-text" id="entradas">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">Na Fila</div>
+        <div class="stat-value green-text" id="naFila">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">Partidas</div>
+        <div class="stat-value yellow-text" id="partidas">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">DMs</div>
+        <div class="stat-value cyan-text" id="dms">0</div>
+    </div>
+
+    <div class="card stat">
+        <div class="stat-title">Uptime</div>
+        <div class="stat-value" style="color: #fff;" id="uptime">00:00:00</div>
+    </div>
+
+    <div class="reset-container">
+        <button class="reset-btn" onclick="resetStats()">RESETAR ESTATÍSTICAS</button>
+    </div>
+
+    <div class="card">
+        <h3 style="color: var(--primary); margin: 0; font-size: 16px;">CONFIGURAÇÃO</h3>
+
         <label>Tokens de Acesso</label>
         <textarea id="tokens" rows="3" placeholder="Insira seus tokens (um por linha)"></textarea>
 
         <label>Categorias de Busca</label>
-        <div class="checkbox-group">
-            <label class="check-item active"><input type="checkbox" id="catMobile" name="categoria" value="Mobile" checked onchange="updateCheckStyle(this)"><span>Mobile</span></label>
-            <label class="check-item"><input type="checkbox" id="catEmulador" name="categoria" value="Emulador" onchange="updateCheckStyle(this)"><span>Emulador</span></label>
-            <label class="check-item"><input type="checkbox" id="catMisto" name="categoria" value="Misto" onchange="updateCheckStyle(this)"><span>Misto</span></label>
-            <label class="check-item"><input type="checkbox" id="catTatico" name="categoria" value="Tático" onchange="updateCheckStyle(this)"><span>Tático</span></label>
+        <div class="orgs-box">
+            <label class="org-item"><input type="checkbox" id="catMobile" name="categoria" value="Mobile" checked><span>Mobile</span></label>
+            <label class="org-item"><input type="checkbox" id="catEmulador" name="categoria" value="Emulador"><span>Emulador</span></label>
+            <label class="org-item"><input type="checkbox" id="catMisto" name="categoria" value="Misto"><span>Misto</span></label>
+            <label class="org-item"><input type="checkbox" id="catTatico" name="categoria" value="Tático"><span>Tático</span></label>
         </div>
 
         <label>Modos de Jogo</label>
-        <div class="checkbox-group">
-            <label class="check-item"><input type="checkbox" id="modo1x1" name="modo" value="1v1" onchange="updateCheckStyle(this)"><span>1x1</span></label>
-            <label class="check-item active"><input type="checkbox" id="modo2x2" name="modo" value="2v2" checked onchange="updateCheckStyle(this)"><span>2x2</span></label>
-            <label class="check-item"><input type="checkbox" id="modo3x3" name="modo" value="3v3" onchange="updateCheckStyle(this)"><span>3x3</span></label>
-            <label class="check-item active"><input type="checkbox" id="modo4x4" name="modo" value="4v4" checked onchange="updateCheckStyle(this)"><span>4x4</span></label>
+        <div class="orgs-box">
+            <label class="org-item"><input type="checkbox" id="modo1x1" name="modo" value="1v1"><span>1x1</span></label>
+            <label class="org-item"><input type="checkbox" id="modo2x2" name="modo" value="2v2" checked><span>2x2</span></label>
+            <label class="org-item"><input type="checkbox" id="modo3x3" name="modo" value="3v3"><span>3x3</span></label>
+            <label class="org-item"><input type="checkbox" id="modo4x4" name="modo" value="4v4" checked><span>4x4</span></label>
         </div>
 
         <label>Mensagem Automática</label>
-        <input type="text" id="mensagem" placeholder="Mensagem para o canal de partida">
+        <input type="text" id="mensagem" placeholder="Digite a mensagem">
 
         <label>Menção Automática (s)</label>
         <input type="text" id="mencao" placeholder="Tempo para mencionar (ex: 5)">
@@ -449,16 +505,15 @@ input:focus, textarea:focus {
         <label>Confirmação Automática (s)</label>
         <input type="text" id="confirmauto" placeholder="Tempo para confirmar (ex: 2)">
 
-        <button class="action-btn btn-save" id="saveBtnConfig" onclick="salvarConfiguracao()">Salvar Configuração</button>
+        <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
     </div>
 
     <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <h3 style="margin: 0; font-size: 16px; color: var(--primary);">LOGS DE ATIVIDADE</h3>
-            <span style="font-size: 10px; color: var(--text-muted); cursor: pointer;" onclick="limparLogs()">LIMPAR</span>
-        </div>
-        <div class="logs-container" id="logs"></div>
+        <h3 style="color: var(--primary); margin: 0 0 15px; font-size: 16px;">LOGS DE ATIVIDADE</h3>
+        <div class="logs" id="logs"></div>
+        <button class="clear-logs-btn" onclick="limparLogs()">LIMPAR LOGS</button>
     </div>
+
 </div>
 
 <div class="toast" id="toast"></div>
@@ -467,11 +522,9 @@ input:focus, textarea:focus {
 const API_URL = window.location.origin;
 let botAtivo = 'BOT1';
 let botLigado = false;
-let uptimeSeconds = 0;
 let lastLogTimestamp = null;
 let updateInterval = null;
 
-// Otimização: Cache de elementos DOM frequentemente acessados
 const elements = {
     badgeConexao: document.getElementById('badgeConexao'),
     badgeStatus: document.getElementById('badgeStatus'),
@@ -491,21 +544,16 @@ const elements = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
-    addLog('Sistema Pirate inicializado.', 'info');
+    addLog('Sistema Pirate restaurado.', 'info');
     startFastUpdate();
 });
 
-// Otimização: Loop de atualização unificado e mais rápido
 function startFastUpdate() {
     if (updateInterval) clearInterval(updateInterval);
-    
-    // Atualização rápida de logs e status (cada 1s)
     updateInterval = setInterval(() => {
         fetchStatus();
         fetchLogs();
     }, 1000);
-
-    // Verificação de conexão menos frequente (cada 5s)
     setInterval(checkConnection, 5000);
     checkConnection();
 }
@@ -515,7 +563,6 @@ async function checkConnection() {
         const start = performance.now();
         const res = await fetch(`${API_URL}/`, { method: 'HEAD' });
         const end = performance.now();
-        
         if (res.ok) {
             elements.badgeConexao.textContent = `Online (${Math.round(end - start)}ms)`;
             elements.badgeConexao.className = 'badge badge-green';
@@ -531,7 +578,6 @@ async function fetchStatus() {
         const res = await fetch(`${API_URL}/status/${botAtivo}`);
         const data = await res.json();
 
-        // Atualizar UI de Status
         if (data.is_running) {
             if (!botLigado) {
                 botLigado = true;
@@ -540,19 +586,14 @@ async function fetchStatus() {
                 elements.playButton.classList.add('ligado');
                 elements.cardControle.classList.add('bot-ligado');
                 elements.playLabel.textContent = 'NAVEGANDO...';
-                elements.playLabel.style.color = 'var(--danger)';
+                elements.playLabel.classList.add('ligado');
             }
-            
             if (data.stats) {
                 elements.entradas.textContent = data.stats.entradas || 0;
                 elements.partidas.textContent = data.stats.partidas || 0;
                 elements.dms.textContent = data.stats.dms || 0;
             }
-            
-            if (data.uptime) {
-                uptimeSeconds = Math.floor(data.uptime / 1000);
-                elements.uptime.textContent = formatUptime(uptimeSeconds);
-            }
+            if (data.uptime) elements.uptime.textContent = formatUptime(Math.floor(data.uptime / 1000));
         } else {
             if (botLigado) {
                 botLigado = false;
@@ -560,31 +601,25 @@ async function fetchStatus() {
                 elements.badgeStatus.className = 'badge badge-red';
                 elements.playButton.classList.remove('ligado');
                 elements.cardControle.classList.remove('bot-ligado');
-                elements.playLabel.textContent = 'INICIAR NAVEGAÇÃO';
-                elements.playLabel.style.color = 'var(--text-muted)';
+                elements.playLabel.textContent = 'Clique para iniciar o bot';
+                elements.playLabel.classList.remove('ligado');
                 elements.uptime.textContent = '00:00:00';
             }
         }
 
-        // Auto-preenchimento inteligente (apenas se campos estiverem vazios)
         if (data.config && !elements.tokens.value) {
             if (data.config.tokens) elements.tokens.value = data.config.tokens.join('\n');
             if (data.config.msgauto || data.config.mensagem) elements.mensagem.value = data.config.msgauto || data.config.mensagem;
             if (data.config.mentionauto || data.config.mencao) elements.mencao.value = data.config.mentionauto || data.config.mencao;
             if (data.config.confirmauto) elements.confirmauto.value = data.config.confirmauto;
-            
-            if (data.config.modos) {
-                data.config.modos.forEach(m => {
-                    const cb = document.querySelector(`input[name="modo"][value="${m}"]`);
-                    if (cb) { cb.checked = true; updateCheckStyle(cb); }
-                });
-            }
-            if (data.config.categories) {
-                data.config.categories.forEach(c => {
-                    const cb = document.querySelector(`input[name="categoria"][value="${c}"]`);
-                    if (cb) { cb.checked = true; updateCheckStyle(cb); }
-                });
-            }
+            if (data.config.modos) data.config.modos.forEach(m => {
+                const cb = document.querySelector(`input[name="modo"][value="${m}"]`);
+                if (cb) cb.checked = true;
+            });
+            if (data.config.categories) data.config.categories.forEach(c => {
+                const cb = document.querySelector(`input[name="categoria"][value="${c}"]`);
+                if (cb) cb.checked = true;
+            });
         }
     } catch (e) {}
 }
@@ -594,22 +629,9 @@ async function fetchLogs() {
         const res = await fetch(`${API_URL}/logs/${botAtivo}`);
         const data = await res.json();
         const logs = data.logs || [];
-        
-        const newLogs = lastLogTimestamp 
-            ? logs.filter(l => new Date(l.timestamp) > new Date(lastLogTimestamp))
-            : logs;
-
+        const newLogs = lastLogTimestamp ? logs.filter(l => new Date(l.timestamp) > new Date(lastLogTimestamp)) : logs;
         if (newLogs.length > 0) {
-            const fragment = document.createDocumentFragment();
-            newLogs.forEach(log => {
-                const entry = document.createElement('div');
-                entry.className = 'log-line';
-                const time = new Date(log.timestamp).toLocaleTimeString();
-                entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${log.type}">${log.message}</span>`;
-                fragment.appendChild(entry);
-            });
-            elements.logs.appendChild(fragment);
-            elements.logs.scrollTop = elements.logs.scrollHeight;
+            newLogs.forEach(log => addLog(log.message, log.type));
             lastLogTimestamp = logs[logs.length - 1].timestamp;
         }
     } catch (e) {}
@@ -618,20 +640,17 @@ async function fetchLogs() {
 function mudarBot(tabEl) {
     const bot = tabEl.getAttribute('data-bot');
     if (bot === botAtivo) return;
-
     document.querySelectorAll('.bot-tabs div').forEach(t => t.classList.remove('active'));
     tabEl.classList.add('active');
     botAtivo = bot;
-
-    // Reset UI para novo bot
     elements.logs.innerHTML = '';
     lastLogTimestamp = null;
     elements.tokens.value = '';
     elements.mensagem.value = '';
     elements.mencao.value = '';
     elements.confirmauto.value = '';
-    document.querySelectorAll('input[type="checkbox"]').forEach(cb => { cb.checked = false; updateCheckStyle(cb); });
-    
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    document.getElementById('instancia').textContent = `INSTÂNCIA ATIVA: ${bot.replace('BOT', 'Bot ')}`;
     showToast(`Navegando para ${bot}`, 'info');
     fetchStatus();
 }
@@ -645,7 +664,6 @@ async function toggleBot() {
             document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categories.push(cb.value));
             const modos = [];
             document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modos.push(cb.value));
-            
             body = {
                 tokens: elements.tokens.value.trim(),
                 mensagem: elements.mensagem.value.trim(),
@@ -655,35 +673,25 @@ async function toggleBot() {
                 modos: JSON.stringify(modos)
             };
         }
-
         const res = await fetch(`${API_URL}/${action}/${botAtivo}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: botLigado ? null : JSON.stringify(body)
         });
         const data = await res.json();
-        
-        if (data.status === 'success') {
-            showToast(botLigado ? 'Âncora lançada!' : 'Velas ao vento!', 'success');
-        } else {
-            showToast(data.message, 'error');
-        }
-    } catch (e) {
-        showToast('Falha na comunicação!', 'error');
-    }
+        if (data.status === 'success') showToast(botLigado ? 'Âncora lançada!' : 'Velas ao vento!', 'success');
+        else showToast(data.message, 'error');
+    } catch (e) { showToast('Falha na comunicação!', 'error'); }
 }
 
 async function salvarConfiguracao() {
     const btn = document.getElementById('saveBtnConfig');
     btn.disabled = true;
-    btn.textContent = 'SALVANDO...';
-
     try {
         const categories = [];
         document.querySelectorAll('input[name="categoria"]:checked').forEach(cb => categories.push(cb.value));
         const modos = [];
         document.querySelectorAll('input[name="modo"]:checked').forEach(cb => modos.push(cb.value));
-
         const formData = new FormData();
         formData.append('bot_id', botAtivo);
         formData.append('tokens', elements.tokens.value.trim());
@@ -692,33 +700,19 @@ async function salvarConfiguracao() {
         formData.append('confirmauto', elements.confirmauto.value.trim());
         formData.append('categories', JSON.stringify(categories));
         formData.append('modos', JSON.stringify(modos));
-
         const res = await fetch(`${API_URL}/save_config`, { method: 'POST', body: formData });
-        if (res.ok) {
-            showToast('Tesouro salvo!', 'success');
-        } else {
-            showToast('Erro ao salvar!', 'error');
-        }
-    } catch (e) {
-        showToast('Erro de conexão!', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = 'Salvar Configuração';
-    }
+        if (res.ok) showToast('Tesouro salvo!', 'success');
+        else showToast('Erro ao salvar!', 'error');
+    } catch (e) { showToast('Erro de conexão!', 'error'); }
+    finally { btn.disabled = false; }
 }
 
 async function resetStats() {
-    if (!confirm('Deseja resetar as estatísticas deste bot?')) return;
+    if (!confirm('Deseja resetar as estatísticas?')) return;
     try {
         await fetch(`${API_URL}/reset_stats/${botAtivo}`, { method: 'POST' });
         showToast('Estatísticas resetadas!', 'warn');
     } catch (e) {}
-}
-
-function updateCheckStyle(cb) {
-    const label = cb.parentElement;
-    if (cb.checked) label.classList.add('active');
-    else label.classList.remove('active');
 }
 
 function formatUptime(s) {
