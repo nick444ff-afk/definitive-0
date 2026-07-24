@@ -1,20 +1,19 @@
 const { Client } = require('discord.js-selfbot-v13');
 
 /**
- * AutomationEngine - ARQUITETURA CONTÍNUA E ESTÁVEL
+ * AutomationEngine - FLUXO CONTÍNUO LINEAR
  * 
- * Mudanças principais:
- * 1. Loop contínuo (while) em vez de setInterval
- * 2. Processamento sequencial de servidores (volta ao primeiro após o último)
- * 3. Tarefas de mensagem automática, confirmação e menção executam independentemente
- * 4. Sem bloqueios na varredura principal
- * 5. Limpeza de estado temporário por servidor
+ * Arquitetura:
+ * 1. Iterador linear: processa um canal por vez, avança para o próximo
+ * 2. Sem ciclos: quando chega ao último canal, volta ao primeiro imediatamente
+ * 3. Sem agendamentos duplicados: rastreia quais canais já foram processados
+ * 4. Tarefas independentes: mensagens, confirmações e menções rodam em paralelo
+ * 5. Fluxo infinito: enquanto isRunning = true, a automação nunca para
  */
 class AutomationEngine {
     constructor() {
         this.activeAutomations = new Map();
         this.MAX_ENTRIES_PER_GUILD = 1;
-        this.scheduledTasks = new Map(); // Armazena tarefas agendadas por botId
     }
 
     async startAutomation(botId, config, onLog, onStats) {
@@ -33,21 +32,22 @@ class AutomationEngine {
             const automation = {
                 isRunning: true,
                 clients: [],
-                processing: new Set(),
                 clickedMessages: new Set(),
                 guildClickCount: new Map(),
                 msgAutoSentThisSession: new Set(),
                 confirmedChannels: new Set(),
+                mentionedChannels: new Set(),
                 lastClickTime: 0,
                 onLog,
                 onStats,
-                serverIndex: 0, // Índice do servidor atual na lista
-                servers: [], // Lista de servidores a processar
-                currentServer: null // Servidor sendo processado
+                // Iterador linear
+                allChannels: [], // Lista de todos os canais (fila + partida)
+                currentChannelIndex: 0,
+                // Rastreamento de tarefas
+                scheduledTasks: new Map() // Por channel.id
             };
 
             this.activeAutomations.set(botId, automation);
-            this.scheduledTasks.set(botId, []);
 
             onLog(`🚀 Iniciando ${tokens.length} tokens com intervalo de segurança...`, "info");
             
@@ -135,7 +135,7 @@ class AutomationEngine {
                 return bestMatch;
             };
 
-            const processChannel = async (channel) => {
+            const processQueueChannel = async (channel) => {
                 const guildId = channel.guild?.id;
                 if (!guildId || !automation.isRunning) return;
                 
@@ -193,92 +193,121 @@ class AutomationEngine {
                 }
             };
 
-            // ═══════════════════════════════════════════════════════════════
-            // LOOP CONTÍNUO PRINCIPAL - FLUXO INFINITO
-            // ═══════════════════════════════════════════════════════════════
-            
-            while (automation.isRunning) {
+            const processMatchChannel = async (channel) => {
+                if (!automation.isRunning) return;
+
                 try {
-                    // 1. BUSCAR CANAIS DE FILA
-                    const canaisFila = self.channels.cache.filter(c => {
-                        if (c.type !== "GUILD_TEXT") return false;
-                        const nome = c.name.toLowerCase();
-                        const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
-                        const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat));
-                        return matchesFormat && matchesCategory;
-                    });
-
-                    // 2. PROCESSAR CANAIS DE FILA SEQUENCIALMENTE
-                    for (const [, channel] of canaisFila) {
-                        if (!automation.isRunning) break;
-                        
-                        const guildId = channel.guild?.id;
-                        if (guildId && (automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) continue;
-
-                        automation.currentServer = channel.guild?.name || "Desconhecido";
-                        
-                        await processChannel(channel);
-                        
-                        // Delay entre canais (1-2 segundos)
-                        await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
+                    // AGENDAR MENSAGEM AUTOMÁTICA (SEM BLOQUEAR)
+                    if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
+                        const msgDelaySec = parseInt(config.msgdelay) || 0;
+                        onLog(`⏳ Mensagem agendada para #${channel.name} (${msgDelaySec}s)`, "info");
+                        this._scheduleMessageTask(botId, self, channel, msgauto, msgDelaySec, onLog);
+                        automation.msgAutoSentThisSession.add(channel.id);
                     }
 
-                    // 3. PROCESSAR CANAIS DE PARTIDA (MENSAGEM AUTO, CONFIRMAÇÃO, MENÇÃO)
-                    const canaisPartida = self.channels.cache.filter(channel =>
-                        channel.guild &&
-                        (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
-                        (channel.name?.toLowerCase().includes("aguardando") || 
-                         channel.name?.toLowerCase().includes("partida") || 
-                         channel.name?.toLowerCase().includes("fila")) &&
-                        channel.viewable
-                    );
+                    // AGENDAR CONFIRMAÇÃO AUTOMÁTICA (SEM BLOQUEAR)
+                    if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id)) {
+                        const msgs = await channel.messages.fetch({ limit: 5 });
+                        const firstMsg = msgs.find(m => m.components?.length);
 
-                    for (const [, channel] of canaisPartida) {
-                        if (!automation.isRunning) break;
-
-                        try {
-                            // AGENDAR MENSAGEM AUTOMÁTICA (SEM BLOQUEAR)
-                            if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
-                                const msgDelaySec = parseInt(config.msgdelay) || 0;
-                                onLog(`⏳ Mensagem agendada para #${channel.name} (${msgDelaySec}s)`, "info");
-                                // Criar tarefa independente para enviar mensagem
-                                this._scheduleMessageTask(botId, self, channel, msgauto, msgDelaySec, onLog);
-                            }
-
-                            // AGENDAR CONFIRMAÇÃO AUTOMÁTICA (SEM BLOQUEAR)
-                            if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id)) {
-                                const msgs = await channel.messages.fetch({ limit: 5 });
-                                const firstMsg = msgs.find(m => m.components?.length);
-
-                                if (firstMsg) {
-                                    this._scheduleConfirmationTask(botId, firstMsg, channel, confirmauto, IGNORED_BUTTONS, onLog);
-                                }
-                            }
-
-                            // AGENDAR MENÇÃO AUTOMÁTICA (SEM BLOQUEAR)
-                            if (mentionauto > 0) {
-                                const msgs = await channel.messages.fetch({ limit: 5 });
-                                const firstMsg = msgs.find(m => m.components?.length);
-
-                                if (firstMsg) {
-                                    this._scheduleMentionTask(botId, self, channel, firstMsg, mentionauto, onLog);
-                                }
-                            }
-                        } catch (err) {
-                            // Erro silencioso
+                        if (firstMsg) {
+                            this._scheduleConfirmationTask(botId, firstMsg, channel, confirmauto, IGNORED_BUTTONS, onLog);
+                            automation.confirmedChannels.add(channel.id);
                         }
                     }
 
-                    // 4. LIMPAR ESTADOS TEMPORÁRIOS DO SERVIDOR ATUAL
-                    if (automation.currentServer) {
-                        automation.processing.clear();
+                    // AGENDAR MENÇÃO AUTOMÁTICA (SEM BLOQUEAR)
+                    if (mentionauto > 0 && !automation.mentionedChannels.has(channel.id)) {
+                        const msgs = await channel.messages.fetch({ limit: 5 });
+                        const firstMsg = msgs.find(m => m.components?.length);
+
+                        if (firstMsg) {
+                            this._scheduleMentionTask(botId, self, channel, firstMsg, mentionauto, onLog);
+                            automation.mentionedChannels.add(channel.id);
+                        }
+                    }
+                } catch (err) {
+                    // Erro silencioso
+                }
+            };
+
+            // ═══════════════════════════════════════════════════════════════
+            // LOOP CONTÍNUO LINEAR - FLUXO INFINITO
+            // ═══════════════════════════════════════════════════════════════
+            
+            let lastChannelListUpdate = 0;
+            
+            while (automation.isRunning) {
+                try {
+                    // Atualizar lista de canais a cada 5 segundos
+                    const now = Date.now();
+                    if (now - lastChannelListUpdate > 5000) {
+                        const canaisFila = self.channels.cache.filter(c => {
+                            if (c.type !== "GUILD_TEXT") return false;
+                            const nome = c.name.toLowerCase();
+                            const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
+                            const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat));
+                            return matchesFormat && matchesCategory;
+                        });
+
+                        const canaisPartida = self.channels.cache.filter(channel =>
+                            channel.guild &&
+                            (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
+                            (channel.name?.toLowerCase().includes("aguardando") || 
+                             channel.name?.toLowerCase().includes("partida") || 
+                             channel.name?.toLowerCase().includes("fila")) &&
+                            channel.viewable
+                        );
+
+                        // Combinar canais: fila primeiro, depois partida
+                        automation.allChannels = [
+                            ...Array.from(canaisFila.values()),
+                            ...Array.from(canaisPartida.values())
+                        ];
+
+                        // Remover duplicatas
+                        const uniqueChannels = new Map();
+                        for (const ch of automation.allChannels) {
+                            uniqueChannels.set(ch.id, ch);
+                        }
+                        automation.allChannels = Array.from(uniqueChannels.values());
+
+                        lastChannelListUpdate = now;
                     }
 
-                    // 5. PEQUENO DELAY ANTES DE RECOMEÇAR O CICLO
-                    await new Promise(res => setTimeout(res, 500));
+                    // Se não houver canais, aguardar
+                    if (automation.allChannels.length === 0) {
+                        await new Promise(res => setTimeout(res, 1000));
+                        continue;
+                    }
+
+                    // Processar um canal por iteração
+                    const channel = automation.allChannels[automation.currentChannelIndex];
+                    
+                    if (channel && automation.isRunning) {
+                        // Verificar se é canal de fila ou partida
+                        const isQueueChannel = channel.name.toLowerCase().includes("mob") || 
+                                             channel.name.toLowerCase().includes("emu") ||
+                                             channel.name.toLowerCase().includes("misto") ||
+                                             channel.name.toLowerCase().includes("tatico") ||
+                                             channel.name.toLowerCase().includes("1x1") ||
+                                             channel.name.toLowerCase().includes("3x3");
+
+                        if (isQueueChannel) {
+                            await processQueueChannel(channel);
+                        } else {
+                            await processMatchChannel(channel);
+                        }
+                    }
+
+                    // Avançar para o próximo canal
+                    automation.currentChannelIndex = (automation.currentChannelIndex + 1) % automation.allChannels.length;
+
+                    // Delay pequeno antes de processar o próximo canal
+                    await new Promise(res => setTimeout(res, 500 + Math.random() * 500));
 
                 } catch (err) {
-                    onLog(`⚠️ Erro no loop contínuo: ${err.message}`, "warn");
+                    onLog(`⚠️ Erro no loop: ${err.message}`, "warn");
                     await new Promise(res => setTimeout(res, 1000));
                 }
             }
@@ -297,7 +326,7 @@ class AutomationEngine {
         if (!automation) return;
 
         // Criar Promise que executa independentemente
-        const task = (async () => {
+        (async () => {
             try {
                 // Aguardar o delay
                 if (delaySeconds > 0) {
@@ -317,31 +346,25 @@ class AutomationEngine {
                 // Enviar mensagem
                 if (automation.isRunning) {
                     await channel.send(message);
-                    automation.msgAutoSentThisSession.add(channel.id);
                     onLog(`💬 Mensagem enviada em #${channel.name}`, "info");
                 }
             } catch (err) {
-                automation.msgAutoSentThisSession.add(channel.id);
+                // Silencioso
             }
         })();
-
-        // Armazenar tarefa
-        const tasks = this.scheduledTasks.get(botId) || [];
-        tasks.push(task);
-        this.scheduledTasks.set(botId, tasks);
     }
 
     _scheduleConfirmationTask(botId, message, channel, delaySeconds, ignoredButtons, onLog) {
         const automation = this.activeAutomations.get(botId);
         if (!automation) return;
 
-        const task = (async () => {
+        (async () => {
             try {
                 // Aguardar delay
                 await new Promise(res => setTimeout(res, delaySeconds * 1000));
 
                 // Validar antes de confirmar
-                if (!automation.isRunning || automation.confirmedChannels.has(channel.id)) {
+                if (!automation.isRunning) {
                     return;
                 }
 
@@ -356,7 +379,6 @@ class AutomationEngine {
                         try {
                             await message.clickButton(button.customId);
                             confirmed = true;
-                            automation.confirmedChannels.add(channel.id);
                         } catch (err) {
                             // Silencioso
                         }
@@ -366,28 +388,19 @@ class AutomationEngine {
                 // Silencioso
             }
         })();
-
-        const tasks = this.scheduledTasks.get(botId) || [];
-        tasks.push(task);
-        this.scheduledTasks.set(botId, tasks);
     }
 
     _scheduleMentionTask(botId, client, channel, message, delaySeconds, onLog) {
         const automation = this.activeAutomations.get(botId);
         if (!automation) return;
 
-        const task = (async () => {
+        (async () => {
             try {
                 // Aguardar delay
                 await new Promise(res => setTimeout(res, delaySeconds * 1000));
 
                 // Validar antes de mencionar
                 if (!automation.isRunning || !client.user) {
-                    return;
-                }
-
-                const mentionKey = `mention_${channel.id}_${message.id}`;
-                if (automation.clickedMessages.has(mentionKey)) {
                     return;
                 }
 
@@ -411,7 +424,6 @@ class AutomationEngine {
                         const member = await channel.guild.members.fetch(mentionUserId);
                         if (!member.permissions.has("MANAGE_MESSAGES")) {
                             await channel.send(`<@${mentionUserId}>`);
-                            automation.clickedMessages.add(mentionKey);
                             onLog(`👥 Menção enviada para <@${mentionUserId}> em #${channel.name}`, "info");
                             break;
                         }
@@ -421,10 +433,6 @@ class AutomationEngine {
                 // Silencioso
             }
         })();
-
-        const tasks = this.scheduledTasks.get(botId) || [];
-        tasks.push(task);
-        this.scheduledTasks.set(botId, tasks);
     }
 
     async stopAutomation(botId, onLog) {
@@ -437,14 +445,7 @@ class AutomationEngine {
             try { await client.destroy(); } catch (e) {}
         }
         
-        // Aguardar tarefas agendadas terminarem
-        const tasks = this.scheduledTasks.get(botId) || [];
-        try {
-            await Promise.all(tasks);
-        } catch (e) {}
-        
         this.activeAutomations.delete(botId);
-        this.scheduledTasks.delete(botId);
         if (onLog) onLog("⚠️ Automação parada com sucesso", "warn");
         return true;
     }
