@@ -4,6 +4,7 @@ const { Client } = require('discord.js-selfbot-v13');
  * AutomationEngine - LÓGICA INTEGRADA E REFINADA
  * Extraída do commit fd71344f8f267f519f2b41874e10f18949536399
  * FIX: Tratamento robusto de erros 50013 (Missing Permissions)
+ * FIX: Fila controlada para mensagens/menções com agendamento no tempo certo
  */
 class AutomationEngine {
     constructor() {
@@ -120,6 +121,58 @@ class AutomationEngine {
                 return err && (err.code === 50013 || err.httpStatus === 403);
             };
 
+            // ═══════════════════════════════════════════════════════════════
+            // FILA CONTROLADA DE TAREFAS (MSG AUTO + MENÇÃO + CONFIRMAÇÃO)
+            // ═══════════════════════════════════════════════════════════════
+            const scheduledTasks = new Map(); // key -> { type, channel, scheduledAt, timeoutId, resolved }
+            const MAX_TASK_TIMEOUT = 60000; // 60s timeout máximo por tarefa
+
+            const scheduleTask = (key, type, channel, delayMs, executor) => {
+                // Se já existe uma tarefa agendada para este key, não reagenda
+                if (scheduledTasks.has(key)) return;
+
+                const scheduledAt = Date.now() + delayMs;
+
+                // Limite absoluto: não agendar além de 60s no futuro
+                if (delayMs > MAX_TASK_TIMEOUT) {
+                    onLog(`⚠️ Tarefa ${type} descartada (delay muito longo) | #${channel.name}`, "warn");
+                    return;
+                }
+
+                const taskEntry = {
+                    type,
+                    channel,
+                    scheduledAt,
+                    timeoutId: null,
+                    resolved: false
+                };
+
+                const timeoutId = setTimeout(async () => {
+                    try {
+                        await executor();
+                    } catch (err) {
+                        if (isPermissionError(err)) {
+                            onLog(`⚠️ Sem permissão | #${channel.name}`, "warn");
+                        }
+                    } finally {
+                        taskEntry.resolved = true;
+                        scheduledTasks.delete(key);
+                    }
+                }, delayMs);
+
+                taskEntry.timeoutId = timeoutId;
+                scheduledTasks.set(key, taskEntry);
+
+                onLog(`⏳ Agendado: ${type} | #${channel.name} (${delayMs / 1000}s)`, "info");
+            };
+
+            const cancelAllScheduledTasks = () => {
+                for (const [, task] of scheduledTasks) {
+                    clearTimeout(task.timeoutId);
+                }
+                scheduledTasks.clear();
+            };
+
             const processChannel = async (channel) => {
                 const guildId = channel.guild?.id;
                 if (!guildId || !automation.isRunning) return;
@@ -164,11 +217,9 @@ class AutomationEngine {
                                 
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
                             } catch (err) {
-                                // FIX: Tratar erro de permissão sem derrubar o processo
                                 if (isPermissionError(err)) {
                                     onLog(`⚠️ Sem permissão para clicar neste botão | ${channel.guild.name} | #${channel.name}`, "warn");
                                 }
-                                // Outros erros também são ignorados silenciosamente
                             }
                         }
                     }
@@ -216,7 +267,6 @@ class AutomationEngine {
                         try {
                             await processChannel(channel);
                         } catch (err) {
-                            // Garantir que erro no processChannel não pare o loop
                             if (isPermissionError(err)) {
                                 onLog(`⚠️ Sem permissão neste canal | #${channel.name}`, "warn");
                             }
@@ -239,45 +289,38 @@ class AutomationEngine {
                         automation.processing.add(channel.id);
 
                         try {
-                            // --- MENSAGEM AUTOMÁTICA (TAREFA INDEPENDENTE) ---
-                            if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
+                            // --- MENSAGEM AUTOMÁTICA (AGENDADA COM FILA) ---
+                            const msgKey = `msg_${channel.id}`;
+                            if (msgauto && !automation.msgAutoSentThisSession.has(channel.id) && !scheduledTasks.has(msgKey)) {
                                 automation.msgAutoSentThisSession.add(channel.id);
-                                const taskMsg = (async () => {
+                                const msgDelaySec = parseInt(msgdelay) || 0;
+                                const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
+
+                                scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
                                     try {
-                                        const msgDelaySec = parseInt(msgdelay) || 0;
-                                        if (msgDelaySec > 0) {
-                                            
-                                            await new Promise(res => setTimeout(res, msgDelaySec * 1000));
+                                        if (!automation.isRunning) return;
+                                        await channel.send(msgauto);
+                                        onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
+                                    } catch (err) {
+                                        if (isPermissionError(err)) {
+                                            onLog(`⚠️ Sem permissão para enviar mensagem | #${channel.name}`, "warn");
                                         }
-                                        if (automation.isRunning) {
-                                            try {
-                                                await channel.send(msgauto);
-                                                automation.msgAutoSentThisSession.add(channel.id);
-                                                onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
-                                            } catch (err) {
-                                                if (isPermissionError(err)) {
-                                                    onLog(`⚠️ Sem permissão para enviar mensagem | #${channel.name}`, "warn");
-                                                }
-                                            }
-                                        }
-                                    } catch (e) {
-                                        automation.msgAutoSentThisSession.add(channel.id);
                                     }
-                                })();
-                                automation.activeTasks.add(taskMsg);
-                                taskMsg.finally(() => automation.activeTasks.delete(taskMsg));
+                                });
                             }
 
                             const msgs = await channel.messages.fetch({ limit: 5 });
                             const firstMsg = msgs.find(m => m.components?.length);
 
                             if (firstMsg) {
-                                // --- CONFIRMAÇÃO AUTOMÁTICA (TAREFA INDEPENDENTE) ---
-                                if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id)) {
+                                // --- CONFIRMAÇÃO AUTOMÁTICA (AGENDADA COM FILA) ---
+                                const confKey = `conf_${channel.id}`;
+                                if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id) && !scheduledTasks.has(confKey)) {
                                     automation.confirmedChannels.add(channel.id);
-                                    const taskConf = (async () => {
+                                    const confDelayMs = confirmauto * 1000;
+
+                                    scheduleTask(confKey, 'confirmação', channel, confDelayMs, async () => {
                                         try {
-                                            await new Promise(res => setTimeout(res, confirmauto * 1000));
                                             let confirmed = false;
                                             for (const row of firstMsg.components) {
                                                 for (const button of row.components) {
@@ -298,55 +341,51 @@ class AutomationEngine {
                                                 }
                                             }
                                         } catch (err) {}
-                                    })();
-                                    automation.activeTasks.add(taskConf);
-                                    taskConf.finally(() => automation.activeTasks.delete(taskConf));
+                                    });
                                 }
 
-                                // --- MENÇÃO AUTOMÁTICA (TAREFA INDEPENDENTE) ---
-                                if (mentionauto > 0) {
-                                    const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
-                                    if (!automation.clickedMessages.has(mentionKey)) {
-                                        automation.clickedMessages.add(mentionKey);
-                                        const taskMention = (async () => {
-                                            try {
-                                                await new Promise(res => setTimeout(res, mentionauto * 1000));
-                                                
-                                                let foundMentions = [];
-                                                const regex = /<@!?(\d+)>/g;
-                                                
-                                                const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
-                                                foundMentions.push(...contentMentions);
-                                                
-                                                for (const embed of firstMsg.embeds) {
-                                                    if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
-                                                    if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
-                                                }
-                                                
-                                                foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
-                                                
-                                                for (const mentionUserId of foundMentions) {
-                                                    try {
-                                                        const member = await channel.guild.members.fetch(mentionUserId);
-                                                        if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                                            try {
-                                                                await channel.send(`<@${mentionUserId}>`);
-                                                                automation.clickedMessages.add(mentionKey);
-                                                                onLog(`📢 Menção enviada | #${channel.name}`, "success");
-                                                            } catch (err) {
-                                                                if (isPermissionError(err)) {
-                                                                    onLog(`⚠️ Sem permissão para enviar menção | #${channel.name}`, "warn");
-                                                                }
+                                // --- MENÇÃO AUTOMÁTICA (AGENDADA COM FILA) ---
+                                const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
+                                if (mentionauto > 0 && !automation.clickedMessages.has(mentionKey) && !scheduledTasks.has(mentionKey)) {
+                                    automation.clickedMessages.add(mentionKey);
+                                    const mentionDelayMs = mentionauto * 1000;
+
+                                    scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
+                                        try {
+                                            if (!automation.isRunning) return;
+                                            
+                                            let foundMentions = [];
+                                            const regex = /<@!?(\d+)>/g;
+                                            
+                                            const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+                                            foundMentions.push(...contentMentions);
+                                            
+                                            for (const embed of firstMsg.embeds) {
+                                                if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                                                if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
+                                            }
+                                            
+                                            foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
+                                            
+                                            for (const mentionUserId of foundMentions) {
+                                                try {
+                                                    const member = await channel.guild.members.fetch(mentionUserId);
+                                                    if (!member.permissions.has("MANAGE_MESSAGES")) {
+                                                        try {
+                                                            await channel.send(`<@${mentionUserId}>`);
+                                                            automation.clickedMessages.add(mentionKey);
+                                                            onLog(`📢 Menção enviada | #${channel.name}`, "success");
+                                                        } catch (err) {
+                                                            if (isPermissionError(err)) {
+                                                                onLog(`⚠️ Sem permissão para enviar menção | #${channel.name}`, "warn");
                                                             }
-                                                            break;
                                                         }
-                                                    } catch (e) {}
-                                                }
-                                            } catch (err) {}
-                                        })();
-                                        automation.activeTasks.add(taskMention);
-                                        taskMention.finally(() => automation.activeTasks.delete(taskMention));
-                                    }
+                                                        break;
+                                                    }
+                                                } catch (e) {}
+                                            }
+                                        } catch (err) {}
+                                    });
                                 }
                             }
                         } catch (err) {
@@ -366,6 +405,8 @@ class AutomationEngine {
                         automation.clickedMessages.clear();
                         automation.msgAutoSentThisSession.clear();
                         automation.confirmedChannels.clear();
+                        // Limpar tarefas agendadas pendentes do ciclo anterior
+                        cancelAllScheduledTasks();
                     }
 
                     // Delay mínimo entre servidores (seguro contra rate limit)
@@ -386,6 +427,15 @@ class AutomationEngine {
         if (!automation) return false;
         
                 automation.isRunning = false;
+        
+        // Cancelar todas as tarefas agendadas
+        if (automation.scheduledTasks) {
+            for (const [, task] of automation.scheduledTasks) {
+                clearTimeout(task.timeoutId);
+            }
+            automation.scheduledTasks.clear();
+        }
+        
         if (automation.activeTasks.size > 0) {
             
             await Promise.allSettled([...automation.activeTasks]);
