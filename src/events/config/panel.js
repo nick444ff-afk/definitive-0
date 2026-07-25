@@ -640,42 +640,18 @@ async function startQueueAutomation(interaction, user, format, category, client)
                         const msgs = await channel.messages.fetch({ limit: 5 });
                         const firstMsg = msgs.find(m => m.components?.length);
 
-                        // ─── MENSAGEM AUTOMÁTICA INDEPENDENTE ───
-                        // Executada como tarefa independente para não bloquear o loop
-                        // Valida permissão antes de agendar
-                        const msgAutoKey = channel.id;
-                        if (userData?.msgauto && !msgAutoSentThisSession.has(msgAutoKey)) {
-                            // Verificar permissão antes de agendar
-                            let hasPermission = false;
+                        // ─── MENSAGEM AUTOMÁTICA ───
+                        // Envia INDEPENDENTE de firstMsg existir
+                        // Usa cache em memória (não persistente) para não bloquear entre sessões
+                        if (userData?.msgauto && !msgAutoSentThisSession.has(channel.id)) {
                             try {
-                                if (channel.type === "GUILD_TEXT" && channel.viewable) {
-                                    const member = await channel.guild.members.fetchMe().catch(() => null);
-                                    if (member) {
-                                        const perms = member.permissionsIn(channel);
-                                        hasPermission = perms.has("SEND_MESSAGES");
-                                    }
-                                }
-                            } catch (e) { hasPermission = false; }
-
-                            if (!hasPermission) {
-                                console.log(`[MSG-AUTO] ⚠️ Canal #${channel.name} (${channel.guild?.name}) ignorado - sem permissão de envio`);
-                            } else {
-                                msgAutoSentThisSession.add(msgAutoKey);
-                                // Executar como tarefa independente (fire-and-forget)
-                                (async () => {
-                                    try {
-                                        // Validar novamente antes do envio
-                                        const permOk = await canSendMsg(channel);
-                                        if (!permOk) {
-                                            console.log(`[MSG-AUTO] ⚠️ Canal #${channel.name} perdeu permissão, tarefa cancelada`);
-                                            return;
-                                        }
-                                        await channel.send(userData.msgauto);
-                                        console.log(`[MSG-AUTO] ✅ Mensagem enviada em #${channel.name} (${channel.guild?.name})`);
-                                    } catch (err) {
-                                        console.error(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}:`, err.message);
-                                    }
-                                })();
+                                await channel.send(userData.msgauto);
+                                msgAutoSentThisSession.add(channel.id);
+                                console.log(`[MSG-AUTO] ✅ Mensagem enviada em #${channel.name} (${channel.guild?.name})`);
+                            } catch (err) {
+                                console.error(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}:`, err.message);
+                                // Marca como enviada mesmo com erro para não ficar tentando infinitamente
+                                msgAutoSentThisSession.add(channel.id);
                             }
                         }
 
@@ -736,14 +712,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
                                     if (!member.permissions.has("MANAGE_MESSAGES")) {
                                         await lg.set(lockKey, true);
                                         const lockT = setTimeout(() => lg.set(lockKey, false).catch(e => console.error("[LOCK]", e.message)), Math.max(7000, mentionWait + 5000));
-                                        // Validar permissão antes de enviar
-                                        const permOk = await canSendMsg(channel);
-                                        if (!permOk) {
-                                            console.log(`[MENÇÃO] ⚠️ Canal #${channel.name} sem permissão, menção cancelada`);
-                                            await lg.set(lockKey, false);
-                                            clearTimeout(lockT);
-                                            break;
-                                        }
+
                                         try {
                                             await channel.send({ content: `<@${mentionUserId}>` });
                                             await lg.set(mencoesKey, mencoesFeitas + 1);
