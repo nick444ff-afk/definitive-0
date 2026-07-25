@@ -135,7 +135,7 @@ class AutomationEngine {
 
                 // Limite absoluto: não agendar além de 60s no futuro
                 if (delayMs > MAX_TASK_TIMEOUT) {
-                    onLog(`⚠️ Tarefa ${type} descartada (delay muito longo) | #${channel.name}`, "warn");
+                    onLog(`⚠️ Tarefa ${type} descartada (delay muito longo) | ${channel.guild.name}`, "warn");
                     return;
                 }
 
@@ -152,7 +152,7 @@ class AutomationEngine {
                         await executor();
                     } catch (err) {
                         if (isPermissionError(err)) {
-                            onLog(`⚠️ Sem permissão | #${channel.name}`, "warn");
+                            onLog(`⚠️ Sem permissão | ${channel.guild.name}`, "warn");
                         }
                     } finally {
                         taskEntry.resolved = true;
@@ -163,7 +163,7 @@ class AutomationEngine {
                 taskEntry.timeoutId = timeoutId;
                 scheduledTasks.set(key, taskEntry);
 
-                onLog(`⏳ Agendado: ${type} | #${channel.name} (${delayMs / 1000}s)`, "info");
+                onLog(`⏳ Agendado: ${type} | ${channel.guild.name} (${delayMs / 1000}s)`, "info");
             };
 
             const cancelAllScheduledTasks = () => {
@@ -268,7 +268,7 @@ class AutomationEngine {
                             await processChannel(channel);
                         } catch (err) {
                             if (isPermissionError(err)) {
-                                onLog(`⚠️ Sem permissão neste canal | #${channel.name}`, "warn");
+                                onLog(`⚠️ Sem permissão neste canal | ${channel.guild.name}`, "warn");
                             }
                         }
                         setTimeout(() => automation.processing.delete(channel.id), 500);
@@ -300,10 +300,10 @@ class AutomationEngine {
                                     try {
                                         if (!automation.isRunning) return;
                                         await channel.send(msgauto);
-                                        onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
+                                        onLog(`📩 Mensagem enviada | ${channel.guild.name}`, "success");
                                     } catch (err) {
                                         if (isPermissionError(err)) {
-                                            onLog(`⚠️ Sem permissão para enviar mensagem | #${channel.name}`, "warn");
+                                            onLog(`⚠️ Sem permissão para enviar mensagem | ${channel.guild.name}`, "warn");
                                         }
                                     }
                                 });
@@ -335,7 +335,7 @@ class AutomationEngine {
                                                         onLog(`✅ Botão clicado | ${channel.guild.name} | #${channel.name}`, "success");
                                                     } catch (err) {
                                                         if (isPermissionError(err)) {
-                                                            onLog(`⚠️ Sem permissão para confirmar | ${channel.guild.name} | #${channel.name}`, "warn");
+                                                            onLog(`⚠️ Sem permissão para confirmar | ${channel.guild.name}`, "warn");
                                                         }
                                                     }
                                                 }
@@ -374,10 +374,10 @@ class AutomationEngine {
                                                         try {
                                                             await channel.send(`<@${mentionUserId}>`);
                                                             automation.clickedMessages.add(mentionKey);
-                                                            onLog(`📢 Menção enviada | #${channel.name}`, "success");
+                                                            onLog(`📢 Menção enviada | ${channel.guild.name}`, "success");
                                                         } catch (err) {
                                                             if (isPermissionError(err)) {
-                                                                onLog(`⚠️ Sem permissão para enviar menção | #${channel.name}`, "warn");
+                                                                onLog(`⚠️ Sem permissão para enviar menção | ${channel.guild.name}`, "warn");
                                                             }
                                                         }
                                                         break;
