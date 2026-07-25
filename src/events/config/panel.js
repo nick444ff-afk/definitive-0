@@ -328,7 +328,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
         // ═══════════════════════════════════════════════════════════════
         const self = new Client();
         await self.login(userData.token);
-        console.log(`[AUTOMAÇÃO] Logado como: ${self.user.tag}`);
+                
 
         // ═══════════════════════════════════════════════════════════════
         // BUSCA DE CANAIS
@@ -342,24 +342,20 @@ async function startQueueAutomation(interaction, user, format, category, client)
             const matchCategoria = nome.includes(categoriaSearch);
 
             if (matchFormato && matchCategoria) {
-                console.log(`[CANAL] ✅ Encontrado: #${c.name} (${c.guild?.name})`);
+                
                 return true;
             }
 
             // Log de canais que quase matcharam (debug)
             if (matchFormato || matchCategoria) {
-                console.log(`[CANAL] ⚠️ Parcial: #${c.name} (formato=${matchFormato}, categoria=${matchCategoria})`);
+                
             }
 
             return false;
         });
 
         if (canais.size < 1) {
-            console.log(`[AUTOMAÇÃO] ❌ Nenhum canal encontrado para: ${formatSearch} + ${categoriaSearch}`);
-            console.log(`[AUTOMAÇÃO] Canais de texto disponíveis:`);
-            self.channels.cache.filter(c => c.type === "GUILD_TEXT").forEach(c => {
-                console.log(`  - #${c.name} (${c.guild?.name})`);
-            });
+            
             self.destroy();
             return interaction.editReply({
                 content: `\`❌\` Nenhum canal encontrado para \`${formatSearch}\` + \`${categoriaSearch}\`.\nVerifique se os canais seguem o padrão: \`${formatSearch}-${categoriaSearch}\``
@@ -400,13 +396,13 @@ async function startQueueAutomation(interaction, user, format, category, client)
             const keywords = CATEGORY_KEYWORDS[category];
             if (!keywords) return null;
 
-            console.log(`[BOTÕES] Analisando ${buttons.length} botões para categoria "${category}":`);
+            
 
             let bestMatch = null;
 
             for (const button of buttons) {
                 if (isIgnoredButton(button)) {
-                    console.log(`  [IGNORADO] customId="${button.customId}" label="${button.label}"`);
+                    
                     continue;
                 }
 
@@ -418,11 +414,11 @@ async function startQueueAutomation(interaction, user, format, category, client)
 
                 const searchText = `${customIdLower} ${labelLower} ${emojiName} ${emojiStr}`.toLowerCase();
 
-                console.log(`  [BOTÃO] customId="${button.customId}" label="${button.label}" emoji="${emojiStr}" → searchText="${searchText}"`);
+                
 
                 for (const keyword of keywords) {
                     if (searchText.includes(keyword.toLowerCase())) {
-                        console.log(`  [MATCH] ✅ Keyword "${keyword}" encontrada em botão: customId="${button.customId}" label="${button.label}"`);
+                        
                         bestMatch = button;
                         break;
                     }
@@ -439,13 +435,13 @@ async function startQueueAutomation(interaction, user, format, category, client)
                     b.customId?.toLowerCase().includes("entrar")
                 );
                 if (joinButton && !isIgnoredButton(joinButton)) {
-                    console.log(`  [FALLBACK] Usando botão genérico: customId="${joinButton.customId}" label="${joinButton.label}"`);
+                    
                     bestMatch = joinButton;
                 }
             }
 
             if (!bestMatch) {
-                console.log(`  [BOTÕES] ❌ Nenhum botão correspondente encontrado para categoria "${category}"`);
+                
             }
 
             return bestMatch;
@@ -459,20 +455,20 @@ async function startQueueAutomation(interaction, user, format, category, client)
             const guildName = channel.guild?.name || "?";
 
             if (!guildId) {
-                console.log(`[CLICK] ❌ Sem guildId para canal #${channel.name}`);
+                
                 return false;
             }
             if (isGuildFull(guildId)) {
-                console.log(`[CLICK] ⚠️ Limite atingido em "${guildName}" (${getGuildClicks(guildId)}/${MAX_ENTRIES_PER_GUILD})`);
+                
                 return false;
             }
             if (clickedMessages.has(msg.id)) {
-                console.log(`[CLICK] ⚠️ Mensagem ${msg.id} já clicada`);
+                
                 return false;
             }
 
             try {
-                console.log(`[CLICK] 🖱️ Clicando: customId="${button.customId}" label="${button.label}" em #${channel.name} (${guildName})`);
+                
                 await msg.clickButton(button.customId);
                 clickedMessages.add(msg.id);
                 const totalClicks = addGuildClick(guildId);
@@ -481,10 +477,10 @@ async function startQueueAutomation(interaction, user, format, category, client)
                 logs.entradas.push(logEntry);
                 updateLogEmbed(`${debugLabel}\nServidor: ${guildName}\nCanal: #${channel.name}\nBotão: "${button.label || button.customId}"\nCliques: ${totalClicks}/${MAX_ENTRIES_PER_GUILD}${totalClicks >= MAX_ENTRIES_PER_GUILD ? "\n⚠️ LIMITE ATINGIDO neste servidor" : ""}`);
 
-                console.log(`[CLICK] ✅ Sucesso! ${guildName} → ${totalClicks}/${MAX_ENTRIES_PER_GUILD}`);
+                
                 return true;
             } catch (err) {
-                console.error(`[CLICK] ❌ Erro ao clicar: ${err.message}`);
+                
                 logs.erros.push(`#${channel.name}: ${err.message}`);
                 return false;
             }
@@ -500,19 +496,19 @@ async function startQueueAutomation(interaction, user, format, category, client)
             if (isGuildFull(guildId)) return;
 
             try {
-                console.log(`[CANAL] Processando: #${channel.name} (${channel.guild?.name})`);
+                
                 const msgs = await channel.messages.fetch({ limit: 15 });
-                console.log(`[CANAL] ${msgs.size} mensagens encontradas em #${channel.name}`);
+                
 
                 for (const msg of msgs.values()) {
                     if (isGuildFull(guildId)) {
-                        console.log(`[CANAL] Limite atingido em ${channel.guild?.name}, parando processamento`);
+                        
                         break;
                     }
                     if (!msg.components?.length) continue;
                     if (clickedMessages.has(msg.id)) continue;
 
-                    console.log(`[MSG] Mensagem ${msg.id} tem ${msg.components.length} row(s) de componentes`);
+                    
 
                     // Coletar todos os botões da mensagem
                     const allButtons = [];
@@ -524,7 +520,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
                         }
                     }
 
-                    console.log(`[MSG] ${allButtons.length} botões encontrados na mensagem ${msg.id}`);
+                    
 
                     if (allButtons.length === 0) continue;
 
@@ -540,11 +536,11 @@ async function startQueueAutomation(interaction, user, format, category, client)
                             continue;
                         }
                     } else {
-                        console.log(`[MSG] Nenhum botão válido para categoria "${category}" na mensagem ${msg.id}`);
+                        
                     }
                 }
             } catch (err) {
-                console.error(`[CANAL] Erro ao processar #${channel.name}:`, err.message);
+                
             }
         };
 
@@ -599,7 +595,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
                     try {
                         await processChannel(channel);
                     } catch (err) {
-                        console.error(`[INTERVAL-QUEUE] Erro ao processar #${channel.name}:`, err.message);
+                        
                     }
 
                     // Resetar contador de cliques deste servidor para permitir novo ciclo
@@ -642,13 +638,12 @@ async function startQueueAutomation(interaction, user, format, category, client)
                                 try {
                                     const msgDelaySec = parseInt(userData.msgdelay) || 0;
                                     if (msgDelaySec > 0) {
-                                        console.log(`[MSG-AUTO] ⏳ Aguardando ${msgDelaySec}s para enviar mensagem em #${channel.name}`);
                                         await new Promise(res => setTimeout(res, msgDelaySec * 1000));
                                     }
                                     await channel.send(userData.msgauto);
                                     console.log(`📩 Mensagem enviada | #${channel.name}`);
                                 } catch (err) {
-                                    console.error(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}:`, err.message);
+                                    
                                 }
                             })();
                             activeTasks.add(taskMsg);
@@ -721,25 +716,25 @@ async function startQueueAutomation(interaction, user, format, category, client)
                                                     await lg.set(lastMsgKey, firstMsg.id);
                                                     console.log(`📢 Menção enviada | #${channel.name}`);
                                                 } catch (err) {
-                                                    console.error(`[MENÇÃO] ❌ Erro ao mencionar:`, err.message);
+                                                    
                                                 }
                                                 await lg.set(lockKey, false);
                                                 clearTimeout(lockT);
                                                 break;
                                             }
                                         } catch (err) {
-                                            console.error(`[MENÇÃO] Erro ao buscar membro ${mentionUserId}:`, err.message);
+                                            
                                         }
                                     }
                                 } catch (err) {
-                                    console.error(`[MENÇÃO] ❌ Erro em #${channel.name}:`, err.message);
+                                    
                                 }
                             })();
                             activeTasks.add(taskMention);
                             taskMention.finally(() => activeTasks.delete(taskMention));
                         }
                     } catch (err) {
-                        console.error(`[INTERVAL] Erro ao processar #${channel.name}:`, err.message);
+                        
                     }
 
                     setTimeout(() => processing.delete(channel.id), Math.max(2000, mentionWait + 1000));
@@ -748,7 +743,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
                 // Limpar mensagens clicadas ao final de cada tick para permitir novo ciclo
                 clickedMessages.clear();
             } catch (err) {
-                console.error("[INTERVAL] Erro geral no intervalo:", err.message);
+                
             }
         }, 2000);
 
@@ -756,22 +751,22 @@ async function startQueueAutomation(interaction, user, format, category, client)
         // BUSCA INICIAL
         // Processa todos os canais encontrados na primeira varredura
         // ═══════════════════════════════════════════════════════════════
-        console.log(`[AUTOMAÇÃO] Iniciando busca inicial em ${canais.size} canais...`);
+        
 
         for (const channel of canais.values()) {
             const guildId = channel.guild?.id;
             if (guildId && isGuildFull(guildId)) {
-                console.log(`[BUSCA] Pulando #${channel.name} - servidor "${channel.guild?.name}" já atingiu limite`);
+                
                 continue;
             }
             await processChannel(channel);
         }
 
-                console.log("[AUTOMAÇÃO] Busca inicial concluída. Monitoramento contínuo ativo.");
+                
         verify[user.id] = { client: self, interval };
     } catch (err) {
         console.error("[AUTOMAÇÃO] Erro fatal:", err);
-        interaction.editReply({ content: `\`❌\` Erro: ${err.message}` }).catch(e => console.error("[AUTOMAÇÃO] Erro ao editar reply:", err.message));
+        interaction.editReply({ content: `\`❌\` Erro: ${err.message}` }).catch(() => {});
         const v = verify[user.id];
         if (v) {
             try { v.client.destroy(); } catch (e) { console.error("[CLEANUP]", e.message); }

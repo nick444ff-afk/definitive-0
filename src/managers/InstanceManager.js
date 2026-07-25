@@ -90,13 +90,10 @@ class InstanceManager {
             await this.initInstance(botId);
             const instance = this.instances.get(botId);
             
-            if (instance.is_running) {
-                this.addLog(botId, "⚠️ Automação já está em execução", "warn");
-                return { status: "error", message: "Automação já em execução" };
-            }
-
             // Parar automação anterior se existir
-            await this.stopAutomation(botId);
+            if (instance.is_running) {
+                await this.stopAutomation(botId);
+            }
 
             instance.is_running = true;
             instance.start_time = Date.now();

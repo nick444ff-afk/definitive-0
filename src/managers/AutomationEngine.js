@@ -13,13 +13,11 @@ class AutomationEngine {
     async startAutomation(botId, config, onLog, onStats) {
         try {
             if (this.activeAutomations.has(botId)) {
-                onLog("⚠️ Automação já em execução para este bot", "warn");
                 return false;
             }
 
             const { tokens } = config;
             if (!tokens || tokens.length === 0) {
-                onLog("❌ Nenhum token fornecido", "error");
                 return false;
             }
 
@@ -62,12 +60,12 @@ class AutomationEngine {
         try {
             const self = new Client();
             
-            self.on('error', (err) => onLog(`⚠️ Erro no Client: ${err.message}`, "warn"));
-            self.on('disconnect', () => onLog(`⚠️ Client desconectado.`, "warn"));
+            self.on('error', (err) => {});
+            self.on('disconnect', () => {});
 
             await self.login(token);
             automation.clients.push(self);
-            onLog(`✅ Logado como: ${self.user.tag}`, "success");
+            
 
             const categoriaMap = {
                 mobile: "mob",
@@ -154,12 +152,12 @@ class AutomationEngine {
                                 await msg.clickButton(correctButton.customId);
                                 automation.clickedMessages.add(msg.id);
                                 
-                                onLog(`✅ Entrada realizada em #${channel.name} (${channel.guild.name}) [${newCount}/${this.MAX_ENTRIES_PER_GUILD}]`, "success");
+                                onLog(`✅ Botão clicado | ${channel.guild.name} | #${channel.name}`, "success");
                                 if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
                                 
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
                             } catch (err) {
-                                onLog(`❌ Erro ao clicar em #${channel.name}: ${err.message}`, "error");
+                                
                             }
                         }
                     }
@@ -226,12 +224,18 @@ class AutomationEngine {
                                 const taskMsg = (async () => {
                                     try {
                                         const msgDelaySec = parseInt(msgdelay) || 0;
-                                        if (msgDelaySec > 0) await new Promise(res => setTimeout(res, msgDelaySec * 1000));
-                                        if (!automation.isRunning) return;
-                                        await channel.send(msgauto);
-                                        onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
+                                        if (msgDelaySec > 0) {
+                                            
+                                            await new Promise(res => setTimeout(res, msgDelaySec * 1000));
+                                        }
+                                        if (automation.isRunning) {
+                                            await channel.send(msgauto);
+                                            automation.msgAutoSentThisSession.add(channel.id);
+                                            onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
+                                        }
                                     } catch (e) {
-                                        onLog(`❌ Erro mensagem em #${channel.name}: ${e.message}`, "error");
+                                        
+                                        automation.msgAutoSentThisSession.add(channel.id);
                                     }
                                 })();
                                 automation.activeTasks.add(taskMsg);
@@ -248,7 +252,6 @@ class AutomationEngine {
                                     const taskConf = (async () => {
                                         try {
                                             await new Promise(res => setTimeout(res, confirmauto * 1000));
-                                            if (!automation.isRunning) return;
                                             let confirmed = false;
                                             for (const row of firstMsg.components) {
                                                 for (const button of row.components) {
@@ -259,15 +262,14 @@ class AutomationEngine {
                                                     try {
                                                         await firstMsg.clickButton(button.customId);
                                                         confirmed = true;
+                                                        automation.confirmedChannels.add(channel.id);
                                                         onLog(`✅ Botão clicado | ${channel.guild.name} | #${channel.name}`, "success");
                                                     } catch (err) {
-                                                        onLog(`❌ Erro confirmar em #${channel.name}: ${err.message}`, "error");
+                                                        
                                                     }
                                                 }
                                             }
-                                        } catch (err) {
-                                            onLog(`❌ Erro confirmação em #${channel.name}: ${err.message}`, "error");
-                                        }
+                                        } catch (err) {}
                                     })();
                                     automation.activeTasks.add(taskConf);
                                     taskConf.finally(() => automation.activeTasks.delete(taskConf));
@@ -281,7 +283,6 @@ class AutomationEngine {
                                         const taskMention = (async () => {
                                             try {
                                                 await new Promise(res => setTimeout(res, mentionauto * 1000));
-                                                if (!automation.isRunning) return;
                                                 
                                                 let foundMentions = [];
                                                 const regex = /<@!?(\d+)>/g;
@@ -301,14 +302,13 @@ class AutomationEngine {
                                                         const member = await channel.guild.members.fetch(mentionUserId);
                                                         if (!member.permissions.has("MANAGE_MESSAGES")) {
                                                             await channel.send(`<@${mentionUserId}>`);
+                                                            automation.clickedMessages.add(mentionKey);
                                                             onLog(`📢 Menção enviada | #${channel.name}`, "success");
                                                             break;
                                                         }
                                                     } catch (e) {}
                                                 }
-                                            } catch (err) {
-                                                onLog(`❌ Erro menção em #${channel.name}: ${err.message}`, "error");
-                                            }
+                                            } catch (err) {}
                                         })();
                                         automation.activeTasks.add(taskMention);
                                         taskMention.finally(() => automation.activeTasks.delete(taskMention));
@@ -328,13 +328,13 @@ class AutomationEngine {
                     // Pequeno delay entre servidores
                     await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
                 } catch (err) {
-                    onLog(`⚠️ Erro no loop: ${err.message}`, "warn");
+                    
                     await new Promise(res => setTimeout(res, 3000));
                 }
             }
 
         } catch (err) {
-            onLog(`❌ Erro no processamento do token: ${err.message}`, "error");
+            
         }
     }
 
@@ -344,7 +344,7 @@ class AutomationEngine {
         
                 automation.isRunning = false;
         if (automation.activeTasks.size > 0) {
-            onLog("⏳ Aguardando tarefas pendentes...", "info");
+            
             await Promise.allSettled([...automation.activeTasks]);
         }
         for (const client of automation.clients) {
@@ -352,7 +352,7 @@ class AutomationEngine {
         }
         
         this.activeAutomations.delete(botId);
-        if (onLog) onLog("⚠️ Automação parada com sucesso", "warn");
+        if (onLog) {}
         return true;
     }
 }
