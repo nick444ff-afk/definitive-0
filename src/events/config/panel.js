@@ -549,6 +549,25 @@ async function startQueueAutomation(interaction, user, format, category, client)
         };
 
         // ═══════════════════════════════════════════════════════════════
+        // FUNÇÃO DE VALIDAÇÃO DE PERMISSÃO DE ENVIO
+        // ═══════════════════════════════════════════════════════════════
+        const canSendMsg = async (channel) => {
+            try {
+                if (!channel || channel.type !== "GUILD_TEXT") return false;
+                if (!channel.viewable) return false;
+                const guild = channel.guild;
+                if (!guild) return false;
+                const member = await guild.members.fetchMe().catch(() => null);
+                if (!member) return false;
+                const permissions = member.permissionsIn(channel);
+                if (!permissions.has("SEND_MESSAGES")) return false;
+                return true;
+            } catch (err) {
+                return false;
+            }
+        };
+
+        // ═══════════════════════════════════════════════════════════════
         // INTERVALO DE MONITORAMENTO CONTÍNUO (a cada 2s)
         // PARTE 1: Rebusca canais de fila para novos cliques
         // PARTE 2: Monitora canais de partida (msgauto + confirmação + menção)
@@ -582,8 +601,19 @@ async function startQueueAutomation(interaction, user, format, category, client)
                         console.error(`[INTERVAL-QUEUE] Erro ao processar #${channel.name}:`, err.message);
                     }
 
+                    // Resetar contador de cliques deste servidor para permitir novo ciclo
+                    if (guildId && isGuildFull(guildId)) {
+                        guildClickCount.delete(guildId);
+                        // Limpar mensagens clicadas deste servidor
+                        // (não podemos rastrear por guild diretamente, então limpamos o set completo
+                        //  após processar todos os canais deste servidor)
+                    }
+
                     setTimeout(() => processing.delete(channel.id), 3000);
                 }
+
+                // Limpar mensagens clicadas ao final de cada tick para permitir novo ciclo
+                clickedMessages.clear();
 
                 // ─── PARTE 2: Monitorar canais de partida/aguardando ───
                 // Busca canais com "aguardando"/"Aguardando"/"partida"/"Partida"/"fila"/"Fila" no nome
@@ -610,18 +640,42 @@ async function startQueueAutomation(interaction, user, format, category, client)
                         const msgs = await channel.messages.fetch({ limit: 5 });
                         const firstMsg = msgs.find(m => m.components?.length);
 
-                        // ─── MENSAGEM AUTOMÁTICA ───
-                        // Envia INDEPENDENTE de firstMsg existir
-                        // Usa cache em memória (não persistente) para não bloquear entre sessões
-                        if (userData?.msgauto && !msgAutoSentThisSession.has(channel.id)) {
+                        // ─── MENSAGEM AUTOMÁTICA INDEPENDENTE ───
+                        // Executada como tarefa independente para não bloquear o loop
+                        // Valida permissão antes de agendar
+                        const msgAutoKey = channel.id;
+                        if (userData?.msgauto && !msgAutoSentThisSession.has(msgAutoKey)) {
+                            // Verificar permissão antes de agendar
+                            let hasPermission = false;
                             try {
-                                await channel.send(userData.msgauto);
-                                msgAutoSentThisSession.add(channel.id);
-                                console.log(`[MSG-AUTO] ✅ Mensagem enviada em #${channel.name} (${channel.guild?.name})`);
-                            } catch (err) {
-                                console.error(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}:`, err.message);
-                                // Marca como enviada mesmo com erro para não ficar tentando infinitamente
-                                msgAutoSentThisSession.add(channel.id);
+                                if (channel.type === "GUILD_TEXT" && channel.viewable) {
+                                    const member = await channel.guild.members.fetchMe().catch(() => null);
+                                    if (member) {
+                                        const perms = member.permissionsIn(channel);
+                                        hasPermission = perms.has("SEND_MESSAGES");
+                                    }
+                                }
+                            } catch (e) { hasPermission = false; }
+
+                            if (!hasPermission) {
+                                console.log(`[MSG-AUTO] ⚠️ Canal #${channel.name} (${channel.guild?.name}) ignorado - sem permissão de envio`);
+                            } else {
+                                msgAutoSentThisSession.add(msgAutoKey);
+                                // Executar como tarefa independente (fire-and-forget)
+                                (async () => {
+                                    try {
+                                        // Validar novamente antes do envio
+                                        const permOk = await canSendMsg(channel);
+                                        if (!permOk) {
+                                            console.log(`[MSG-AUTO] ⚠️ Canal #${channel.name} perdeu permissão, tarefa cancelada`);
+                                            return;
+                                        }
+                                        await channel.send(userData.msgauto);
+                                        console.log(`[MSG-AUTO] ✅ Mensagem enviada em #${channel.name} (${channel.guild?.name})`);
+                                    } catch (err) {
+                                        console.error(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}:`, err.message);
+                                    }
+                                })();
                             }
                         }
 
@@ -682,6 +736,14 @@ async function startQueueAutomation(interaction, user, format, category, client)
                                     if (!member.permissions.has("MANAGE_MESSAGES")) {
                                         await lg.set(lockKey, true);
                                         const lockT = setTimeout(() => lg.set(lockKey, false).catch(e => console.error("[LOCK]", e.message)), Math.max(7000, mentionWait + 5000));
+                                        // Validar permissão antes de enviar
+                                        const permOk = await canSendMsg(channel);
+                                        if (!permOk) {
+                                            console.log(`[MENÇÃO] ⚠️ Canal #${channel.name} sem permissão, menção cancelada`);
+                                            await lg.set(lockKey, false);
+                                            clearTimeout(lockT);
+                                            break;
+                                        }
                                         try {
                                             await channel.send({ content: `<@${mentionUserId}>` });
                                             await lg.set(mencoesKey, mencoesFeitas + 1);
@@ -711,25 +773,10 @@ async function startQueueAutomation(interaction, user, format, category, client)
         }, 2000);
 
         // ═══════════════════════════════════════════════════════════════
-        // TIMEOUT: 30 MINUTOS
+        // SEM TIMEOUT - AUTOMAÇÃO CONTÍNUA
+        // A automação NUNCA para sozinha. Só para quando o usuário desliga ou a app encerra.
         // ═══════════════════════════════════════════════════════════════
-        const timeout = setTimeout(() => {
-            self.destroy();
-            clearInterval(interval);
-
-            let statsText = "\n\n**📊 Estatísticas Finais:**\n";
-            for (const [guildId, clicks] of guildClickCount.entries()) {
-                const guild = self.guilds?.cache?.get(guildId);
-                statsText += `• ${guild?.name || guildId}: ${clicks}/${MAX_ENTRIES_PER_GUILD} entradas\n`;
-            }
-            if (guildClickCount.size === 0) statsText += "• Nenhuma entrada realizada\n";
-
-            interaction.editReply({
-                content: `\`⏱️\` Automação finalizada por timeout (30 min).${statsText}`
-            }).catch(err => console.error("[TIMEOUT] Erro ao editar reply:", err.message));
-
-            console.log("[AUTOMAÇÃO] Finalizada por timeout");
-        }, 30 * 60 * 1000);
+        // (timeout removido - era o causador da parada após 30 minutos)
 
         // ═══════════════════════════════════════════════════════════════
         // BUSCA INICIAL
@@ -747,16 +794,16 @@ async function startQueueAutomation(interaction, user, format, category, client)
         }
 
         console.log("[AUTOMAÇÃO] Busca inicial concluída. Monitoramento contínuo ativo.");
-        verify[user.id] = { client: self, interval, timeout };
+        verify[user.id] = { client: self, interval };
 
-    } catch (err) {
+        } catch (err) {
         console.error("[AUTOMAÇÃO] Erro fatal:", err);
-        interaction.editReply({ content: `\`❌\` Erro: ${err.message}` }).catch(e => console.error("[AUTOMAÇÃO] Erro ao editar reply:", e.message));
+        interaction.editReply({ content: `\`❌\` Erro: ${err.message}` }).catch(e => console.error("[AUTOMAÇÃO] Erro ao editar reply:", err.message));
         const v = verify[user.id];
         if (v) {
             try { v.client.destroy(); } catch (e) { console.error("[CLEANUP]", e.message); }
             try { clearInterval(v.interval); } catch (e) { console.error("[CLEANUP]", e.message); }
-            try { clearTimeout(v.timeout); } catch (e) { console.error("[CLEANUP]", e.message); }
+            if (v.timeout) try { clearTimeout(v.timeout); } catch (e) { console.error("[CLEANUP]", e.message); }
         }
     }
 }
