@@ -3,6 +3,7 @@ const { Client } = require('discord.js-selfbot-v13');
 /**
  * AutomationEngine - LÓGICA INTEGRADA E REFINADA
  * Extraída do commit fd71344f8f267f519f2b41874e10f18949536399
+ * FIX: Tratamento robusto de erros 50013 (Missing Permissions)
  */
 class AutomationEngine {
     constructor() {
@@ -113,6 +114,11 @@ class AutomationEngine {
                 return bestMatch;
             };
 
+            // Helper: identificar erro de permissão do Discord
+            const isPermissionError = (err) => {
+                return err && (err.code === 50013 || err.httpStatus === 403);
+            };
+
             const processChannel = async (channel) => {
                 const guildId = channel.guild?.id;
                 if (!guildId || !automation.isRunning) return;
@@ -157,11 +163,17 @@ class AutomationEngine {
                                 
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
                             } catch (err) {
-                                
+                                // FIX: Tratar erro de permissão sem derrubar o processo
+                                if (isPermissionError(err)) {
+                                    onLog(`⚠️ Sem permissão para clicar neste botão | ${channel.guild.name} | #${channel.name}`, "warn");
+                                }
+                                // Outros erros também são ignorados silenciosamente
                             }
                         }
                     }
-                } catch (err) {}
+                } catch (err) {
+                    // Erro ao fetchar mensagens - ignorar e continuar
+                }
             };
 
                         // ═══════════════════════════════════════════════════════════
@@ -200,7 +212,14 @@ class AutomationEngine {
                         if (guildId && (automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) continue;
 
                         automation.processing.add(channel.id);
-                        await processChannel(channel);
+                        try {
+                            await processChannel(channel);
+                        } catch (err) {
+                            // Garantir que erro no processChannel não pare o loop
+                            if (isPermissionError(err)) {
+                                onLog(`⚠️ Sem permissão neste canal | #${channel.name}`, "warn");
+                            }
+                        }
                         setTimeout(() => automation.processing.delete(channel.id), 3000);
                     }
 
@@ -230,12 +249,17 @@ class AutomationEngine {
                                             await new Promise(res => setTimeout(res, msgDelaySec * 1000));
                                         }
                                         if (automation.isRunning) {
-                                            await channel.send(msgauto);
-                                            automation.msgAutoSentThisSession.add(channel.id);
-                                            onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
+                                            try {
+                                                await channel.send(msgauto);
+                                                automation.msgAutoSentThisSession.add(channel.id);
+                                                onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
+                                            } catch (err) {
+                                                if (isPermissionError(err)) {
+                                                    onLog(`⚠️ Sem permissão para enviar mensagem | #${channel.name}`, "warn");
+                                                }
+                                            }
                                         }
                                     } catch (e) {
-                                        
                                         automation.msgAutoSentThisSession.add(channel.id);
                                     }
                                 })();
@@ -266,7 +290,9 @@ class AutomationEngine {
                                                         automation.confirmedChannels.add(channel.id);
                                                         onLog(`✅ Botão clicado | ${channel.guild.name} | #${channel.name}`, "success");
                                                     } catch (err) {
-                                                        
+                                                        if (isPermissionError(err)) {
+                                                            onLog(`⚠️ Sem permissão para confirmar | ${channel.guild.name} | #${channel.name}`, "warn");
+                                                        }
                                                     }
                                                 }
                                             }
@@ -302,9 +328,15 @@ class AutomationEngine {
                                                     try {
                                                         const member = await channel.guild.members.fetch(mentionUserId);
                                                         if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                                            await channel.send(`<@${mentionUserId}>`);
-                                                            automation.clickedMessages.add(mentionKey);
-                                                            onLog(`📢 Menção enviada | #${channel.name}`, "success");
+                                                            try {
+                                                                await channel.send(`<@${mentionUserId}>`);
+                                                                automation.clickedMessages.add(mentionKey);
+                                                                onLog(`📢 Menção enviada | #${channel.name}`, "success");
+                                                            } catch (err) {
+                                                                if (isPermissionError(err)) {
+                                                                    onLog(`⚠️ Sem permissão para enviar menção | #${channel.name}`, "warn");
+                                                                }
+                                                            }
                                                             break;
                                                         }
                                                     } catch (e) {}
@@ -316,7 +348,9 @@ class AutomationEngine {
                                     }
                                 }
                             }
-                        } catch (err) {}
+                        } catch (err) {
+                            // Erro no monitoramento de partidas - não para o loop
+                        }
                         setTimeout(() => automation.processing.delete(channel.id), 2000);
                     }
 
@@ -336,13 +370,13 @@ class AutomationEngine {
                     // Pequeno delay entre servidores
                     await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
                 } catch (err) {
-                    
+                    // O loop principal NUNCA deve parar por erro
                     await new Promise(res => setTimeout(res, 3000));
                 }
             }
 
         } catch (err) {
-            
+            // Erro fatal no _runOriginalLogic - logar mas não crashar
         }
     }
 

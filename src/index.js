@@ -35,4 +35,7 @@ process.on('uncaughtException', (error, origin) => {
     console.log('Linha:', match[2]);
     console.log('Coluna:', match[3]);
   }
+
+  // FIX: NÃO encerrar o processo! Continuar rodando.
+  // O Railway e outros hosts monitoram via healthcheck, não via exit code.
 });

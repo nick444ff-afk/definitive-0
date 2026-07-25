@@ -353,6 +353,24 @@ app.use((err, req, res, next) => {
 // INICIAR SERVIDOR
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════
+// HANDLERS GLOBAIS DE ERRO - EVITAR CRASH DO PROCESSO
+// ═══════════════════════════════════════════════════════════
+
+process.on('uncaughtException', (error) => {
+    console.error('[CRASH-PROTECT] Uncaught Exception:', error.message);
+    console.error(error.stack);
+    // NÃO encerrar o processo - continuar rodando
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[CRASH-PROTECT] Unhandled Rejection:', reason instanceof Error ? reason.message : reason);
+    if (reason instanceof Error) {
+        console.error(reason.stack);
+    }
+    // NÃO encerrar o processo - continuar rodando
+});
+
 app.listen(PORT, () => {
     console.log(`\n${"═".repeat(60)}`);
     console.log(`🚀 Servidor do Painel Web iniciado`);
