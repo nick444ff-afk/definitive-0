@@ -126,6 +126,8 @@ class AutomationEngine {
             // FILA CONTROLADA DE TAREFAS (MSG AUTO + MENÇÃO + CONFIRMAÇÃO)
             // ═══════════════════════════════════════════════════════════════
             const scheduledTasks = new Map(); // key -> { type, channel, scheduledAt, timeoutId, resolved }
+            const msgSentChannels = new Set(); // canais onde já foi enviada 1 mensagem (limite por ciclo)
+            const mentionSentChannels = new Set(); // canais onde já foi enviada 1 menção (limite por ciclo)
             const MAX_TASK_TIMEOUT = 60000; // 60s timeout máximo por tarefa
 
             const scheduleTask = (key, type, channel, delayMs, executor) => {
@@ -177,27 +179,31 @@ class AutomationEngine {
             // ═══════════════════════════════════════════════════════════════
             // AGENDAR MSG/MENÇÃO/CONFIRMAÇÃO PARA UM CANAL DE PARTIDA
             // (Usado pela rotina paralela)
+            // LIMITE: 1 mensagem e 1 menção por canal por ciclo
             // ═══════════════════════════════════════════════════════════════
             const scheduleMatchTasks = async (channel) => {
                 try {
-                    // --- MENSAGEM AUTOMÁTICA ---
-                    const msgKey = `msg_${channel.id}`;
-                    if (msgauto && !automation.msgAutoSentThisSession.has(channel.id) && !scheduledTasks.has(msgKey)) {
-                        automation.msgAutoSentThisSession.add(channel.id);
+                    // --- MENSAGEM AUTOMÁTICA (LIMITE 1 por canal) ---
+                    if (msgauto && !msgSentChannels.has(channel.id)) {
+                        msgSentChannels.add(channel.id);
                         const msgDelaySec = parseInt(msgdelay) || 0;
                         const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
+                        const msgKey = `msg_${channel.id}`;
 
-                        scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
-                            try {
-                                if (!automation.isRunning) return;
-                                await channel.send(msgauto);
-                                onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
-                            } catch (err) {
-                                if (isPermissionError(err)) {
-                                    onLog(`⚠️ Sem permissão para enviar mensagem | ${channel.guild?.name}`, "warn");
+                        // Não reagendar se já está na fila
+                        if (!scheduledTasks.has(msgKey)) {
+                            scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
+                                try {
+                                    if (!automation.isRunning) return;
+                                    await channel.send(msgauto);
+                                    onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
+                                } catch (err) {
+                                    if (isPermissionError(err)) {
+                                        onLog(`⚠️ Sem permissão para enviar mensagem | ${channel.guild?.name}`, "warn");
+                                    }
                                 }
-                            }
-                        });
+                            });
+                        }
                     }
 
                     const msgs = await channel.messages.fetch({ limit: 5 });
@@ -235,10 +241,10 @@ class AutomationEngine {
                             });
                         }
 
-                        // --- MENÇÃO AUTOMÁTICA ---
-                        const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
-                        if (mentionauto > 0 && !automation.clickedMessages.has(mentionKey) && !scheduledTasks.has(mentionKey)) {
-                            automation.clickedMessages.add(mentionKey);
+                        // --- MENÇÃO AUTOMÁTICA (LIMITE 1 por canal) ---
+                        const mentionKey = `mention_${channel.id}`;
+                        if (mentionauto > 0 && !mentionSentChannels.has(channel.id)) {
+                            mentionSentChannels.add(channel.id);
                             const mentionDelayMs = mentionauto * 1000;
 
                             scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
@@ -439,8 +445,6 @@ class AutomationEngine {
 
                                 for (const [, channel] of canaisPartida) {
                                     if (!automation.isRunning) break;
-                                    // Não bloquear se já está em processamento (cliques)
-                                    // Mas permitir agendar tarefas de msg/menção
                                     try {
                                         await scheduleMatchTasks(channel);
                                     } catch (err) {
@@ -454,13 +458,12 @@ class AutomationEngine {
                             }
                         }
 
-                        // Quando completou uma volta completa em todos os servidores, limpar caches
-                        automation.clickedMessages.clear();
-                        automation.msgAutoSentThisSession.clear();
-                        automation.confirmedChannels.clear();
+                        // Limpar flags de msg/menção enviadas para permitir novo ciclo
+                        msgSentChannels.clear();
+                        mentionSentChannels.clear();
 
-                        // Delay entre ciclos da rotina paralela
-                        await new Promise(res => setTimeout(res, 5000));
+                        // Delay entre ciclos da rotina paralela (15s para não spammar)
+                        await new Promise(res => setTimeout(res, 15000));
                     } catch (err) {
                         // A rotina paralela NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 5000));
