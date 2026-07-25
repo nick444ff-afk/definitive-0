@@ -686,8 +686,20 @@ async function toggleBot() {
             body: botLigado ? null : JSON.stringify(body)
         });
         const data = await res.json();
-        if (data.status === 'success') showToast(botLigado ? 'Âncora lançada!' : 'Velas ao vento!', 'success');
-        else showToast(data.message, 'error');
+        if (data.status === 'success') {
+            if (botLigado) {
+                // Parando - atualizar interface imediatamente
+                botLigado = false;
+                elements.badgeStatus.textContent = 'Parado';
+                elements.badgeStatus.className = 'badge badge-red';
+                elements.playButton.classList.remove('ligado');
+                elements.cardControle.classList.remove('bot-ligado');
+                elements.playLabel.textContent = 'Clique para iniciar o bot';
+                elements.playLabel.classList.remove('ligado');
+                addLog('🛑 Automação parada manualmente', 'warn');
+            }
+            showToast(botLigado ? 'Velas ao vento!' : 'Âncora lançada!', 'success');
+        } else showToast(data.message, 'error');
     } catch (e) { showToast('Falha na comunicação!', 'error'); }
 }
 

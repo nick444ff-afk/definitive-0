@@ -144,11 +144,14 @@ class InstanceManager {
      */
     async stopAutomation(botId) {
         try {
-            const instance = this.getInstance(botId);
+            const instance = await this.getInstance(botId);
             instance.is_running = false;
 
             // Parar via AutomationEngine
             await AutomationEngine.stopAutomation(botId, (msg, type) => this.addLog(botId, msg, type));
+
+            // Log de parada visível no painel
+            this.addLog(botId, "🛑 Automação parada manualmente", "warn");
 
             return { status: "success", message: "Automação parada" };
         } catch (err) {
