@@ -262,7 +262,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
             const v = verify[user.id];
             try { v.client.destroy(); } catch (e) { console.error("[CLEANUP] Erro ao destruir client anterior:", e.message); }
             try { clearInterval(v.interval); } catch (e) { console.error("[CLEANUP] Erro ao limpar interval:", e.message); }
-            try { clearTimeout(v.timeout); } catch (e) { console.error("[CLEANUP] Erro ao limpar timeout:", e.message); }
+            if (v.timeout) try { clearTimeout(v.timeout); } catch (e) { console.error("[CLEANUP] Erro ao limpar timeout:", e.message); }
         }
 
         // ═══════════════════════════════════════════════════════════════
@@ -578,6 +578,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
         // ═══════════════════════════════════════════════════════════════
         const processing = new Set();
         const msgAutoSentThisSession = new Set(); // Cache EM MEMÓRIA - reseta a cada sessão
+        const activeTasks = new Set(); // Tarefas independentes agendadas
 
         const interval = setInterval(async () => {
             try {
@@ -599,6 +600,11 @@ async function startQueueAutomation(interaction, user, format, category, client)
                         await processChannel(channel);
                     } catch (err) {
                         console.error(`[INTERVAL-QUEUE] Erro ao processar #${channel.name}:`, err.message);
+                    }
+
+                    // Resetar contador de cliques deste servidor para permitir novo ciclo
+                    if (guildId && isGuildFull(guildId)) {
+                        guildClickCount.delete(guildId);
                     }
 
                     setTimeout(() => processing.delete(channel.id), 3000);
@@ -629,19 +635,24 @@ async function startQueueAutomation(interaction, user, format, category, client)
                         const msgs = await channel.messages.fetch({ limit: 5 });
                         const firstMsg = msgs.find(m => m.components?.length);
 
-                        // ─── MENSAGEM AUTOMÁTICA ───
-                        // Envia INDEPENDENTE de firstMsg existir
-                        // Usa cache em memória (não persistente) para não bloquear entre sessões
+                        // ─── MENSAGEM AUTOMÁTICA (TAREFA INDEPENDENTE) ───
                         if (userData?.msgauto && !msgAutoSentThisSession.has(channel.id)) {
-                            try {
-                                await channel.send(userData.msgauto);
-                                msgAutoSentThisSession.add(channel.id);
-                                console.log(`[MSG-AUTO] ✅ Mensagem enviada em #${channel.name} (${channel.guild?.name})`);
-                            } catch (err) {
-                                console.error(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}:`, err.message);
-                                // Marca como enviada mesmo com erro para não ficar tentando infinitamente
-                                msgAutoSentThisSession.add(channel.id);
-                            }
+                            msgAutoSentThisSession.add(channel.id);
+                            const taskMsg = (async () => {
+                                try {
+                                    const msgDelaySec = parseInt(userData.msgdelay) || 0;
+                                    if (msgDelaySec > 0) {
+                                        console.log(`[MSG-AUTO] ⏳ Aguardando ${msgDelaySec}s para enviar mensagem em #${channel.name}`);
+                                        await new Promise(res => setTimeout(res, msgDelaySec * 1000));
+                                    }
+                                    await channel.send(userData.msgauto);
+                                    console.log(`📩 Mensagem enviada | #${channel.name}`);
+                                } catch (err) {
+                                    console.error(`[MSG-AUTO] ❌ Erro ao enviar em #${channel.name}:`, err.message);
+                                }
+                            })();
+                            activeTasks.add(taskMsg);
+                            taskMsg.finally(() => activeTasks.delete(taskMsg));
                         }
 
                         // Se não tem mensagem com componentes, pula confirmação e menção
@@ -654,7 +665,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
 
 
 
-                        // ─── MENÇÃO AUTOMÁTICA ───
+                        // ─── MENÇÃO AUTOMÁTICA (TAREFA INDEPENDENTE) ───
                         if (userData?.mentionauto) {
                             const mencoesKey = `${self.user.id}.mentionauto.${channel.id}`;
                             const lastMsgKey = `${self.user.id}.mentionauto.lastMsg.${channel.id}`;
@@ -667,57 +678,65 @@ async function startQueueAutomation(interaction, user, format, category, client)
                             if (mencoesFeitas >= 1) { setTimeout(() => processing.delete(channel.id), Math.max(2000, mentionWait + 1000)); continue; }
                             if (lastMsgId && lastMsgId === firstMsg.id) { setTimeout(() => processing.delete(channel.id), Math.max(2000, mentionWait + 1000)); continue; }
 
-                            await new Promise(res => setTimeout(res, userData.mentionauto * 1000));
+                            const taskMention = (async () => {
+                                try {
+                                    await new Promise(res => setTimeout(res, userData.mentionauto * 1000));
 
-                            let foundMentions = [];
+                                    let foundMentions = [];
 
-                            const contentMentions = [...(firstMsg.content || "").matchAll(/<@!?(\d+)>/g)]
-                                .map(m => m[1])
-                                .filter(id => id !== self.user.id);
-                            foundMentions.push(...contentMentions);
-
-                            for (const embed of firstMsg.embeds) {
-                                if (embed.description) {
-                                    const descMentions = [...embed.description.matchAll(/<@!?(\d+)>/g)]
+                                    const contentMentions = [...(firstMsg.content || "").matchAll(/<@!?(\d+)>/g)]
                                         .map(m => m[1])
                                         .filter(id => id !== self.user.id);
-                                    foundMentions.push(...descMentions);
-                                }
-                                if (embed.fields?.length) {
-                                    for (const field of embed.fields) {
-                                        const fieldMentions = [...field.value.matchAll(/<@!?(\d+)>/g)]
-                                            .map(m => m[1])
-                                            .filter(id => id !== self.user.id);
-                                        foundMentions.push(...fieldMentions);
-                                    }
-                                }
-                            }
+                                    foundMentions.push(...contentMentions);
 
-                            foundMentions = [...new Set(foundMentions)];
-
-                            for (const mentionUserId of foundMentions) {
-                                try {
-                                    const member = await channel.guild.members.fetch(mentionUserId);
-                                    if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                        await lg.set(lockKey, true);
-                                        const lockT = setTimeout(() => lg.set(lockKey, false).catch(e => console.error("[LOCK]", e.message)), Math.max(7000, mentionWait + 5000));
-
-                                        try {
-                                            await channel.send({ content: `<@${mentionUserId}>` });
-                                            await lg.set(mencoesKey, mencoesFeitas + 1);
-                                            await lg.set(lastMsgKey, firstMsg.id);
-                                            console.log(`[MENÇÃO] ✅ Mencionou <@${mentionUserId}> em #${channel.name}`);
-                                        } catch (err) {
-                                            console.error(`[MENÇÃO] ❌ Erro ao mencionar:`, err.message);
+                                    for (const embed of firstMsg.embeds) {
+                                        if (embed.description) {
+                                            const descMentions = [...embed.description.matchAll(/<@!?(\d+)>/g)]
+                                                .map(m => m[1])
+                                                .filter(id => id !== self.user.id);
+                                            foundMentions.push(...descMentions);
                                         }
-                                        await lg.set(lockKey, false);
-                                        clearTimeout(lockT);
-                                        break;
+                                        if (embed.fields?.length) {
+                                            for (const field of embed.fields) {
+                                                const fieldMentions = [...field.value.matchAll(/<@!?(\d+)>/g)]
+                                                    .map(m => m[1])
+                                                    .filter(id => id !== self.user.id);
+                                                foundMentions.push(...fieldMentions);
+                                            }
+                                        }
+                                    }
+
+                                    foundMentions = [...new Set(foundMentions)];
+
+                                    for (const mentionUserId of foundMentions) {
+                                        try {
+                                            const member = await channel.guild.members.fetch(mentionUserId);
+                                            if (!member.permissions.has("MANAGE_MESSAGES")) {
+                                                await lg.set(lockKey, true);
+                                                const lockT = setTimeout(() => lg.set(lockKey, false).catch(e => console.error("[LOCK]", e.message)), Math.max(7000, mentionWait + 5000));
+
+                                                try {
+                                                    await channel.send({ content: `<@${mentionUserId}>` });
+                                                    await lg.set(mencoesKey, mencoesFeitas + 1);
+                                                    await lg.set(lastMsgKey, firstMsg.id);
+                                                    console.log(`📢 Menção enviada | #${channel.name}`);
+                                                } catch (err) {
+                                                    console.error(`[MENÇÃO] ❌ Erro ao mencionar:`, err.message);
+                                                }
+                                                await lg.set(lockKey, false);
+                                                clearTimeout(lockT);
+                                                break;
+                                            }
+                                        } catch (err) {
+                                            console.error(`[MENÇÃO] Erro ao buscar membro ${mentionUserId}:`, err.message);
+                                        }
                                     }
                                 } catch (err) {
-                                    console.error(`[MENÇÃO] Erro ao buscar membro ${mentionUserId}:`, err.message);
+                                    console.error(`[MENÇÃO] ❌ Erro em #${channel.name}:`, err.message);
                                 }
-                            }
+                            })();
+                            activeTasks.add(taskMention);
+                            taskMention.finally(() => activeTasks.delete(taskMention));
                         }
                     } catch (err) {
                         console.error(`[INTERVAL] Erro ao processar #${channel.name}:`, err.message);
@@ -725,31 +744,15 @@ async function startQueueAutomation(interaction, user, format, category, client)
 
                     setTimeout(() => processing.delete(channel.id), Math.max(2000, mentionWait + 1000));
                 }
+
+                // Limpar mensagens clicadas ao final de cada tick para permitir novo ciclo
+                clickedMessages.clear();
             } catch (err) {
                 console.error("[INTERVAL] Erro geral no intervalo:", err.message);
             }
         }, 2000);
 
-                // ═══════════════════════════════════════════════════════════════
-        // TIMEOUT: 30 MINUTOS
-        // ═══════════════════════════════════════════════════════════════
-        const timeout = setTimeout(() => {
-            self.destroy();
-            clearInterval(interval);
-
-            let statsText = "\n\n**📊 Estatísticas Finais:**\n";
-            for (const [guildId, clicks] of guildClickCount.entries()) {
-                const guild = self.guilds?.cache?.get(guildId);
-                statsText += `• ${guild?.name || guildId}: ${clicks}/${MAX_ENTRIES_PER_GUILD} entradas\n`;
-            }
-            if (guildClickCount.size === 0) statsText += "• Nenhuma entrada realizada\n";
-
-            interaction.editReply({
-                content: `\`⏱️\` Automação finalizada por timeout (30 min).${statsText}`
-            }).catch(err => console.error("[TIMEOUT] Erro ao editar reply:", err.message));
-
-            console.log("[AUTOMAÇÃO] Finalizada por timeout");
-        }, 30 * 60 * 1000);
+        // SEM TIMEOUT - AUTOMAÇÃO CONTÍNUA
         // BUSCA INICIAL
         // Processa todos os canais encontrados na primeira varredura
         // ═══════════════════════════════════════════════════════════════
@@ -765,7 +768,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
         }
 
                 console.log("[AUTOMAÇÃO] Busca inicial concluída. Monitoramento contínuo ativo.");
-        verify[user.id] = { client: self, interval, timeout };
+        verify[user.id] = { client: self, interval };
     } catch (err) {
         console.error("[AUTOMAÇÃO] Erro fatal:", err);
         interaction.editReply({ content: `\`❌\` Erro: ${err.message}` }).catch(e => console.error("[AUTOMAÇÃO] Erro ao editar reply:", err.message));

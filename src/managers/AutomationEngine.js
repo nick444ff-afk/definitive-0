@@ -33,6 +33,7 @@ class AutomationEngine {
                 msgAutoSentThisSession: new Set(),
                 confirmedChannels: new Set(),
                 lastClickTime: 0,
+                activeTasks: new Set(),
                 onLog,
                 onStats
             };
@@ -165,12 +166,26 @@ class AutomationEngine {
                 } catch (err) {}
             };
 
-            const interval = setInterval(async () => {
-                if (!automation.isRunning) return clearInterval(interval);
+                        // ═══════════════════════════════════════════════════════════
+            // LOOP CONTÍNUO INFINITO
+            // ═══════════════════════════════════════════════════════════
+            let serverIndex = 0;
 
+            while (automation.isRunning) {
                 try {
+                    const guilds = self.guilds.cache.filter(g => !g.unavailable);
+                    const guildArray = [...guilds.values()];
+
+                    if (guildArray.length === 0) {
+                        await new Promise(res => setTimeout(res, 5000));
+                        continue;
+                    }
+
+                    serverIndex = serverIndex % guildArray.length;
+                    const currentGuild = guildArray[serverIndex];
+
                     // 1. ESCANEAMENTO DE CANAIS DE FILA
-                    const canaisFila = self.channels.cache.filter(c => {
+                    const canaisFila = currentGuild.channels.cache.filter(c => {
                         if (c.type !== "GUILD_TEXT") return false;
                         const nome = c.name.toLowerCase();
                         const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
@@ -179,6 +194,7 @@ class AutomationEngine {
                     });
 
                     for (const [, channel] of canaisFila) {
+                        if (!automation.isRunning) break;
                         if (automation.processing.has(channel.id)) continue;
                         
                         const guildId = channel.guild?.id;
@@ -190,8 +206,7 @@ class AutomationEngine {
                     }
 
                     // 2. MONITORAMENTO DE PARTIDAS (MSG AUTO, CONFIRMAÇÃO, MENÇÃO)
-                    const canaisPartida = self.channels.cache.filter(channel =>
-                        channel.guild &&
+                    const canaisPartida = currentGuild.channels.cache.filter(channel =>
                         (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
                         (channel.name?.toLowerCase().includes("aguardando") || 
                          channel.name?.toLowerCase().includes("partida") || 
@@ -200,96 +215,123 @@ class AutomationEngine {
                     );
 
                     for (const [, channel] of canaisPartida) {
+                        if (!automation.isRunning) break;
                         if (automation.processing.has(channel.id)) continue;
                         automation.processing.add(channel.id);
 
                         try {
-                            // --- MENSAGEM AUTOMÁTICA ---
+                            // --- MENSAGEM AUTOMÁTICA (TAREFA INDEPENDENTE) ---
                             if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
-                                try {
-                                    const msgDelaySec = parseInt(msgdelay) || 0;
-                                    if (msgDelaySec > 0) {
-                                        onLog(`[MSG-AUTO] ⏳ Aguardando ${msgDelaySec}s para enviar mensagem em #${channel.name}`, "info");
-                                        await new Promise(res => setTimeout(res, msgDelaySec * 1000));
-                                    }
-                                    
-                                    if (automation.isRunning) {
+                                automation.msgAutoSentThisSession.add(channel.id);
+                                const taskMsg = (async () => {
+                                    try {
+                                        const msgDelaySec = parseInt(msgdelay) || 0;
+                                        if (msgDelaySec > 0) await new Promise(res => setTimeout(res, msgDelaySec * 1000));
+                                        if (!automation.isRunning) return;
                                         await channel.send(msgauto);
-                                        automation.msgAutoSentThisSession.add(channel.id);
-                                        onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                        onLog(`📩 Mensagem enviada | #${channel.name}`, "success");
+                                    } catch (e) {
+                                        onLog(`❌ Erro mensagem em #${channel.name}: ${e.message}`, "error");
                                     }
-                                } catch (e) {
-                                    onLog(`[MSG-AUTO] ❌ Erro em #${channel.name}: ${e.message}`, "error");
-                                    automation.msgAutoSentThisSession.add(channel.id);
-                                }
+                                })();
+                                automation.activeTasks.add(taskMsg);
+                                taskMsg.finally(() => automation.activeTasks.delete(taskMsg));
                             }
 
                             const msgs = await channel.messages.fetch({ limit: 5 });
                             const firstMsg = msgs.find(m => m.components?.length);
 
                             if (firstMsg) {
-                                // --- CONFIRMAÇÃO AUTOMÁTICA ---
+                                // --- CONFIRMAÇÃO AUTOMÁTICA (TAREFA INDEPENDENTE) ---
                                 if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id)) {
-                                    await new Promise(res => setTimeout(res, confirmauto * 1000));
-                                    let confirmed = false;
-                                    for (const row of firstMsg.components) {
-                                        for (const button of row.components) {
-                                            if (confirmed) continue;
-                                            if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
-                                            if (button.customId === "leave_player") continue;
+                                    automation.confirmedChannels.add(channel.id);
+                                    const taskConf = (async () => {
+                                        try {
+                                            await new Promise(res => setTimeout(res, confirmauto * 1000));
+                                            if (!automation.isRunning) return;
+                                            let confirmed = false;
+                                            for (const row of firstMsg.components) {
+                                                for (const button of row.components) {
+                                                    if (confirmed) continue;
+                                                    if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
+                                                    if (button.customId === "leave_player") continue;
 
-                                            try {
-                                                await firstMsg.clickButton(button.customId);
-                                                confirmed = true;
-                                                automation.confirmedChannels.add(channel.id);
-                                                onLog(`[CONFIRM] ✅ Confirmado em #${channel.name}`, "success");
-                                            } catch (err) {
-                                                onLog(`[CONFIRM] ❌ Erro em #${channel.name}: ${err.message}`, "error");
+                                                    try {
+                                                        await firstMsg.clickButton(button.customId);
+                                                        confirmed = true;
+                                                        onLog(`✅ Botão clicado | ${channel.guild.name} | #${channel.name}`, "success");
+                                                    } catch (err) {
+                                                        onLog(`❌ Erro confirmar em #${channel.name}: ${err.message}`, "error");
+                                                    }
+                                                }
                                             }
+                                        } catch (err) {
+                                            onLog(`❌ Erro confirmação em #${channel.name}: ${err.message}`, "error");
                                         }
-                                    }
+                                    })();
+                                    automation.activeTasks.add(taskConf);
+                                    taskConf.finally(() => automation.activeTasks.delete(taskConf));
                                 }
 
-                                // --- MENÇÃO AUTOMÁTICA ---
+                                // --- MENÇÃO AUTOMÁTICA (TAREFA INDEPENDENTE) ---
                                 if (mentionauto > 0) {
                                     const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
                                     if (!automation.clickedMessages.has(mentionKey)) {
-                                        await new Promise(res => setTimeout(res, mentionauto * 1000));
-                                        
-                                        let foundMentions = [];
-                                        const regex = /<@!?(\d+)>/g;
-                                        
-                                        const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
-                                        foundMentions.push(...contentMentions);
-                                        
-                                        for (const embed of firstMsg.embeds) {
-                                            if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
-                                            if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
-                                        }
-                                        
-                                        foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
-                                        
-                                        for (const mentionUserId of foundMentions) {
+                                        automation.clickedMessages.add(mentionKey);
+                                        const taskMention = (async () => {
                                             try {
-                                                const member = await channel.guild.members.fetch(mentionUserId);
-                                                if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                                    await channel.send(`<@${mentionUserId}>`);
-                                                    automation.clickedMessages.add(mentionKey);
-                                                    onLog(`[MENÇÃO] ✅ Mencionou <@${mentionUserId}> em #${channel.name}`, "success");
-                                                    break;
+                                                await new Promise(res => setTimeout(res, mentionauto * 1000));
+                                                if (!automation.isRunning) return;
+                                                
+                                                let foundMentions = [];
+                                                const regex = /<@!?(\d+)>/g;
+                                                
+                                                const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+                                                foundMentions.push(...contentMentions);
+                                                
+                                                for (const embed of firstMsg.embeds) {
+                                                    if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                                                    if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
                                                 }
-                                            } catch (e) {}
-                                        }
+                                                
+                                                foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
+                                                
+                                                for (const mentionUserId of foundMentions) {
+                                                    try {
+                                                        const member = await channel.guild.members.fetch(mentionUserId);
+                                                        if (!member.permissions.has("MANAGE_MESSAGES")) {
+                                                            await channel.send(`<@${mentionUserId}>`);
+                                                            onLog(`📢 Menção enviada | #${channel.name}`, "success");
+                                                            break;
+                                                        }
+                                                    } catch (e) {}
+                                                }
+                                            } catch (err) {
+                                                onLog(`❌ Erro menção em #${channel.name}: ${err.message}`, "error");
+                                            }
+                                        })();
+                                        automation.activeTasks.add(taskMention);
+                                        taskMention.finally(() => automation.activeTasks.delete(taskMention));
                                     }
                                 }
                             }
                         } catch (err) {}
                         setTimeout(() => automation.processing.delete(channel.id), 2000);
                     }
-                } catch (err) {}
-            }, 2000);
 
-            automation.intervals.push(interval);
+                    // Resetar contador de cliques deste servidor para permitir novo ciclo
+                    automation.guildClickCount.delete(currentGuild.id);
+
+                    // Avançar para o próximo servidor
+                    serverIndex++;
+
+                    // Pequeno delay entre servidores
+                    await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
+                } catch (err) {
+                    onLog(`⚠️ Erro no loop: ${err.message}`, "warn");
+                    await new Promise(res => setTimeout(res, 3000));
+                }
+            }
 
         } catch (err) {
             onLog(`❌ Erro no processamento do token: ${err.message}`, "error");
@@ -300,9 +342,11 @@ class AutomationEngine {
         const automation = this.activeAutomations.get(botId);
         if (!automation) return false;
         
-        automation.isRunning = false;
-        automation.intervals.forEach(i => clearInterval(i));
-        
+                automation.isRunning = false;
+        if (automation.activeTasks.size > 0) {
+            onLog("⏳ Aguardando tarefas pendentes...", "info");
+            await Promise.allSettled([...automation.activeTasks]);
+        }
         for (const client of automation.clients) {
             try { await client.destroy(); } catch (e) {}
         }
