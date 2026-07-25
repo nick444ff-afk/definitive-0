@@ -169,7 +169,8 @@ class AutomationEngine {
             // ═══════════════════════════════════════════════════════════
             let serverIndex = 0;
 
-            while (automation.isRunning) {
+            while (true) {
+                if (!automation.isRunning) break;
                 try {
                     const guilds = self.guilds.cache.filter(g => !g.unavailable);
                     const guildArray = [...guilds.values()];
@@ -324,6 +325,13 @@ class AutomationEngine {
 
                     // Avançar para o próximo servidor
                     serverIndex++;
+
+                    // Quando completou uma volta completa em todos os servidores, limpar caches para novo ciclo
+                    if (serverIndex % guildArray.length === 0) {
+                        automation.clickedMessages.clear();
+                        automation.msgAutoSentThisSession.clear();
+                        automation.confirmedChannels.clear();
+                    }
 
                     // Pequeno delay entre servidores
                     await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
