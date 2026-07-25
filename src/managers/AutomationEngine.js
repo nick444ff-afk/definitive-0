@@ -179,22 +179,32 @@ class AutomationEngine {
             // ═══════════════════════════════════════════════════════════════
             // AGENDAR MSG/MENÇÃO/CONFIRMAÇÃO PARA UM CANAL DE PARTIDA
             // (Usado pela rotina paralela)
-            // LIMITE: 1 mensagem e 1 menção por canal por ciclo
+            // VERIFICAÇÃO: checa se a mensagem/menção já existe no canal antes de enviar
             // ═══════════════════════════════════════════════════════════════
             const scheduleMatchTasks = async (channel) => {
                 try {
-                    // --- MENSAGEM AUTOMÁTICA (LIMITE 1 por canal) ---
+                    const msgs = await channel.messages.fetch({ limit: 10 });
+                    const messagesContent = [...msgs.values()].map(m => m.content);
+                    const firstMsg = msgs.find(m => m.components?.length);
+
+                    // --- MENSAGEM AUTOMÁTICA (verifica se já existe no canal) ---
                     if (msgauto && !msgSentChannels.has(channel.id)) {
                         msgSentChannels.add(channel.id);
-                        const msgDelaySec = parseInt(msgdelay) || 0;
-                        const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
                         const msgKey = `msg_${channel.id}`;
 
-                        // Não reagendar se já está na fila
-                        if (!scheduledTasks.has(msgKey)) {
+                        // Verificar se a mensagem já existe no canal
+                        const msgAlreadySent = messagesContent.some(content => content === msgauto);
+
+                        if (!msgAlreadySent && !scheduledTasks.has(msgKey)) {
+                            const msgDelaySec = parseInt(msgdelay) || 0;
+                            const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
                             scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
                                 try {
                                     if (!automation.isRunning) return;
+                                    // Verificação dupla antes de enviar
+                                    const recentMsgs = await channel.messages.fetch({ limit: 10 });
+                                    const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
+                                    if (stillExists) return; // Já existe, não envia
                                     await channel.send(msgauto);
                                     onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
                                 } catch (err) {
@@ -206,8 +216,7 @@ class AutomationEngine {
                         }
                     }
 
-                    const msgs = await channel.messages.fetch({ limit: 5 });
-                    const firstMsg = msgs.find(m => m.components?.length);
+                    // firstMsg já foi obtido acima
 
                     if (firstMsg) {
                         // --- CONFIRMAÇÃO AUTOMÁTICA ---
@@ -241,7 +250,7 @@ class AutomationEngine {
                             });
                         }
 
-                        // --- MENÇÃO AUTOMÁTICA (LIMITE 1 por canal) ---
+                        // --- MENÇÃO AUTOMÁTICA (verifica se já existe no canal) ---
                         const mentionKey = `mention_${channel.id}`;
                         if (mentionauto > 0 && !mentionSentChannels.has(channel.id)) {
                             mentionSentChannels.add(channel.id);
@@ -268,6 +277,11 @@ class AutomationEngine {
                                         try {
                                             const member = await channel.guild.members.fetch(mentionUserId);
                                             if (!member.permissions.has("MANAGE_MESSAGES")) {
+                                                // Verificação dupla: checar se a menção já existe no canal
+                                                const recentMsgs2 = await channel.messages.fetch({ limit: 10 });
+                                                const mentionAlreadySent = [...recentMsgs2.values()].some(m => m.content.includes(`<@${mentionUserId}>`) && m.author.id === self.user.id);
+                                                if (mentionAlreadySent) return; // Já existe, não envia
+                                                
                                                 try {
                                                     await channel.send(`<@${mentionUserId}>`);
                                                     automation.clickedMessages.add(mentionKey);
