@@ -601,19 +601,8 @@ async function startQueueAutomation(interaction, user, format, category, client)
                         console.error(`[INTERVAL-QUEUE] Erro ao processar #${channel.name}:`, err.message);
                     }
 
-                    // Resetar contador de cliques deste servidor para permitir novo ciclo
-                    if (guildId && isGuildFull(guildId)) {
-                        guildClickCount.delete(guildId);
-                        // Limpar mensagens clicadas deste servidor
-                        // (não podemos rastrear por guild diretamente, então limpamos o set completo
-                        //  após processar todos os canais deste servidor)
-                    }
-
                     setTimeout(() => processing.delete(channel.id), 3000);
                 }
-
-                // Limpar mensagens clicadas ao final de cada tick para permitir novo ciclo
-                clickedMessages.clear();
 
                 // ─── PARTE 2: Monitorar canais de partida/aguardando ───
                 // Busca canais com "aguardando"/"Aguardando"/"partida"/"Partida"/"fila"/"Fila" no nome
@@ -741,13 +730,26 @@ async function startQueueAutomation(interaction, user, format, category, client)
             }
         }, 2000);
 
+                // ═══════════════════════════════════════════════════════════════
+        // TIMEOUT: 30 MINUTOS
         // ═══════════════════════════════════════════════════════════════
-        // SEM TIMEOUT - AUTOMAÇÃO CONTÍNUA
-        // A automação NUNCA para sozinha. Só para quando o usuário desliga ou a app encerra.
-        // ═══════════════════════════════════════════════════════════════
-        // (timeout removido - era o causador da parada após 30 minutos)
+        const timeout = setTimeout(() => {
+            self.destroy();
+            clearInterval(interval);
 
-        // ═══════════════════════════════════════════════════════════════
+            let statsText = "\n\n**📊 Estatísticas Finais:**\n";
+            for (const [guildId, clicks] of guildClickCount.entries()) {
+                const guild = self.guilds?.cache?.get(guildId);
+                statsText += `• ${guild?.name || guildId}: ${clicks}/${MAX_ENTRIES_PER_GUILD} entradas\n`;
+            }
+            if (guildClickCount.size === 0) statsText += "• Nenhuma entrada realizada\n";
+
+            interaction.editReply({
+                content: `\`⏱️\` Automação finalizada por timeout (30 min).${statsText}`
+            }).catch(err => console.error("[TIMEOUT] Erro ao editar reply:", err.message));
+
+            console.log("[AUTOMAÇÃO] Finalizada por timeout");
+        }, 30 * 60 * 1000);
         // BUSCA INICIAL
         // Processa todos os canais encontrados na primeira varredura
         // ═══════════════════════════════════════════════════════════════
@@ -762,10 +764,9 @@ async function startQueueAutomation(interaction, user, format, category, client)
             await processChannel(channel);
         }
 
-        console.log("[AUTOMAÇÃO] Busca inicial concluída. Monitoramento contínuo ativo.");
-        verify[user.id] = { client: self, interval };
-
-        } catch (err) {
+                console.log("[AUTOMAÇÃO] Busca inicial concluída. Monitoramento contínuo ativo.");
+        verify[user.id] = { client: self, interval, timeout };
+    } catch (err) {
         console.error("[AUTOMAÇÃO] Erro fatal:", err);
         interaction.editReply({ content: `\`❌\` Erro: ${err.message}` }).catch(e => console.error("[AUTOMAÇÃO] Erro ao editar reply:", err.message));
         const v = verify[user.id];

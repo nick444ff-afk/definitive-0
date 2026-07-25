@@ -2,8 +2,7 @@ const { Client } = require('discord.js-selfbot-v13');
 
 /**
  * AutomationEngine - LÓGICA INTEGRADA E REFINADA
- * Mantém a estrutura de loop contínuo da versão atual,
- * mas restaura as funcionalidades de Mensagem Automática, Menção Automática e Confirmação Automática do commit antigo.
+ * Extraída do commit fd71344f8f267f519f2b41874e10f18949536399
  */
 class AutomationEngine {
     constructor() {
@@ -27,23 +26,24 @@ class AutomationEngine {
             const automation = {
                 isRunning: true,
                 clients: [],
-                activeTasks: new Set(),
+                intervals: [],
                 processing: new Set(),
                 clickedMessages: new Set(),
                 guildClickCount: new Map(),
-                msgAutoSentThisSession: new Set(), // Restaurado do commit antigo
-                confirmedChannels: new Set(), // Restaurado do commit antigo
-                lastClickTime: 0, // Restaurado do commit antigo
+                msgAutoSentThisSession: new Set(),
+                confirmedChannels: new Set(),
+                lastClickTime: 0,
                 onLog,
                 onStats
             };
 
             this.activeAutomations.set(botId, automation);
 
-            // Iniciar processamento para cada token
+            // Iniciar para cada token
             for (const token of tokens) {
-                this._processToken(botId, automation, token, config).catch(err => {
-                    onLog(`❌ Erro no token ${token.substring(0, 10)}...: ${err.message}`, "error");
+                if (!automation.isRunning) break;
+                this._runOriginalLogic(botId, automation, token, config).catch(err => {
+                    onLog(`❌ Erro crítico no token ${token.substring(0, 10)}...: ${err.message}`, "error");
                 });
             }
 
@@ -54,7 +54,7 @@ class AutomationEngine {
         }
     }
 
-    async _processToken(botId, automation, token, config) {
+    async _runOriginalLogic(botId, automation, token, config) {
         const { onLog, onStats } = automation;
         const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay } = config;
 
@@ -62,7 +62,8 @@ class AutomationEngine {
             const self = new Client();
             
             self.on('error', (err) => onLog(`⚠️ Erro no Client: ${err.message}`, "warn"));
-            
+            self.on('disconnect', () => onLog(`⚠️ Client desconectado.`, "warn"));
+
             await self.login(token);
             automation.clients.push(self);
             onLog(`✅ Logado como: ${self.user.tag}`, "success");
@@ -113,174 +114,63 @@ class AutomationEngine {
                 return bestMatch;
             };
 
-            const processServer = async (guild, queueChannels, partidaChannels) => {
-                const guildId = guild.id;
+            const processChannel = async (channel) => {
+                const guildId = channel.guild?.id;
+                if (!guildId || !automation.isRunning) return;
                 
-                // 1. PROCESSAR CANAIS DE FILA (ENTRADAS)
-                for (const channel of queueChannels.values()) {
-                    if (!automation.isRunning) break;
-                    const currentClicks = automation.guildClickCount.get(guildId) || 0;
-                    if (currentClicks >= this.MAX_ENTRIES_PER_GUILD) break;
+                const currentClicks = automation.guildClickCount.get(guildId) || 0;
+                if (currentClicks >= this.MAX_ENTRIES_PER_GUILD) return;
 
-                    try {
-                        const msgs = await channel.messages.fetch({ limit: 15 });
-                        for (const msg of msgs.values()) {
-                            if (!automation.isRunning) break;
-                            if ((automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) break;
-                            if (!msg.components?.length || automation.clickedMessages.has(msg.id)) continue;
+                try {
+                    const msgs = await channel.messages.fetch({ limit: 15 });
+                    for (const msg of msgs.values()) {
+                        if (!automation.isRunning) break;
+                        if ((automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) break;
+                        if (!msg.components?.length || automation.clickedMessages.has(msg.id)) continue;
 
-                            const allButtons = [];
-                            for (const row of msg.components) {
-                                for (const component of row.components) {
-                                    if (component.type === "BUTTON" || component.customId) allButtons.push(component);
-                                }
-                            }
-
-                            const correctButton = findCorrectButton(allButtons, categories);
-
-                            if (correctButton) {
-                                try {
-                                    const now = Date.now();
-                                    const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                                    const baseDelay = 2000;
-                                    const jitter = Math.random() * 1500;
-                                    const targetDelay = baseDelay + jitter;
-
-                                    if (timeSinceLastClick < targetDelay) {
-                                        await new Promise(res => setTimeout(res, targetDelay - timeSinceLastClick));
-                                    }
-                                    automation.lastClickTime = Date.now();
-
-                                    const newCount = (automation.guildClickCount.get(guildId) || 0) + 1;
-                                    automation.guildClickCount.set(guildId, newCount);
-                                    
-                                    await msg.clickButton(correctButton.customId);
-                                    automation.clickedMessages.add(msg.id);
-                                    
-                                    onLog(`✅ Entrada realizada em #${channel.name} (${guild.name}) [${newCount}/${this.MAX_ENTRIES_PER_GUILD}]`, "success");
-                                    if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
-                                    
-                                    if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
-                                } catch (err) {
-                                    onLog(`❌ Erro ao clicar em #${channel.name}: ${err.message}`, "error");
-                                }
+                        const allButtons = [];
+                        for (const row of msg.components) {
+                            for (const component of row.components) {
+                                if (component.type === "BUTTON" || component.customId) allButtons.push(component);
                             }
                         }
-                    } catch (err) {}
-                }
 
-                // 2. PROCESSAR CANAIS DE PARTIDA (MSG AUTO, CONFIRMAÇÃO, MENÇÃO) - LÓGICA RESTAURADA
-                for (const channel of partidaChannels.values()) {
-                    if (!automation.isRunning) break;
-                    if (automation.processing.has(channel.id)) continue;
-                    automation.processing.add(channel.id);
+                        const correctButton = findCorrectButton(allButtons, categories);
 
-                    try {
-                        // --- MENSAGEM AUTOMÁTICA (RESTORED) ---
-                        if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
+                        if (correctButton) {
                             try {
-                                const msgDelaySec = parseInt(msgdelay) || 0;
-                                if (msgDelaySec > 0) {
-                                    onLog(`[MSG-AUTO] ⏳ Aguardando ${msgDelaySec}s para enviar mensagem em #${channel.name}`, "info");
-                                    await new Promise(res => setTimeout(res, msgDelaySec * 1000));
+                                const now = Date.now();
+                                const timeSinceLastClick = now - (automation.lastClickTime || 0);
+                                if (timeSinceLastClick < 2000) {
+                                    const waitTime = 2000 - timeSinceLastClick;
+                                    await new Promise(res => setTimeout(res, waitTime));
                                 }
+                                automation.lastClickTime = Date.now();
+
+                                const newCount = (automation.guildClickCount.get(guildId) || 0) + 1;
+                                automation.guildClickCount.set(guildId, newCount);
                                 
-                                if (automation.isRunning) {
-                                    await channel.sendTyping();
-                                    const typingTime = 2000 + Math.random() * 3000;
-                                    await new Promise(res => setTimeout(res, typingTime));
-
-                                    if (automation.isRunning) {
-                                        await channel.send(msgauto);
-                                        automation.msgAutoSentThisSession.add(channel.id);
-                                        onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
-                                    }
-                                }
-                            } catch (e) {
-                                onLog(`[MSG-AUTO] ❌ Erro em #${channel.name}: ${e.message}`, "error");
-                                automation.msgAutoSentThisSession.add(channel.id);
+                                await msg.clickButton(correctButton.customId);
+                                automation.clickedMessages.add(msg.id);
+                                
+                                onLog(`✅ Entrada realizada em #${channel.name} (${channel.guild.name}) [${newCount}/${this.MAX_ENTRIES_PER_GUILD}]`, "success");
+                                if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
+                                
+                                if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
+                            } catch (err) {
+                                onLog(`❌ Erro ao clicar em #${channel.name}: ${err.message}`, "error");
                             }
                         }
-
-                        const msgs = await channel.messages.fetch({ limit: 5 });
-                        const firstMsg = msgs.find(m => m.components?.length);
-
-                        if (firstMsg) {
-                            // --- CONFIRMAÇÃO AUTOMÁTICA (RESTORED) ---
-                            if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id)) {
-                                await new Promise(res => setTimeout(res, confirmauto * 1000));
-                                let confirmed = false;
-                                for (const row of firstMsg.components) {
-                                    for (const button of row.components) {
-                                        if (confirmed) continue;
-                                        if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
-                                        if (button.customId === "leave_player") continue;
-
-                                        try {
-                                            await firstMsg.clickButton(button.customId);
-                                            confirmed = true;
-                                            automation.confirmedChannels.add(channel.id);
-                                            onLog(`[CONFIRM] ✅ Confirmado em #${channel.name}`, "success");
-                                        } catch (err) {
-                                            onLog(`[CONFIRM] ❌ Erro em #${channel.name}: ${err.message}`, "error");
-                                        }
-                                    }
-                                }
-                            }
-
-                            // --- MENÇÃO AUTOMÁTICA (RESTORED) ---
-                            if (mentionauto > 0) {
-                                const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
-                                if (!automation.clickedMessages.has(mentionKey)) {
-                                    await new Promise(res => setTimeout(res, mentionauto * 1000));
-                                    
-                                    let foundMentions = [];
-                                    const regex = /<@!?(\d+)>/g;
-                                    
-                                    const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
-                                    foundMentions.push(...contentMentions);
-                                    
-                                    for (const embed of firstMsg.embeds) {
-                                        if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
-                                        if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
-                                    }
-                                    
-                                    foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
-                                    
-                                    for (const mentionUserId of foundMentions) {
-                                        try {
-                                            const member = await channel.guild.members.fetch(mentionUserId);
-                                            if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                                await channel.send(`<@${mentionUserId}>`);
-                                                automation.clickedMessages.add(mentionKey);
-                                                onLog(`[MENÇÃO] ✅ Mencionou <@${mentionUserId}> em #${channel.name}`, "success");
-                                                break;
-                                            }
-                                        } catch (e) {}
-                                    }
-                                }
-                            }
-                        }
-                    } catch (err) {}
-                    setTimeout(() => automation.processing.delete(channel.id), 2000);
-                }
+                    }
+                } catch (err) {}
             };
 
-            // LOOP INFINITO - PERCORRE TODOS OS SERVIDORES CONTINUAMENTE
-            let serverIndex = 0;
-            while (automation.isRunning) {
+            const interval = setInterval(async () => {
+                if (!automation.isRunning) return clearInterval(interval);
+
                 try {
-                    const guilds = self.guilds.cache.filter(g => !g.unavailable);
-                    const guildArray = [...guilds.values()];
-                    if (guildArray.length === 0) {
-                        await new Promise(res => setTimeout(res, 5000));
-                        continue;
-                    }
-
-                    serverIndex = serverIndex % guildArray.length;
-                    const currentGuild = guildArray[serverIndex];
-
-                    const queueChannels = currentGuild.channels.cache.filter(c => {
+                    // 1. ESCANEAMENTO DE CANAIS DE FILA
+                    const canaisFila = self.channels.cache.filter(c => {
                         if (c.type !== "GUILD_TEXT") return false;
                         const nome = c.name.toLowerCase();
                         const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
@@ -288,26 +178,119 @@ class AutomationEngine {
                         return matchesFormat && matchesCategory;
                     });
 
-                    const partidaChannels = currentGuild.channels.cache.filter(channel =>
+                    for (const [, channel] of canaisFila) {
+                        if (automation.processing.has(channel.id)) continue;
+                        
+                        const guildId = channel.guild?.id;
+                        if (guildId && (automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) continue;
+
+                        automation.processing.add(channel.id);
+                        await processChannel(channel);
+                        setTimeout(() => automation.processing.delete(channel.id), 3000);
+                    }
+
+                    // 2. MONITORAMENTO DE PARTIDAS (MSG AUTO, CONFIRMAÇÃO, MENÇÃO)
+                    const canaisPartida = self.channels.cache.filter(channel =>
+                        channel.guild &&
                         (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
-                        channel.viewable &&
-                        (channel.name?.toLowerCase().includes("aguardando") ||
-                         channel.name?.toLowerCase().includes("partida") ||
-                         channel.name?.toLowerCase().includes("fila"))
+                        (channel.name?.toLowerCase().includes("aguardando") || 
+                         channel.name?.toLowerCase().includes("partida") || 
+                         channel.name?.toLowerCase().includes("fila")) &&
+                        channel.viewable
                     );
 
-                    await processServer(currentGuild, queueChannels, partidaChannels);
+                    for (const [, channel] of canaisPartida) {
+                        if (automation.processing.has(channel.id)) continue;
+                        automation.processing.add(channel.id);
 
-                    const gid = currentGuild.id;
-                    automation.guildClickCount.delete(gid);
+                        try {
+                            // --- MENSAGEM AUTOMÁTICA ---
+                            if (msgauto && !automation.msgAutoSentThisSession.has(channel.id)) {
+                                try {
+                                    const msgDelaySec = parseInt(msgdelay) || 0;
+                                    if (msgDelaySec > 0) {
+                                        onLog(`[MSG-AUTO] ⏳ Aguardando ${msgDelaySec}s para enviar mensagem em #${channel.name}`, "info");
+                                        await new Promise(res => setTimeout(res, msgDelaySec * 1000));
+                                    }
+                                    
+                                    if (automation.isRunning) {
+                                        await channel.send(msgauto);
+                                        automation.msgAutoSentThisSession.add(channel.id);
+                                        onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name}`, "success");
+                                    }
+                                } catch (e) {
+                                    onLog(`[MSG-AUTO] ❌ Erro em #${channel.name}: ${e.message}`, "error");
+                                    automation.msgAutoSentThisSession.add(channel.id);
+                                }
+                            }
 
-                    serverIndex++;
-                    await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
-                } catch (err) {
-                    onLog(`⚠️ Erro no loop principal: ${err.message}`, "warn");
-                    await new Promise(res => setTimeout(res, 3000));
-                }
-            }
+                            const msgs = await channel.messages.fetch({ limit: 5 });
+                            const firstMsg = msgs.find(m => m.components?.length);
+
+                            if (firstMsg) {
+                                // --- CONFIRMAÇÃO AUTOMÁTICA ---
+                                if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id)) {
+                                    await new Promise(res => setTimeout(res, confirmauto * 1000));
+                                    let confirmed = false;
+                                    for (const row of firstMsg.components) {
+                                        for (const button of row.components) {
+                                            if (confirmed) continue;
+                                            if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
+                                            if (button.customId === "leave_player") continue;
+
+                                            try {
+                                                await firstMsg.clickButton(button.customId);
+                                                confirmed = true;
+                                                automation.confirmedChannels.add(channel.id);
+                                                onLog(`[CONFIRM] ✅ Confirmado em #${channel.name}`, "success");
+                                            } catch (err) {
+                                                onLog(`[CONFIRM] ❌ Erro em #${channel.name}: ${err.message}`, "error");
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // --- MENÇÃO AUTOMÁTICA ---
+                                if (mentionauto > 0) {
+                                    const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
+                                    if (!automation.clickedMessages.has(mentionKey)) {
+                                        await new Promise(res => setTimeout(res, mentionauto * 1000));
+                                        
+                                        let foundMentions = [];
+                                        const regex = /<@!?(\d+)>/g;
+                                        
+                                        const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+                                        foundMentions.push(...contentMentions);
+                                        
+                                        for (const embed of firstMsg.embeds) {
+                                            if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                                            if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
+                                        }
+                                        
+                                        foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
+                                        
+                                        for (const mentionUserId of foundMentions) {
+                                            try {
+                                                const member = await channel.guild.members.fetch(mentionUserId);
+                                                if (!member.permissions.has("MANAGE_MESSAGES")) {
+                                                    await channel.send(`<@${mentionUserId}>`);
+                                                    automation.clickedMessages.add(mentionKey);
+                                                    onLog(`[MENÇÃO] ✅ Mencionou <@${mentionUserId}> em #${channel.name}`, "success");
+                                                    break;
+                                                }
+                                            } catch (e) {}
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (err) {}
+                        setTimeout(() => automation.processing.delete(channel.id), 2000);
+                    }
+                } catch (err) {}
+            }, 2000);
+
+            automation.intervals.push(interval);
+
         } catch (err) {
             onLog(`❌ Erro no processamento do token: ${err.message}`, "error");
         }
@@ -316,17 +299,14 @@ class AutomationEngine {
     async stopAutomation(botId, onLog) {
         const automation = this.activeAutomations.get(botId);
         if (!automation) return false;
-
+        
         automation.isRunning = false;
-        if (automation.activeTasks.size > 0) {
-            onLog("⏳ Aguardando tarefas pendentes finalizarem...", "info");
-            await Promise.allSettled([...automation.activeTasks]);
-        }
-
+        automation.intervals.forEach(i => clearInterval(i));
+        
         for (const client of automation.clients) {
             try { await client.destroy(); } catch (e) {}
         }
-
+        
         this.activeAutomations.delete(botId);
         if (onLog) onLog("⚠️ Automação parada com sucesso", "warn");
         return true;
