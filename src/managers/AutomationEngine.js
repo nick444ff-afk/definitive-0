@@ -5,6 +5,7 @@ const { Client } = require('discord.js-selfbot-v13');
  * Extraída do commit fd71344f8f267f519f2b41874e10f18949536399
  * FIX: Tratamento robusto de erros 50013 (Missing Permissions)
  * FIX: Fila controlada para mensagens/menções com agendamento no tempo certo
+ * FIX: Rotina paralela de monitoramento de partidas independente do loop de cliques
  */
 class AutomationEngine {
     constructor() {
@@ -135,7 +136,7 @@ class AutomationEngine {
 
                 // Limite absoluto: não agendar além de 60s no futuro
                 if (delayMs > MAX_TASK_TIMEOUT) {
-                    onLog(`⚠️ Tarefa ${type} descartada (delay muito longo) | ${channel.guild.name}`, "warn");
+                    onLog(`⚠️ Tarefa ${type} descartada (delay muito longo) | ${channel.guild?.name || 'Desconhecido'}`, "warn");
                     return;
                 }
 
@@ -152,7 +153,7 @@ class AutomationEngine {
                         await executor();
                     } catch (err) {
                         if (isPermissionError(err)) {
-                            onLog(`⚠️ Sem permissão | ${channel.guild.name}`, "warn");
+                            onLog(`⚠️ Sem permissão | ${channel.guild?.name || 'Desconhecido'}`, "warn");
                         }
                     } finally {
                         taskEntry.resolved = true;
@@ -163,7 +164,7 @@ class AutomationEngine {
                 taskEntry.timeoutId = timeoutId;
                 scheduledTasks.set(key, taskEntry);
 
-                onLog(`⏳ Agendado: ${type} | ${channel.guild.name} (${delayMs / 1000}s)`, "info");
+                onLog(`⏳ Agendado: ${type} | ${channel.guild?.name || 'Desconhecido'} (${delayMs / 1000}s)`, "info");
             };
 
             const cancelAllScheduledTasks = () => {
@@ -171,6 +172,116 @@ class AutomationEngine {
                     clearTimeout(task.timeoutId);
                 }
                 scheduledTasks.clear();
+            };
+
+            // ═══════════════════════════════════════════════════════════════
+            // AGENDAR MSG/MENÇÃO/CONFIRMAÇÃO PARA UM CANAL DE PARTIDA
+            // (Usado pela rotina paralela)
+            // ═══════════════════════════════════════════════════════════════
+            const scheduleMatchTasks = async (channel) => {
+                try {
+                    // --- MENSAGEM AUTOMÁTICA ---
+                    const msgKey = `msg_${channel.id}`;
+                    if (msgauto && !automation.msgAutoSentThisSession.has(channel.id) && !scheduledTasks.has(msgKey)) {
+                        automation.msgAutoSentThisSession.add(channel.id);
+                        const msgDelaySec = parseInt(msgdelay) || 0;
+                        const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
+
+                        scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
+                            try {
+                                if (!automation.isRunning) return;
+                                await channel.send(msgauto);
+                                onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
+                            } catch (err) {
+                                if (isPermissionError(err)) {
+                                    onLog(`⚠️ Sem permissão para enviar mensagem | ${channel.guild?.name}`, "warn");
+                                }
+                            }
+                        });
+                    }
+
+                    const msgs = await channel.messages.fetch({ limit: 5 });
+                    const firstMsg = msgs.find(m => m.components?.length);
+
+                    if (firstMsg) {
+                        // --- CONFIRMAÇÃO AUTOMÁTICA ---
+                        const confKey = `conf_${channel.id}`;
+                        if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id) && !scheduledTasks.has(confKey)) {
+                            automation.confirmedChannels.add(channel.id);
+                            const confDelayMs = confirmauto * 1000;
+
+                            scheduleTask(confKey, 'confirmação', channel, confDelayMs, async () => {
+                                try {
+                                    let confirmed = false;
+                                    for (const row of firstMsg.components) {
+                                        for (const button of row.components) {
+                                            if (confirmed) continue;
+                                            if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
+                                            if (button.customId === "leave_player") continue;
+
+                                            try {
+                                                await firstMsg.clickButton(button.customId);
+                                                confirmed = true;
+                                                automation.confirmedChannels.add(channel.id);
+                                                onLog(`✅ Botão clicado | ${channel.guild?.name} | #${channel.name}`, "success");
+                                            } catch (err) {
+                                                if (isPermissionError(err)) {
+                                                    onLog(`⚠️ Sem permissão para confirmar | ${channel.guild?.name}`, "warn");
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (err) {}
+                            });
+                        }
+
+                        // --- MENÇÃO AUTOMÁTICA ---
+                        const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
+                        if (mentionauto > 0 && !automation.clickedMessages.has(mentionKey) && !scheduledTasks.has(mentionKey)) {
+                            automation.clickedMessages.add(mentionKey);
+                            const mentionDelayMs = mentionauto * 1000;
+
+                            scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
+                                try {
+                                    if (!automation.isRunning) return;
+                                    
+                                    let foundMentions = [];
+                                    const regex = /<@!?(\d+)>/g;
+                                    
+                                    const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+                                    foundMentions.push(...contentMentions);
+                                    
+                                    for (const embed of firstMsg.embeds) {
+                                        if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                                        if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
+                                    }
+                                    
+                                    foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
+                                    
+                                    for (const mentionUserId of foundMentions) {
+                                        try {
+                                            const member = await channel.guild.members.fetch(mentionUserId);
+                                            if (!member.permissions.has("MANAGE_MESSAGES")) {
+                                                try {
+                                                    await channel.send(`<@${mentionUserId}>`);
+                                                    automation.clickedMessages.add(mentionKey);
+                                                    onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
+                                                } catch (err) {
+                                                    if (isPermissionError(err)) {
+                                                        onLog(`⚠️ Sem permissão para enviar menção | ${channel.guild?.name}`, "warn");
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        } catch (e) {}
+                                    }
+                                } catch (err) {}
+                            });
+                        }
+                    }
+                } catch (err) {
+                    // Erro no agendamento - não para a rotina
+                }
             };
 
             const processChannel = async (channel) => {
@@ -229,193 +340,133 @@ class AutomationEngine {
             };
 
                         // ═══════════════════════════════════════════════════════════
-            // LOOP CONTÍNUO INFINITO
+            // LOOP CONTÍNUO DE CLIQUES (apenas cliques em canais de fila)
             // ═══════════════════════════════════════════════════════════
             let serverIndex = 0;
 
-            while (true) {
-                if (!automation.isRunning) break;
-                try {
-                    const guilds = self.guilds.cache.filter(g => !g.unavailable);
-                    const guildArray = [...guilds.values()];
+            (async () => {
+                while (true) {
+                    if (!automation.isRunning) break;
+                    try {
+                        const guilds = self.guilds.cache.filter(g => !g.unavailable);
+                        const guildArray = [...guilds.values()];
 
-                    if (guildArray.length === 0) {
-                        await new Promise(res => setTimeout(res, 5000));
-                        continue;
-                    }
-
-                    serverIndex = serverIndex % guildArray.length;
-                    const currentGuild = guildArray[serverIndex];
-
-                    // 1. ESCANEAMENTO DE CANAIS DE FILA
-                    const canaisFila = currentGuild.channels.cache.filter(c => {
-                        if (c.type !== "GUILD_TEXT") return false;
-                        const nome = c.name.toLowerCase();
-                        const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
-                        const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat));
-                        return matchesFormat && matchesCategory;
-                    });
-
-                    for (const [, channel] of canaisFila) {
-                        if (!automation.isRunning) break;
-                        if (automation.processing.has(channel.id)) continue;
-                        
-                        const guildId = channel.guild?.id;
-                        if (guildId && (automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) continue;
-
-                        automation.processing.add(channel.id);
-                        try {
-                            await processChannel(channel);
-                        } catch (err) {
-                            if (isPermissionError(err)) {
-                                onLog(`⚠️ Sem permissão neste canal | ${channel.guild.name}`, "warn");
-                            }
+                        if (guildArray.length === 0) {
+                            await new Promise(res => setTimeout(res, 5000));
+                            continue;
                         }
-                        setTimeout(() => automation.processing.delete(channel.id), 500);
+
+                        serverIndex = serverIndex % guildArray.length;
+                        const currentGuild = guildArray[serverIndex];
+
+                        // ESCANEAMENTO DE CANAIS DE FILA E CLIQUES
+                        const canaisFila = currentGuild.channels.cache.filter(c => {
+                            if (c.type !== "GUILD_TEXT") return false;
+                            const nome = c.name.toLowerCase();
+                            const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
+                            const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat));
+                            return matchesFormat && matchesCategory;
+                        });
+
+                        for (const [, channel] of canaisFila) {
+                            if (!automation.isRunning) break;
+                            if (automation.processing.has(channel.id)) continue;
+                            
+                            const guildId = channel.guild?.id;
+                            if (guildId && (automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) continue;
+
+                            automation.processing.add(channel.id);
+                            try {
+                                await processChannel(channel);
+                            } catch (err) {
+                                if (isPermissionError(err)) {
+                                    onLog(`⚠️ Sem permissão neste canal | ${channel.guild.name}`, "warn");
+                                }
+                            }
+                            setTimeout(() => automation.processing.delete(channel.id), 500);
+                        }
+
+                        // Resetar contador de cliques deste servidor para permitir novo ciclo
+                        automation.guildClickCount.delete(currentGuild.id);
+
+                        // Avançar para o próximo servidor
+                        serverIndex++;
+
+                        // Quando completou uma volta completa em todos os servidores, limpar caches para novo ciclo
+                        if (serverIndex % guildArray.length === 0) {
+                            automation.clickedMessages.clear();
+                            automation.msgAutoSentThisSession.clear();
+                            automation.confirmedChannels.clear();
+                        }
+
+                        // Delay mínimo entre servidores (seguro contra rate limit)
+                        await new Promise(res => setTimeout(res, 300));
+                    } catch (err) {
+                        // O loop principal NUNCA deve parar por erro
+                        await new Promise(res => setTimeout(res, 3000));
                     }
+                }
+            })();
 
-                    // 2. MONITORAMENTO DE PARTIDAS (MSG AUTO, CONFIRMAÇÃO, MENÇÃO)
-                    const canaisPartida = currentGuild.channels.cache.filter(channel =>
-                        (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
-                        (channel.name?.toLowerCase().includes("aguardando") || 
-                         channel.name?.toLowerCase().includes("partida") || 
-                         channel.name?.toLowerCase().includes("fila")) &&
-                        channel.viewable
-                    );
+            // ═══════════════════════════════════════════════════════════
+            // ROTINA PARALELA: MONITORAMENTO DE PARTIDAS
+            // Escaneia TODOS os servidores de forma independente,
+            // agendando msg/menção/confirmação independente do loop de cliques.
+            // ═══════════════════════════════════════════════════════════
+            (async () => {
+                while (true) {
+                    if (!automation.isRunning) break;
+                    try {
+                        const guilds = self.guilds.cache.filter(g => !g.unavailable);
+                        const guildArray = [...guilds.values()];
 
-                    for (const [, channel] of canaisPartida) {
-                        if (!automation.isRunning) break;
-                        if (automation.processing.has(channel.id)) continue;
-                        automation.processing.add(channel.id);
+                        if (guildArray.length === 0) {
+                            await new Promise(res => setTimeout(res, 5000));
+                            continue;
+                        }
 
-                        try {
-                            // --- MENSAGEM AUTOMÁTICA (AGENDADA COM FILA) ---
-                            const msgKey = `msg_${channel.id}`;
-                            if (msgauto && !automation.msgAutoSentThisSession.has(channel.id) && !scheduledTasks.has(msgKey)) {
-                                automation.msgAutoSentThisSession.add(channel.id);
-                                const msgDelaySec = parseInt(msgdelay) || 0;
-                                const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
+                        // Escanear TODOS os servidores procurando canais de partida
+                        for (const guild of guildArray) {
+                            if (!automation.isRunning) break;
+                            try {
+                                const canaisPartida = guild.channels.cache.filter(channel =>
+                                    (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
+                                    (channel.name?.toLowerCase().includes("aguardando") || 
+                                     channel.name?.toLowerCase().includes("partida") || 
+                                     channel.name?.toLowerCase().includes("fila")) &&
+                                    channel.viewable
+                                );
 
-                                scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
+                                for (const [, channel] of canaisPartida) {
+                                    if (!automation.isRunning) break;
+                                    // Não bloquear se já está em processamento (cliques)
+                                    // Mas permitir agendar tarefas de msg/menção
                                     try {
-                                        if (!automation.isRunning) return;
-                                        await channel.send(msgauto);
-                                        onLog(`📩 Mensagem enviada | ${channel.guild.name}`, "success");
+                                        await scheduleMatchTasks(channel);
                                     } catch (err) {
-                                        if (isPermissionError(err)) {
-                                            onLog(`⚠️ Sem permissão para enviar mensagem | ${channel.guild.name}`, "warn");
-                                        }
+                                        // Erro ao agendar - ignorar e continuar
                                     }
-                                });
-                            }
-
-                            const msgs = await channel.messages.fetch({ limit: 5 });
-                            const firstMsg = msgs.find(m => m.components?.length);
-
-                            if (firstMsg) {
-                                // --- CONFIRMAÇÃO AUTOMÁTICA (AGENDADA COM FILA) ---
-                                const confKey = `conf_${channel.id}`;
-                                if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id) && !scheduledTasks.has(confKey)) {
-                                    automation.confirmedChannels.add(channel.id);
-                                    const confDelayMs = confirmauto * 1000;
-
-                                    scheduleTask(confKey, 'confirmação', channel, confDelayMs, async () => {
-                                        try {
-                                            let confirmed = false;
-                                            for (const row of firstMsg.components) {
-                                                for (const button of row.components) {
-                                                    if (confirmed) continue;
-                                                    if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
-                                                    if (button.customId === "leave_player") continue;
-
-                                                    try {
-                                                        await firstMsg.clickButton(button.customId);
-                                                        confirmed = true;
-                                                        automation.confirmedChannels.add(channel.id);
-                                                        onLog(`✅ Botão clicado | ${channel.guild.name} | #${channel.name}`, "success");
-                                                    } catch (err) {
-                                                        if (isPermissionError(err)) {
-                                                            onLog(`⚠️ Sem permissão para confirmar | ${channel.guild.name}`, "warn");
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        } catch (err) {}
-                                    });
+                                    // Pequeno delay entre canais para não sobrecarregar
+                                    await new Promise(res => setTimeout(res, 200));
                                 }
-
-                                // --- MENÇÃO AUTOMÁTICA (AGENDADA COM FILA) ---
-                                const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
-                                if (mentionauto > 0 && !automation.clickedMessages.has(mentionKey) && !scheduledTasks.has(mentionKey)) {
-                                    automation.clickedMessages.add(mentionKey);
-                                    const mentionDelayMs = mentionauto * 1000;
-
-                                    scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
-                                        try {
-                                            if (!automation.isRunning) return;
-                                            
-                                            let foundMentions = [];
-                                            const regex = /<@!?(\d+)>/g;
-                                            
-                                            const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
-                                            foundMentions.push(...contentMentions);
-                                            
-                                            for (const embed of firstMsg.embeds) {
-                                                if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
-                                                if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
-                                            }
-                                            
-                                            foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
-                                            
-                                            for (const mentionUserId of foundMentions) {
-                                                try {
-                                                    const member = await channel.guild.members.fetch(mentionUserId);
-                                                    if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                                        try {
-                                                            await channel.send(`<@${mentionUserId}>`);
-                                                            automation.clickedMessages.add(mentionKey);
-                                                            onLog(`📢 Menção enviada | ${channel.guild.name}`, "success");
-                                                        } catch (err) {
-                                                            if (isPermissionError(err)) {
-                                                                onLog(`⚠️ Sem permissão para enviar menção | ${channel.guild.name}`, "warn");
-                                                            }
-                                                        }
-                                                        break;
-                                                    }
-                                                } catch (e) {}
-                                            }
-                                        } catch (err) {}
-                                    });
-                                }
+                            } catch (err) {
+                                // Erro ao processar servidor - continuar para o próximo
                             }
-                        } catch (err) {
-                            // Erro no monitoramento de partidas - não para o loop
                         }
-                        setTimeout(() => automation.processing.delete(channel.id), 2000);
-                    }
 
-                    // Resetar contador de cliques deste servidor para permitir novo ciclo
-                    automation.guildClickCount.delete(currentGuild.id);
-
-                    // Avançar para o próximo servidor
-                    serverIndex++;
-
-                    // Quando completou uma volta completa em todos os servidores, limpar caches para novo ciclo
-                    if (serverIndex % guildArray.length === 0) {
+                        // Quando completou uma volta completa em todos os servidores, limpar caches
                         automation.clickedMessages.clear();
                         automation.msgAutoSentThisSession.clear();
                         automation.confirmedChannels.clear();
-                        // Limpar tarefas agendadas pendentes do ciclo anterior
-                        cancelAllScheduledTasks();
-                    }
 
-                    // Delay mínimo entre servidores (seguro contra rate limit)
-                    await new Promise(res => setTimeout(res, 300));
-                } catch (err) {
-                    // O loop principal NUNCA deve parar por erro
-                    await new Promise(res => setTimeout(res, 3000));
+                        // Delay entre ciclos da rotina paralela
+                        await new Promise(res => setTimeout(res, 5000));
+                    } catch (err) {
+                        // A rotina paralela NUNCA deve parar por erro
+                        await new Promise(res => setTimeout(res, 5000));
+                    }
                 }
-            }
+            })();
 
         } catch (err) {
             // Erro fatal no _runOriginalLogic - logar mas não crashar
@@ -429,12 +480,8 @@ class AutomationEngine {
                 automation.isRunning = false;
         
         // Cancelar todas as tarefas agendadas
-        if (automation.scheduledTasks) {
-            for (const [, task] of automation.scheduledTasks) {
-                clearTimeout(task.timeoutId);
-            }
-            automation.scheduledTasks.clear();
-        }
+        // (scheduledTasks é acessível via closure do _runOriginalLogic,
+        // mas ao parar precisamos esperar as tasks ativas terminarem)
         
         if (automation.activeTasks.size > 0) {
             
