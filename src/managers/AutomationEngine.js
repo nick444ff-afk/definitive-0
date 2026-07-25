@@ -146,8 +146,8 @@ class AutomationEngine {
                             try {
                                 const now = Date.now();
                                 const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                                if (timeSinceLastClick < 2000) {
-                                    const waitTime = 2000 - timeSinceLastClick;
+                                if (timeSinceLastClick < 1000) {
+                                    const waitTime = 1000 - timeSinceLastClick;
                                     await new Promise(res => setTimeout(res, waitTime));
                                 }
                                 automation.lastClickTime = Date.now();
@@ -220,7 +220,7 @@ class AutomationEngine {
                                 onLog(`⚠️ Sem permissão neste canal | #${channel.name}`, "warn");
                             }
                         }
-                        setTimeout(() => automation.processing.delete(channel.id), 3000);
+                        setTimeout(() => automation.processing.delete(channel.id), 500);
                     }
 
                     // 2. MONITORAMENTO DE PARTIDAS (MSG AUTO, CONFIRMAÇÃO, MENÇÃO)
@@ -367,8 +367,8 @@ class AutomationEngine {
                         automation.confirmedChannels.clear();
                     }
 
-                    // Pequeno delay entre servidores
-                    await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
+                    // Delay mínimo entre servidores (seguro contra rate limit)
+                    await new Promise(res => setTimeout(res, 300));
                 } catch (err) {
                     // O loop principal NUNCA deve parar por erro
                     await new Promise(res => setTimeout(res, 3000));
