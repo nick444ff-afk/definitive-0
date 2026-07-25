@@ -147,7 +147,7 @@ class InstanceManager {
      */
     async stopAutomation(botId) {
         try {
-            const instance = this.getInstance(botId);
+            const instance = await this.getInstance(botId);
             instance.is_running = false;
 
             // Parar via AutomationEngine
