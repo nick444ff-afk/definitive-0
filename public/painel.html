@@ -760,9 +760,13 @@ function showToast(msg, type = 'info') {
     setTimeout(() => elements.toast.classList.remove('show'), 3000);
 }
 
-function limparLogs() {
-    elements.logs.innerHTML = '';
-    showToast('Logs limpos', 'info');
+async function limparLogs() {
+    try {
+        await fetch(`${API_URL}/clear_logs/${botAtivo}`, { method: 'POST' });
+        elements.logs.innerHTML = '';
+        lastLogTimestamp = null;
+        showToast('Logs limpos', 'info');
+    } catch (e) { showToast('Erro ao limpar logs!', 'error'); }
 }
 </script>
 </body>

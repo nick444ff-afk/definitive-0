@@ -66,6 +66,7 @@ class AutomationEngine {
 
             await self.login(token);
             automation.clients.push(self);
+            onLog(`🟢 Logado com @${self.user.username}`, "info");
             
 
             const categoriaMap = {
