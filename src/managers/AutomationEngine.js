@@ -8,7 +8,7 @@ const { Client } = require('discord.js-selfbot-v13');
 class AutomationEngine {
     constructor() {
         this.activeAutomations = new Map();
-        this.MAX_ENTRIES_PER_GUILD = 1;
+        this.MAX_ENTRIES_PER_GUILD = 5;
     }
 
     async startAutomation(botId, config, onLog, onStats) {

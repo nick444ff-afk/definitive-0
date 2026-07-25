@@ -3,7 +3,7 @@ const { lg, owner, us } = require("../../databases/index");
 const { Client } = require('discord.js-selfbot-v13');
 let verify = {};
 
-const MAX_ENTRIES_PER_GUILD = 1;
+const MAX_ENTRIES_PER_GUILD = 5;
 
 module.exports = {
     name: "interactionCreate",
