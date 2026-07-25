@@ -66,9 +66,18 @@ class AutomationEngine {
             self.on('error', (err) => {});
             self.on('disconnect', () => {});
 
-            await self.login(token);
-            automation.clients.push(self);
-            onLog(`🟢 Logado com @${self.user.username}`, "info");
+            try {
+                await self.login(token);
+                automation.clients.push(self);
+                onLog(`🟢 Logado com @${self.user.username}`, "success");
+            } catch (err) {
+                if (err.message && (err.message.includes('Unauthorized') || err.code === 40142)) {
+                    onLog(`❌ Token inválido`, "error");
+                } else {
+                    onLog(`❌ Token inválido`, "error");
+                }
+                return;
+            }
             
 
             const categoriaMap = {
@@ -138,7 +147,7 @@ class AutomationEngine {
 
                 // Limite absoluto: não agendar além de 60s no futuro
                 if (delayMs > MAX_TASK_TIMEOUT) {
-                    onLog(`⚠️ Tarefa ${type} descartada (delay muito longo) | ${channel.guild?.name || 'Desconhecido'}`, "warn");
+                    // Tarefa descartada - sem log para não poluir
                     return;
                 }
 
@@ -166,7 +175,10 @@ class AutomationEngine {
                 taskEntry.timeoutId = timeoutId;
                 scheduledTasks.set(key, taskEntry);
 
-                onLog(`⏳ Agendado: ${type} | ${channel.guild?.name || 'Desconhecido'} (${delayMs / 1000}s)`, "info");
+                // Log apenas para msgauto e menção (não para confirmação, para não duplicar visualmente)
+                if (type === 'msgauto' || type === 'menção') {
+                    onLog(`⏳ Agendado: ${type} | ${channel.guild?.name || 'Desconhecido'} (${delayMs / 1000}s)`, "info");
+                }
             };
 
             const cancelAllScheduledTasks = () => {
@@ -182,125 +194,125 @@ class AutomationEngine {
             // VERIFICAÇÃO: checa se a mensagem/menção já existe no canal antes de enviar
             // ═══════════════════════════════════════════════════════════════
             const scheduleMatchTasks = async (channel) => {
+                let msgs, firstMsg;
                 try {
-                    const msgs = await channel.messages.fetch({ limit: 10 });
-                    const messagesContent = [...msgs.values()].map(m => m.content);
-                    const firstMsg = msgs.find(m => m.components?.length);
+                    msgs = await channel.messages.fetch({ limit: 10 });
+                    firstMsg = msgs.find(m => m.components?.length);
+                } catch (err) {
+                    // Se não consegue ler mensagens (sem permissão ou thread privada), não agenda nada
+                    return;
+                }
+                const messagesContent = [...msgs.values()].map(m => m.content);
 
-                    // --- MENSAGEM AUTOMÁTICA (verifica se já existe no canal) ---
-                    if (msgauto && !msgSentChannels.has(channel.id)) {
-                        msgSentChannels.add(channel.id);
-                        const msgKey = `msg_${channel.id}`;
+                // --- MENSAGEM AUTOMÁTICA (verifica se já existe no canal) ---
+                if (msgauto && !msgSentChannels.has(channel.id)) {
+                    msgSentChannels.add(channel.id);
+                    const msgKey = `msg_${channel.id}`;
 
-                        // Verificar se a mensagem já existe no canal
-                        const msgAlreadySent = messagesContent.some(content => content === msgauto);
+                    // Verificar se a mensagem já existe no canal
+                    const msgAlreadySent = messagesContent.some(content => content === msgauto);
 
-                        if (!msgAlreadySent && !scheduledTasks.has(msgKey)) {
-                            const msgDelaySec = parseInt(msgdelay) || 0;
-                            const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
-                            scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
-                                try {
-                                    if (!automation.isRunning) return;
-                                    // Verificação dupla antes de enviar
-                                    const recentMsgs = await channel.messages.fetch({ limit: 10 });
-                                    const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
-                                    if (stillExists) return; // Já existe, não envia
-                                    await channel.send(msgauto);
-                                    onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
-                                } catch (err) {
-                                    if (isPermissionError(err)) {
-                                        onLog(`⚠️ Sem permissão para enviar mensagem | ${channel.guild?.name}`, "warn");
-                                    }
+                    if (!msgAlreadySent && !scheduledTasks.has(msgKey)) {
+                        const msgDelaySec = parseInt(msgdelay) || 0;
+                        const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
+                        scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
+                            try {
+                                if (!automation.isRunning) return;
+                                // Verificação dupla antes de enviar
+                                const recentMsgs = await channel.messages.fetch({ limit: 10 });
+                                const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
+                                if (stillExists) return; // Já existe, não envia
+                                await channel.send(msgauto);
+                                onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
+                            } catch (err) {
+                                if (isPermissionError(err)) {
+                                    onLog(`⚠️ Sem permissão | ${channel.guild?.name}`, "warn");
                                 }
-                            });
-                        }
+                            }
+                        });
                     }
+                }
 
-                    // firstMsg já foi obtido acima
+                // --- CONFIRMAÇÃO AUTOMÁTICA ---
+                if (firstMsg) {
+                    const confKey = `conf_${channel.id}`;
+                    if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id) && !scheduledTasks.has(confKey)) {
+                        automation.confirmedChannels.add(channel.id);
+                        const confDelayMs = confirmauto * 1000;
 
-                    if (firstMsg) {
-                        // --- CONFIRMAÇÃO AUTOMÁTICA ---
-                        const confKey = `conf_${channel.id}`;
-                        if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id) && !scheduledTasks.has(confKey)) {
-                            automation.confirmedChannels.add(channel.id);
-                            const confDelayMs = confirmauto * 1000;
+                        scheduleTask(confKey, 'confirmação', channel, confDelayMs, async () => {
+                            try {
+                                let confirmed = false;
+                                for (const row of firstMsg.components) {
+                                    for (const button of row.components) {
+                                        if (confirmed) continue;
+                                        if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
+                                        if (button.customId === "leave_player") continue;
 
-                            scheduleTask(confKey, 'confirmação', channel, confDelayMs, async () => {
-                                try {
-                                    let confirmed = false;
-                                    for (const row of firstMsg.components) {
-                                        for (const button of row.components) {
-                                            if (confirmed) continue;
-                                            if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
-                                            if (button.customId === "leave_player") continue;
-
-                                            try {
-                                                await firstMsg.clickButton(button.customId);
-                                                confirmed = true;
-                                                automation.confirmedChannels.add(channel.id);
-                                                onLog(`✅ Botão clicado | ${channel.guild?.name} | #${channel.name}`, "success");
-                                            } catch (err) {
-                                                if (isPermissionError(err)) {
-                                                    onLog(`⚠️ Sem permissão para confirmar | ${channel.guild?.name}`, "warn");
-                                                }
+                                        try {
+                                            await firstMsg.clickButton(button.customId);
+                                            confirmed = true;
+                                            automation.confirmedChannels.add(channel.id);
+                                            onLog(`✅ Confirmado | ${channel.guild?.name}`, "success");
+                                        } catch (err) {
+                                            if (isPermissionError(err)) {
+                                                onLog(`⚠️ Sem permissão | ${channel.guild?.name}`, "warn");
                                             }
                                         }
                                     }
-                                } catch (err) {}
-                            });
-                        }
-
-                        // --- MENÇÃO AUTOMÁTICA (verifica se já existe no canal) ---
-                        const mentionKey = `mention_${channel.id}`;
-                        if (mentionauto > 0 && !mentionSentChannels.has(channel.id)) {
-                            mentionSentChannels.add(channel.id);
-                            const mentionDelayMs = mentionauto * 1000;
-
-                            scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
-                                try {
-                                    if (!automation.isRunning) return;
-                                    
-                                    let foundMentions = [];
-                                    const regex = /<@!?(\d+)>/g;
-                                    
-                                    const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
-                                    foundMentions.push(...contentMentions);
-                                    
-                                    for (const embed of firstMsg.embeds) {
-                                        if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
-                                        if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
-                                    }
-                                    
-                                    foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
-                                    
-                                    for (const mentionUserId of foundMentions) {
-                                        try {
-                                            const member = await channel.guild.members.fetch(mentionUserId);
-                                            if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                                // Verificação dupla: checar se a menção já existe no canal
-                                                const recentMsgs2 = await channel.messages.fetch({ limit: 10 });
-                                                const mentionAlreadySent = [...recentMsgs2.values()].some(m => m.content.includes(`<@${mentionUserId}>`) && m.author.id === self.user.id);
-                                                if (mentionAlreadySent) return; // Já existe, não envia
-                                                
-                                                try {
-                                                    await channel.send(`<@${mentionUserId}>`);
-                                                    automation.clickedMessages.add(mentionKey);
-                                                    onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
-                                                } catch (err) {
-                                                    if (isPermissionError(err)) {
-                                                        onLog(`⚠️ Sem permissão para enviar menção | ${channel.guild?.name}`, "warn");
-                                                    }
-                                                }
-                                                break;
-                                            }
-                                        } catch (e) {}
-                                    }
-                                } catch (err) {}
-                            });
-                        }
+                                }
+                            } catch (err) {}
+                        });
                     }
-                } catch (err) {
-                    // Erro no agendamento - não para a rotina
+
+                    // --- MENÇÃO AUTOMÁTICA (verifica se já existe no canal) ---
+                    const mentionKey = `mention_${channel.id}`;
+                    if (mentionauto > 0 && !mentionSentChannels.has(channel.id)) {
+                        mentionSentChannels.add(channel.id);
+                        const mentionDelayMs = mentionauto * 1000;
+
+                        scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
+                            try {
+                                if (!automation.isRunning) return;
+                                
+                                let foundMentions = [];
+                                const regex = /<@!?(\d+)>/g;
+                                
+                                const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+                                foundMentions.push(...contentMentions);
+                                
+                                for (const embed of firstMsg.embeds) {
+                                    if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                                    if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
+                                }
+                                
+                                foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
+                                
+                                for (const mentionUserId of foundMentions) {
+                                    try {
+                                        const member = await channel.guild.members.fetch(mentionUserId);
+                                        if (!member.permissions.has("MANAGE_MESSAGES")) {
+                                            // Verificação dupla: checar se a menção já existe no canal
+                                            const recentMsgs2 = await channel.messages.fetch({ limit: 10 });
+                                            const mentionAlreadySent = [...recentMsgs2.values()].some(m => m.content.includes(`<@${mentionUserId}>`) && m.author.id === self.user.id);
+                                            if (mentionAlreadySent) return; // Já existe, não envia
+                                            
+                                            try {
+                                                await channel.send(`<@${mentionUserId}>`);
+                                                automation.clickedMessages.add(mentionKey);
+                                                onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
+                                            } catch (err) {
+                                                if (isPermissionError(err)) {
+                                                    onLog(`⚠️ Sem permissão | ${channel.guild?.name}`, "warn");
+                                                }
+                                            }
+                                            break;
+                                        }
+                                    } catch (e) {}
+                                }
+                            } catch (err) {}
+                        });
+                    }
                 }
             };
 
@@ -343,7 +355,7 @@ class AutomationEngine {
                                 await msg.clickButton(correctButton.customId);
                                 automation.clickedMessages.add(msg.id);
                                 
-                                onLog(`✅ Botão clicado | ${channel.guild.name} | #${channel.name}`, "success");
+                                onLog(`✅ Clicado | ${channel.guild.name} | ${newCount}/${this.MAX_ENTRIES_PER_GUILD}`, "success");
                                 if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
                                 
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
