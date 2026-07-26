@@ -175,10 +175,7 @@ class AutomationEngine {
                 taskEntry.timeoutId = timeoutId;
                 scheduledTasks.set(key, taskEntry);
 
-                // Log apenas para msgauto e menção (não para confirmação, para não duplicar visualmente)
-                if (type === 'msgauto' || type === 'menção') {
-                    onLog(`⏳ Agendado: ${type} | ${channel.guild?.name || 'Desconhecido'} (${delayMs / 1000}s)`, "info");
-                }
+                // Agendado - sem log no painel
             };
 
             const cancelAllScheduledTasks = () => {
@@ -225,9 +222,7 @@ class AutomationEngine {
                                 await channel.send(msgauto);
                                 onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
                             } catch (err) {
-                                if (isPermissionError(err)) {
-                                    onLog(`⚠️ Sem permissão | ${channel.guild?.name}`, "warn");
-                                }
+                                // Erro ao enviar mensagem - silencioso
                             }
                         });
                     }
@@ -255,9 +250,7 @@ class AutomationEngine {
                                             automation.confirmedChannels.add(channel.id);
                                             onLog(`✅ Confirmado | ${channel.guild?.name}`, "success");
                                         } catch (err) {
-                                            if (isPermissionError(err)) {
-                                                onLog(`⚠️ Sem permissão | ${channel.guild?.name}`, "warn");
-                                            }
+                                            // Erro ao confirmar - silencioso
                                         }
                                     }
                                 }
@@ -302,9 +295,7 @@ class AutomationEngine {
                                                 automation.clickedMessages.add(mentionKey);
                                                 onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
                                             } catch (err) {
-                                                if (isPermissionError(err)) {
-                                                    onLog(`⚠️ Sem permissão | ${channel.guild?.name}`, "warn");
-                                                }
+                                                // Erro ao enviar menção - silencioso
                                             }
                                             break;
                                         }
@@ -360,9 +351,7 @@ class AutomationEngine {
                                 
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
                             } catch (err) {
-                                if (isPermissionError(err)) {
-                                    onLog(`⚠️ Sem permissão para clicar neste botão | ${channel.guild.name} | #${channel.name}`, "warn");
-                                }
+                                // Erro ao clicar botão - silencioso
                             }
                         }
                     }
@@ -412,9 +401,7 @@ class AutomationEngine {
                             try {
                                 await processChannel(channel);
                             } catch (err) {
-                                if (isPermissionError(err)) {
-                                    onLog(`⚠️ Sem permissão neste canal | ${channel.guild.name}`, "warn");
-                                }
+                                // Erro no processChannel - silencioso
                             }
                             setTimeout(() => automation.processing.delete(channel.id), 500);
                         }
