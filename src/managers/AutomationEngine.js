@@ -346,7 +346,7 @@ class AutomationEngine {
                                 await msg.clickButton(correctButton.customId);
                                 automation.clickedMessages.add(msg.id);
                                 
-                                onLog(`✅ Clicado | ${channel.guild.name} | ${newCount}/${this.MAX_ENTRIES_PER_GUILD}`, "success");
+                                onLog(`✅ Clicado | ${channel.guild.name} | #${channel.name} | ${newCount}/${this.MAX_ENTRIES_PER_GUILD}`, "success");
                                 if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
                                 
                                 if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
