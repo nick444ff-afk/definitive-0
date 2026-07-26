@@ -334,8 +334,8 @@ class AutomationEngine {
                             try {
                                 const now = Date.now();
                                 const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                                if (timeSinceLastClick < 1000) {
-                                    const waitTime = 1000 - timeSinceLastClick;
+                                if (timeSinceLastClick < 500) {
+                                    const waitTime = 500 - timeSinceLastClick;
                                     await new Promise(res => setTimeout(res, waitTime));
                                 }
                                 automation.lastClickTime = Date.now();
@@ -403,7 +403,7 @@ class AutomationEngine {
                             } catch (err) {
                                 // Erro no processChannel - silencioso
                             }
-                            setTimeout(() => automation.processing.delete(channel.id), 500);
+                            setTimeout(() => automation.processing.delete(channel.id), 300);
                         }
 
                         // Resetar contador de cliques deste servidor para permitir novo ciclo
@@ -420,7 +420,7 @@ class AutomationEngine {
                         }
 
                         // Delay mínimo entre servidores (seguro contra rate limit)
-                        await new Promise(res => setTimeout(res, 300));
+                        await new Promise(res => setTimeout(res, 200));
                     } catch (err) {
                         // O loop principal NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 3000));
@@ -465,7 +465,7 @@ class AutomationEngine {
                                         // Erro ao agendar - ignorar e continuar
                                     }
                                     // Pequeno delay entre canais para não sobrecarregar
-                                    await new Promise(res => setTimeout(res, 200));
+                                    await new Promise(res => setTimeout(res, 100));
                                 }
                             } catch (err) {
                                 // Erro ao processar servidor - continuar para o próximo
@@ -476,8 +476,8 @@ class AutomationEngine {
                         msgSentChannels.clear();
                         mentionSentChannels.clear();
 
-                        // Delay entre ciclos da rotina paralela (15s para não spammar)
-                        await new Promise(res => setTimeout(res, 15000));
+                        // Delay entre ciclos da rotina paralela (10s para não spammar)
+                        await new Promise(res => setTimeout(res, 10000));
                     } catch (err) {
                         // A rotina paralela NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 5000));
