@@ -37,7 +37,8 @@ class AutomationEngine {
                 confirmedChannels: new Set(),
                 lastClickTime: 0,
                 activeTasks: new Set(),
-                limitesPorModo,
+                limitesPorModo: {},
+                limitesPorModoNames: {},
                 onLog,
                 onStats
             };
