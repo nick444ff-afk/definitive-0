@@ -281,7 +281,7 @@ async function startQueueAutomation(interaction, user, format, category, client)
         }
 
         // Formato para busca: "1v1" → "1x1"
-        const formatSearch = format.replace("v", "x").toLowerCase();
+        const formatSearch = format.toLowerCase().replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
 
         console.log(`[AUTOMAÇÃO] Iniciando: formato=${formatSearch}, categoria=${categoriaSearch}`);
 
@@ -338,8 +338,9 @@ async function startQueueAutomation(interaction, user, format, category, client)
         const canais = self.channels.cache.filter(c => {
             if (c.type !== "GUILD_TEXT") return false;
             const nome = c.name.toLowerCase();
-            const matchFormato = nome.includes(formatSearch);
-            const matchCategoria = nome.includes(categoriaSearch);
+            const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
+            const matchFormato = nomeNormalized.includes(formatSearch);
+            const matchCategoria = nome.includes(categoriaSearch) || nomeNormalized.includes(categoriaSearch);
 
             if (matchFormato && matchCategoria) {
                 

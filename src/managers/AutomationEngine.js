@@ -87,7 +87,7 @@ class AutomationEngine {
                 tatico: "tatico"
             };
 
-            const searchFormats = (modos || []).map(m => m.toLowerCase().replace("v", "x"));
+            const searchFormats = (modos || []).map(m => m.toLowerCase().replace(/v|x/g, " ").replace(/-|_/g, " ").replace(/\s+/g, " ").trim());
             const searchCategories = (categories || []).map(cat => categoriaMap[cat.toLowerCase()] || cat.toLowerCase());
 
             const CATEGORY_KEYWORDS = {
@@ -395,8 +395,9 @@ class AutomationEngine {
                         const canaisFila = currentGuild.channels.cache.filter(c => {
                             if (c.type !== "GUILD_TEXT") return false;
                             const nome = c.name.toLowerCase();
-                            const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nome.includes(f));
-                            const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat));
+                            const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
+                            const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
+                            const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat) || nomeNormalized.includes(cat));
                             return matchesFormat && matchesCategory;
                         });
 
