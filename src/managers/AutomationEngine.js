@@ -11,6 +11,7 @@ class AutomationEngine {
     constructor() {
         this.activeAutomations = new Map();
         this.MAX_ENTRIES_PER_GUILD = 5;
+        this.limiteCliques = 5;
     }
 
     async startAutomation(botId, config, onLog, onStats) {
@@ -30,11 +31,13 @@ class AutomationEngine {
                 intervals: [],
                 processing: new Set(),
                 clickedMessages: new Set(),
-                guildClickCount: new Map(),
+                guildClickCount: new Map(),          // guildId -> total de cliques
+                guildClickCountByMode: new Map(),     // "guildId:modo" -> cliques naquele modo
                 msgAutoSentThisSession: new Set(),
                 confirmedChannels: new Set(),
                 lastClickTime: 0,
                 activeTasks: new Set(),
+                limitesPorModo,
                 onLog,
                 onStats
             };
@@ -58,7 +61,7 @@ class AutomationEngine {
 
     async _runOriginalLogic(botId, automation, token, config) {
         const { onLog, onStats } = automation;
-        const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay } = config;
+            const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay } = config;
 
         try {
             const self = new Client();
@@ -89,6 +92,31 @@ class AutomationEngine {
 
             const searchFormats = (modos || []).map(m => m.toLowerCase().replace(/v|x/g, " ").replace(/-|_/g, " ").replace(/\s+/g, " ").trim());
             const searchCategories = (categories || []).map(cat => categoriaMap[cat.toLowerCase()] || cat.toLowerCase());
+
+            // ═══════════════════════════════════════════════════════
+            // LIMITE DE CLIQUES COM DIVISÃO JUSTA POR MODO
+            // ═══════════════════════════════════════════════════════
+            const limiteCliques = config.limiteCliques || 5;
+            const numModos = searchFormats.length || 1;
+            const basePorModo = Math.max(1, Math.floor(limiteCliques / numModos));
+            const sobra = limiteCliques - (basePorModo * numModos);
+            
+            // Distribuir sobra: primeiros modos ficam com +1
+            const limitesPorModo = {};
+            (modos || []).forEach((m, i) => {
+                limitesPorModo[m.toLowerCase()] = basePorModo + (i < sobra ? 1 : 0);
+            });
+            // Se só 1 modo, usa o limite inteiro
+            if (numModos === 1 && (modos || []).length === 1) {
+                limitesPorModo[(modos || [])[0].toLowerCase()] = limiteCliques;
+            }
+            
+            automation.limitesPorModo = limitesPorModo;
+            automation.limitesPorModoNames = {};
+            (modos || []).forEach(m => {
+                const normalized = m.toLowerCase().replace(/v|x/g, " ").replace(/-|_/g, " ").replace(/\s+/g, " ").trim();
+                automation.limitesPorModoNames[normalized] = limitesPorModo[m.toLowerCase()] || basePorModo;
+            });
 
             const CATEGORY_KEYWORDS = {
                 mobile: ["mobile", "mob", "celular", "📱"],
@@ -307,18 +335,37 @@ class AutomationEngine {
                 }
             };
 
+            // Função para detectar qual modo um canal pertence
+            const getChannelMode = (channel) => {
+                const nome = channel.name.toLowerCase();
+                const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
+                for (const mode of searchFormats) {
+                    if (nomeNormalized.includes(mode)) return mode;
+                }
+                return null;
+            };
+
             const processChannel = async (channel) => {
                 const guildId = channel.guild?.id;
                 if (!guildId || !automation.isRunning) return;
                 
-                const currentClicks = automation.guildClickCount.get(guildId) || 0;
-                if (currentClicks >= this.MAX_ENTRIES_PER_GUILD) return;
+                // Detectar modo deste canal
+                const channelMode = getChannelMode(channel);
+                const modeKey = channelMode || "unknown";
+                const modeLimit = automation.limitesPorModoNames[channelMode] || this.MAX_ENTRIES_PER_GUILD;
+                const modeCountKey = `${guildId}:${modeKey}`;
+                
+                // Verificar limite por servidor+modo
+                const modeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
+                if (modeClicks >= modeLimit) return;
 
                 try {
                     const msgs = await channel.messages.fetch({ limit: 15 });
                     for (const msg of msgs.values()) {
                         if (!automation.isRunning) break;
-                        if ((automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) break;
+                        // Re-verificar limite após fetch
+                        const currentModeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
+                        if (currentModeClicks >= modeLimit) break;
                         if (!msg.components?.length || automation.clickedMessages.has(msg.id)) continue;
 
                         const allButtons = [];
@@ -340,16 +387,20 @@ class AutomationEngine {
                                 }
                                 automation.lastClickTime = Date.now();
 
-                                const newCount = (automation.guildClickCount.get(guildId) || 0) + 1;
-                                automation.guildClickCount.set(guildId, newCount);
+                                const newModeCount = (automation.guildClickCountByMode.get(modeCountKey) || 0) + 1;
+                                automation.guildClickCountByMode.set(modeCountKey, newModeCount);
+                                
+                                // Atualizar contador total também (para stats)
+                                const totalClicks = (automation.guildClickCount.get(guildId) || 0) + 1;
+                                automation.guildClickCount.set(guildId, totalClicks);
                                 
                                 await msg.clickButton(correctButton.customId);
                                 automation.clickedMessages.add(msg.id);
                                 
-                                onLog(`✅ Clicado | ${channel.guild.name} | #${channel.name} | ${newCount}/${this.MAX_ENTRIES_PER_GUILD}`, "success");
-                                if (onStats) onStats({ entradas: [...automation.guildClickCount.values()].reduce((a, b) => a + b, 0) });
+                                onLog(`✅ Clicado | ${channel.guild.name} | #${channel.name} | ${newModeCount}/${modeLimit}`, "success");
+                                if (onStats) onStats({ entradas: totalClicks });
                                 
-                                if (newCount >= this.MAX_ENTRIES_PER_GUILD) break;
+                                if (newModeCount >= modeLimit) break;
                             } catch (err) {
                                 // Erro ao clicar botão - silencioso
                             }
@@ -395,7 +446,12 @@ class AutomationEngine {
                             if (automation.processing.has(channel.id)) continue;
                             
                             const guildId = channel.guild?.id;
-                            if (guildId && (automation.guildClickCount.get(guildId) || 0) >= this.MAX_ENTRIES_PER_GUILD) continue;
+                            // Verificar limite por servidor+modo
+                            const channelMode = getChannelMode(channel);
+                            const modeCountKey = `${guildId}:${channelMode || "unknown"}`;
+                            const modeLimit = automation.limitesPorModoNames[channelMode] || this.MAX_ENTRIES_PER_GUILD;
+                            const modeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
+                            if (modeClicks >= modeLimit) continue;
 
                             automation.processing.add(channel.id);
                             try {
@@ -406,8 +462,13 @@ class AutomationEngine {
                             setTimeout(() => automation.processing.delete(channel.id), 300);
                         }
 
-                        // Resetar contador de cliques deste servidor para permitir novo ciclo
+                        // Resetar contadores de cliques deste servidor (todos os modos) para permitir novo ciclo
                         automation.guildClickCount.delete(currentGuild.id);
+                        for (const key of automation.guildClickCountByMode.keys()) {
+                            if (key.startsWith(`${currentGuild.id}:`)) {
+                                automation.guildClickCountByMode.delete(key);
+                            }
+                        }
 
                         // Avançar para o próximo servidor
                         serverIndex++;
