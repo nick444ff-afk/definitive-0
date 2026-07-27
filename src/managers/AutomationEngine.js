@@ -30,7 +30,7 @@ class AutomationEngine {
                 clients: [],
                 intervals: [],
                 processing: new Set(),
-                clickedMessages: new Set(),
+                clickedMessagesByGuild: new Map(),  // guildId -> Set de msgIds clicados nesta volta
                 guildClickCount: new Map(),          // guildId -> total de cliques
                 guildClickCountByMode: new Map(),     // "guildId:modo" -> cliques naquele modo
                 msgAutoSentThisSession: new Set(),
@@ -443,7 +443,10 @@ class AutomationEngine {
                             automation.lastClickTime = Date.now();
 
                             await msg.clickButton(button.customId);
-                            automation.clickedMessages.add(msg.id);
+                            if (!automation.clickedMessagesByGuild.has(guildId)) {
+                                automation.clickedMessagesByGuild.set(guildId, new Set());
+                            }
+                            automation.clickedMessagesByGuild.get(guildId).add(msg.id);
                             // Remover falhas anteriores se clicou com sucesso
                             automation.failedButtons.delete(`${msg.id}:${button.label || button.customId}`);
 
@@ -539,9 +542,9 @@ class AutomationEngine {
                         if (!automation.isRunning) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
 
-                        // Se já clicou nesta mensagem em uma varredura anterior → PULAR
-                        // Só processa novamente se a mensagem foi atualizada (novo conteúdo)
-                        if (automation.clickedMessages.has(msg.id)) continue;
+                        // Se já clicou nesta mensagem nesta volta do servidor → PULAR
+                        const guildClicked = automation.clickedMessagesByGuild.get(guildId);
+                        if (guildClicked && guildClicked.has(msg.id)) continue;
 
                         if (!msg.components?.length) continue;
 
@@ -644,13 +647,14 @@ class AutomationEngine {
                             setTimeout(() => automation.processing.delete(channel.id), 300);
                         }
 
-                        // Resetar contadores de cliques deste servidor (todos os modos) para permitir novo ciclo
+                        // Resetar contadores de cliques E mensagens clicadas deste servidor para permitir novo ciclo
                         automation.guildClickCount.delete(currentGuild.id);
                         for (const key of automation.guildClickCountByMode.keys()) {
                             if (key.startsWith(`${currentGuild.id}:`)) {
                                 automation.guildClickCountByMode.delete(key);
                             }
                         }
+                        automation.clickedMessagesByGuild.delete(currentGuild.id);
 
                         // Avançar para o próximo servidor
                         serverIndex++;
