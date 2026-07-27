@@ -664,10 +664,17 @@ class AutomationEngine {
                                 const guild = self.guilds.cache.get(guildId);
                                 if (!guild || guild.unavailable || automation.blacklistedGuilds.has(guild.id)) continue;
 
-                                const channels = guild.channels.cache.filter(c => 
-                                    c.type === "GUILD_TEXT" && 
-                                    c.parentId === categoryId
-                                );
+                                const channels = guild.channels.cache.filter(c => {
+                                    if (c.type !== "GUILD_TEXT" || c.parentId !== categoryId) return false;
+                                    
+                                    // Aplicar filtro de Modos de Jogo (1x1, 2x2, etc.)
+                                    const nome = c.name.toLowerCase();
+                                    const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
+                                    
+                                    // Se houver modos selecionados, o canal deve conter pelo menos um deles no nome
+                                    const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
+                                    return matchesFormat;
+                                });
                                 canaisFila.push(...channels.values());
                             }
                             // Embaralhar os canais dos alvos para comportamento humano
