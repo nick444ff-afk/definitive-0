@@ -452,9 +452,10 @@ class AutomationEngine {
                         try {
                             const now = Date.now();
                             const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                            // Delay entre cliques: 2s (evitar restrição)
-                            if (timeSinceLastClick < 2000) {
-                                await new Promise(res => setTimeout(res, 2000 - timeSinceLastClick));
+                            // Delay entre cliques: 2s a 4s (randomizado para ser mais humano)
+                            const targetDelay = 2000 + Math.random() * 2000;
+                            if (timeSinceLastClick < targetDelay) {
+                                await new Promise(res => setTimeout(res, targetDelay - timeSinceLastClick));
                             }
                             automation.lastClickTime = Date.now();
 
@@ -689,7 +690,8 @@ class AutomationEngine {
                             } catch (err) {
                                 onLog(`⚠️ Canal #${channel.name} ignorado: ${err.message}`, "warn");
                             }
-                            setTimeout(() => automation.processing.delete(channel.id), 300);
+                            // Delay entre canais do mesmo servidor: 2s a 3s
+                            setTimeout(() => automation.processing.delete(channel.id), 2000 + Math.random() * 1000);
                         }
 
                         // Resetar contadores de cliques E mensagens clicadas deste servidor para permitir novo ciclo
@@ -709,10 +711,13 @@ class AutomationEngine {
                         if (serverIndex % guildArray.length === 0) {
                             automation.msgAutoSentThisSession.clear();
                             automation.confirmedChannels.clear();
+                            // Descanso após volta completa: 15s a 30s
+                            onLog(`⏳ Ciclo completo. Descansando 20s para evitar restrições...`, "info");
+                            await new Promise(res => setTimeout(res, 20000 + Math.random() * 10000));
                         }
 
-                        // Delay de trocar de servidor: 2.5s (média entre 2s/3s)
-                        await new Promise(res => setTimeout(res, 2500));
+                        // Delay de trocar de servidor: 3s a 5s
+                        await new Promise(res => setTimeout(res, 3000 + Math.random() * 2000));
                     } catch (err) {
                         // O loop principal NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 3000));
@@ -758,8 +763,8 @@ class AutomationEngine {
                                     } catch (err) {
                                         // Erro ao agendar - ignorar e continuar
                                     }
-                                    // Pequeno delay entre canais para não sobrecarregar
-                                    await new Promise(res => setTimeout(res, 100));
+                                    // Delay entre canais na rotina paralela: 1s a 2s
+                                    await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
                                 }
                             } catch (err) {
                                 // Erro ao processar servidor - continuar para o próximo
