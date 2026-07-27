@@ -711,9 +711,9 @@ class AutomationEngine {
                         if (serverIndex % guildArray.length === 0) {
                             automation.msgAutoSentThisSession.clear();
                             automation.confirmedChannels.clear();
-                            // Descanso após volta completa: 15s a 30s
-                            onLog(`⏳ Ciclo completo. Descansando 20s para evitar restrições...`, "info");
-                            await new Promise(res => setTimeout(res, 20000 + Math.random() * 10000));
+                            // Descanso após volta completa: 5s a 10s
+                            onLog(`⏳ Ciclo completo. Reiniciando em breve...`, "info");
+                            await new Promise(res => setTimeout(res, 5000 + Math.random() * 5000));
                         }
 
                         // Delay de trocar de servidor: 3s a 5s
