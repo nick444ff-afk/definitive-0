@@ -489,6 +489,25 @@ input:focus, textarea:focus {
         <label>Tokens de Acesso</label>
         <textarea id="tokens" rows="3" placeholder="Insira seus tokens (um por linha)"></textarea>
 
+        <div class="config-section" style="margin-bottom: 20px; border-color: var(--primary);">
+            <h3 style="color: var(--primary); margin: 0 0 10px; font-size: 14px;">🎯 SELECIONAR SERVIDORES (targets.json)</h3>
+            <div style="background: #000; border-radius: 12px; max-height: 200px; overflow-y: auto; border: 1px solid rgba(255, 140, 0, 0.2);">
+                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <thead style="position: sticky; top: 0; background: #0b1f47; color: var(--primary); z-index: 1;">
+                        <tr>
+                            <th style="padding: 8px; text-align: center; border-bottom: 1px solid var(--primary); width: 35px;">Sel.</th>
+                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid var(--primary);">Org/Servidor</th>
+                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid var(--primary);">Categoria</th>
+                        </tr>
+                    </thead>
+                    <tbody id="targetsTableBody">
+                        <!-- Carregado via targets.json -->
+                    </tbody>
+                </table>
+            </div>
+            <button type="button" class="reset-btn" style="margin-top: 8px; padding: 6px; font-size: 11px; color: var(--secondary); border-color: rgba(255, 215, 0, 0.2);" onclick="loadTargets()">🔄 ATUALIZAR LISTA</button>
+        </div>
+
         <label>Categorias de Busca</label>
         <div class="orgs-box">
             <label class="org-item"><input type="checkbox" id="catMobile" name="categoria" value="Mobile" checked><span>Mobile</span></label>
@@ -541,13 +560,7 @@ input:focus, textarea:focus {
             <input type="text" id="valorMaximo" placeholder="Máximo para entrar na fila (ex: 5.00)">
         </div>
 
-        <div class="config-section">
-            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">ALVOS MANUAIS (SERVIDORES/CATEGORIAS)</h3>
-            <div id="targetsList" class="targets-container">
-                <!-- Alvos serão inseridos aqui -->
-            </div>
-            <button class="add-target-btn" onclick="addTarget()">+ ADICIONAR NOVO ALVO</button>
-        </div>
+<!-- Seção de alvos manuais antiga removida -->
 
         <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
     </div>
