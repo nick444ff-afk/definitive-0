@@ -85,7 +85,7 @@ class InstanceManager {
     /**
      * Inicia a automação de uma instância
      */
-    async startAutomation(botId, tokens, format, category, msgauto, mentionauto, categories, modos, confirmauto, msgdelay, limiteCliques, valorMinimo, valorMaximo) {
+    async startAutomation(botId, tokens, format, category, msgauto, mentionauto, categories, modos, confirmauto, msgdelay, limiteCliques, valorMinimo, valorMaximo, targets) {
         try {
             await this.initInstance(botId);
             const instance = this.instances.get(botId);
@@ -109,7 +109,8 @@ class InstanceManager {
                 valorMinimo: parseFloat(valorMinimo) || 0,
                 valorMaximo: parseFloat(valorMaximo) || 0,
                 categories,
-                modos
+                modos,
+                targets: targets || []
             };
             instance.current_format = format;
             instance.current_category = category;

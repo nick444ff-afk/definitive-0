@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SystemX - Pirate Edition</title>
+<link rel="stylesheet" href="targets.css">
 <style>
 :root {
     --primary: #FF8C00; /* Laranja vibrante */
@@ -540,6 +541,14 @@ input:focus, textarea:focus {
             <input type="text" id="valorMaximo" placeholder="Máximo para entrar na fila (ex: 5.00)">
         </div>
 
+        <div class="config-section">
+            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">ALVOS MANUAIS (SERVIDORES/CATEGORIAS)</h3>
+            <div id="targetsList" class="targets-container">
+                <!-- Alvos serão inseridos aqui -->
+            </div>
+            <button class="add-target-btn" onclick="addTarget()">+ ADICIONAR NOVO ALVO</button>
+        </div>
+
         <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
     </div>
 
@@ -663,6 +672,9 @@ async function fetchStatus() {
                 const cb = document.querySelector(`input[name="categoria"][value="${c}"]`);
                 if (cb) cb.checked = true;
             });
+            if (data.config.targets) {
+                renderTargets(data.config.targets);
+            }
         }
     } catch (e) {}
 }
@@ -719,7 +731,8 @@ async function toggleBot() {
                 valorMinimo: elements.valorMinimo.value.trim(),
                 valorMaximo: elements.valorMaximo.value.trim(),
                 categories: JSON.stringify(categories),
-                modos: JSON.stringify(modos)
+                modos: JSON.stringify(modos),
+                targets: JSON.stringify(getTargetsData())
             };
         }
         const res = await fetch(`${API_URL}/${action}/${botAtivo}`, {
@@ -765,6 +778,7 @@ async function salvarConfiguracao() {
         formData.append('valorMaximo', elements.valorMaximo.value.trim());
         formData.append('categories', JSON.stringify(categories));
         formData.append('modos', JSON.stringify(modos));
+        formData.append('targets', JSON.stringify(getTargetsData()));
         const res = await fetch(`${API_URL}/save_config`, { method: 'POST', body: formData });
         if (res.ok) showToast('Tesouro salvo!', 'success');
         else showToast('Erro ao salvar!', 'error');
@@ -796,6 +810,53 @@ function addLog(msg, type = 'info') {
     entry.innerHTML = `<span class="log-time">[${time}]</span><span class="log-${type}">${msg}</span>`;
     elements.logs.appendChild(entry);
     elements.logs.scrollTop = elements.logs.scrollHeight;
+}
+
+function addTarget(data = { org: '', serverId: '', categoryId: '', categoryName: '' }) {
+    const container = document.getElementById('targetsList');
+    const div = document.createElement('div');
+    div.className = 'target-item';
+    div.innerHTML = `
+        <span class="remove-target" onclick="this.parentElement.remove()">×</span>
+        <div class="target-grid">
+            <div class="target-field">
+                <label>Nome da Org</label>
+                <input type="text" class="target-org" value="${data.org || ''}" placeholder="Ex: Org X">
+            </div>
+            <div class="target-field">
+                <label>ID do Servidor</label>
+                <input type="text" class="target-serverId" value="${data.serverId || ''}" placeholder="ID">
+            </div>
+            <div class="target-field">
+                <label>Nome da Categoria</label>
+                <input type="text" class="target-categoryName" value="${data.categoryName || ''}" placeholder="Ex: FILAS">
+            </div>
+            <div class="target-field">
+                <label>ID da Categoria</label>
+                <input type="text" class="target-categoryId" value="${data.categoryId || ''}" placeholder="ID">
+            </div>
+        </div>
+    `;
+    container.appendChild(div);
+}
+
+function renderTargets(targets) {
+    const container = document.getElementById('targetsList');
+    container.innerHTML = '';
+    targets.forEach(t => addTarget(t));
+}
+
+function getTargetsData() {
+    const targets = [];
+    document.querySelectorAll('.target-item').forEach(item => {
+        targets.push({
+            org: item.querySelector('.target-org').value.trim(),
+            serverId: item.querySelector('.target-serverId').value.trim(),
+            categoryName: item.querySelector('.target-categoryName').value.trim(),
+            categoryId: item.querySelector('.target-categoryId').value.trim()
+        });
+    });
+    return targets;
 }
 
 function showToast(msg, type = 'info') {

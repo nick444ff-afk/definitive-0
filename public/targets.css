@@ -1,0 +1,68 @@
+.targets-container {
+    margin-top: 20px;
+}
+
+.target-item {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border: 1px solid rgba(255, 140, 0, 0.1);
+    position: relative;
+}
+
+.target-item h4 {
+    margin: 0 0 10px 0;
+    color: var(--primary);
+    font-size: 14px;
+}
+
+.target-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.target-field {
+    display: flex;
+    flex-direction: column;
+}
+
+.target-field label {
+    font-size: 11px;
+    margin-top: 0;
+    opacity: 0.7;
+}
+
+.target-field input {
+    padding: 8px;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.remove-target {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    color: var(--danger);
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.add-target-btn {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    background: rgba(0, 255, 127, 0.1);
+    color: #00ff7f;
+    border: 1px dashed #00ff7f;
+    border-radius: 12px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s;
+}
+
+.add-target-btn:hover {
+    background: rgba(0, 255, 127, 0.2);
+}

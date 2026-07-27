@@ -66,7 +66,7 @@ class AutomationEngine {
 
     async _runOriginalLogic(botId, automation, token, config) {
         const { onLog, onStats } = automation;
-            const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay } = config;
+            const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay, targets } = config;
 
         try {
             const self = new Client();
@@ -648,33 +648,56 @@ class AutomationEngine {
                             continue;
                         }
 
-                        // Embaralhar servidores a cada volta completa para evitar padrões
-                        if (serverIndex % guildArray.length === 0) {
-                            guildArray = guildArray.sort(() => Math.random() - 0.5);
-                        }
+                        // --- LÓGICA DE SELEÇÃO DE CANAIS ---
+                        let canaisFila = [];
+                        let currentGuildId = null;
 
-                        serverIndex = serverIndex % guildArray.length;
-                        const currentGuild = guildArray[serverIndex];
+                        if (targets && targets.length > 0) {
+                            // MODO ALVOS MANUAIS: Apenas processa o que foi cadastrado
+                            for (const target of targets) {
+                                const guild = self.guilds.cache.get(target.serverId);
+                                if (!guild || guild.unavailable || automation.blacklistedGuilds.has(guild.id)) continue;
 
-                        // PULAR servidores na blacklist
-                        if (automation.blacklistedGuilds.has(currentGuild.id)) {
+                                const channels = guild.channels.cache.filter(c => 
+                                    c.type === "GUILD_TEXT" && 
+                                    c.parentId === target.categoryId
+                                );
+                                canaisFila.push(...channels.values());
+                            }
+                            // Embaralhar os canais dos alvos
+                            canaisFila = canaisFila.sort(() => Math.random() - 0.5);
+                        } else {
+                            // MODO VARREDURA AUTOMÁTICA (Fallback)
+                            serverIndex = serverIndex % guildArray.length;
+                            
+                            // Embaralhar servidores a cada volta completa
+                            if (serverIndex % guildArray.length === 0) {
+                                guildArray = guildArray.sort(() => Math.random() - 0.5);
+                            }
+
+                            const currentGuild = guildArray[serverIndex];
+                            currentGuildId = currentGuild.id;
+                            if (automation.blacklistedGuilds.has(currentGuild.id)) {
+                                serverIndex++;
+                                continue;
+                            }
+
+                            const canaisAuto = currentGuild.channels.cache.filter(c => {
+                                if (c.type !== "GUILD_TEXT") return false;
+                                const nome = c.name.toLowerCase();
+                                const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
+                                const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
+                                const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat) || nomeNormalized.includes(cat));
+                                return matchesFormat && matchesCategory;
+                            });
+                            canaisFila = [...canaisAuto.values()];
                             serverIndex++;
-                            continue;
                         }
 
-                        // ESCANEAMENTO DE CANAIS DE FILA E CLIQUES
-                        const canaisFila = currentGuild.channels.cache.filter(c => {
-                            if (c.type !== "GUILD_TEXT") return false;
-                            const nome = c.name.toLowerCase();
-                            const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
-                            const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
-                            const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat) || nomeNormalized.includes(cat));
-                            return matchesFormat && matchesCategory;
-                        });
-
-                        for (const [, channel] of canaisFila) {
+                        for (const channel of canaisFila) {
                             if (!automation.isRunning) break;
-                            if (automation.blacklistedGuilds.has(currentGuild.id)) break;
+                            const guildId = channel.guild?.id;
+                            if (automation.blacklistedGuilds.has(guildId)) continue;
                             if (automation.processing.has(channel.id)) continue;
                             
                             const guildId = channel.guild?.id;
@@ -747,8 +770,16 @@ class AutomationEngine {
                             continue;
                         }
 
-                        // Escanear TODOS os servidores procurando canais de partida
-                        for (const guild of guildArray) {
+                        // Escanear servidores procurando canais de partida
+                        let guildsToScan = [];
+                        if (targets && targets.length > 0) {
+                            const targetGuildIds = [...new Set(targets.map(t => t.serverId))];
+                            guildsToScan = targetGuildIds.map(id => self.guilds.cache.get(id)).filter(g => g && !g.unavailable);
+                        } else {
+                            guildsToScan = guildArray;
+                        }
+
+                        for (const guild of guildsToScan) {
                             if (!automation.isRunning) break;
                             if (automation.blacklistedGuilds.has(guild.id)) continue;
                             

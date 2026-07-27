@@ -131,7 +131,7 @@ app.get("/status/:botId", async (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        const { tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo } = req.body;
+        const { tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo, targets } = req.body;
         
         let config;
         
@@ -150,6 +150,7 @@ app.post("/start_bot/:botId", async (req, res) => {
                 valorMaximo: parseFloat(valorMaximo) || 0,
                 categories: categories ? JSON.parse(categories) : [],
                 modos: modos ? JSON.parse(modos) : [],
+                targets: targets ? JSON.parse(targets) : [],
                 saved_at: new Date().toISOString()
             };
             await InstanceManager.saveConfig(botId, config);
@@ -179,7 +180,8 @@ app.post("/start_bot/:botId", async (req, res) => {
             config.msgdelay || 0,
             config.limiteCliques || 5,
             config.valorMinimo || 0,
-            config.valorMaximo || 0
+            config.valorMaximo || 0,
+            config.targets || []
         );
 
         res.json(result);
@@ -219,7 +221,7 @@ app.post("/stop_bot/:botId", async (req, res) => {
 app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
     try {
         console.log("[API] Recebendo save_config:", req.body);
-        const { bot_id, tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo } = req.body;
+        const { bot_id, tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo, targets } = req.body;
 
         if (!bot_id || !tokens) {
             console.error("[API] Falha no save_config: bot_id ou tokens ausentes");
@@ -243,6 +245,7 @@ app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
             valorMaximo: parseFloat(valorMaximo) || 0,
             categories: categories ? JSON.parse(categories) : [],
             modos: modos ? JSON.parse(modos) : [],
+            targets: targets ? JSON.parse(targets) : [],
             imagem_auto: req.file ? req.file.path : null,
             saved_at: new Date().toISOString()
         };
