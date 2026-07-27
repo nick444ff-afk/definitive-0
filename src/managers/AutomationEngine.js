@@ -385,12 +385,51 @@ class AutomationEngine {
 
                 try {
                     const msgs = await channel.messages.fetch({ limit: 15 });
+                    
+                    // Nomes possíveis do bot para verificar se já está na fila
+                    const myNames = new Set();
+                    if (self.user?.username) myNames.add(self.user.username);
+                    if (self.user?.displayName) myNames.add(self.user.displayName);
+                    if (self.user?.globalName) myNames.add(self.user.globalName);
+                    
                     for (const msg of msgs.values()) {
                         if (!automation.isRunning) break;
                         // Re-verificar limite após fetch
                         const currentModeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
                         if (currentModeClicks >= modeLimit) break;
                         if (!msg.components?.length || automation.clickedMessages.has(msg.id)) continue;
+
+                        // VERIFICAÇÃO: se o bot já está na fila pelo nome de exibição
+                        const isInQueue = (() => {
+                            // Checar no content da mensagem
+                            if (msg.content) {
+                                for (const name of myNames) {
+                                    if (msg.content.includes(name)) return true;
+                                }
+                            }
+                            // Checar nos embeds (title, description, fields)
+                            if (msg.embeds) {
+                                for (const embed of msg.embeds) {
+                                    const embedTexts = [];
+                                    if (embed.title) embedTexts.push(embed.title);
+                                    if (embed.description) embedTexts.push(embed.description);
+                                    if (embed.fields) {
+                                        for (const field of embed.fields) {
+                                            if (field.name) embedTexts.push(field.name);
+                                            if (field.value) embedTexts.push(field.value);
+                                        }
+                                    }
+                                    for (const text of embedTexts) {
+                                        for (const name of myNames) {
+                                            if (text.includes(name)) return true;
+                                        }
+                                    }
+                                }
+                            }
+                            return false;
+                        })();
+                        
+                        if (isInQueue) continue; // Já está na fila, pula para a próxima mensagem
 
                         const allButtons = [];
                         for (const row of msg.components) {
