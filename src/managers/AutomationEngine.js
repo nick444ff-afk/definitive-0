@@ -126,7 +126,7 @@ class AutomationEngine {
                 tatico: ["tatico", "tático", "tat", "❗"]
             };
 
-            const IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair"];
+            const IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair", "sair da fila"];
 
             const findCorrectButton = (buttons, activeCategories) => {
                 let bestMatch = null;
