@@ -452,8 +452,8 @@ class AutomationEngine {
                         try {
                             const now = Date.now();
                             const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                            // Delay entre cliques: 2s a 4s (randomizado para ser mais humano)
-                            const targetDelay = 2000 + Math.random() * 2000;
+                            // Delay entre cliques: Altamente variável (1s a 6s)
+                            const targetDelay = 1000 + Math.random() * 5000;
                             if (timeSinceLastClick < targetDelay) {
                                 await new Promise(res => setTimeout(res, targetDelay - timeSinceLastClick));
                             }
@@ -641,11 +641,16 @@ class AutomationEngine {
                     if (!automation.isRunning) break;
                     try {
                         const guilds = self.guilds.cache.filter(g => !g.unavailable);
-                        const guildArray = [...guilds.values()];
+                        let guildArray = [...guilds.values()];
 
                         if (guildArray.length === 0) {
                             await new Promise(res => setTimeout(res, 5000));
                             continue;
+                        }
+
+                        // Embaralhar servidores a cada volta completa para evitar padrões
+                        if (serverIndex % guildArray.length === 0) {
+                            guildArray = guildArray.sort(() => Math.random() - 0.5);
                         }
 
                         serverIndex = serverIndex % guildArray.length;
@@ -716,8 +721,8 @@ class AutomationEngine {
                             await new Promise(res => setTimeout(res, 5000 + Math.random() * 5000));
                         }
 
-                        // Delay de trocar de servidor: 3s a 5s
-                        await new Promise(res => setTimeout(res, 3000 + Math.random() * 2000));
+                        // Delay de trocar de servidor: Imprevisível (2s a 7s)
+                        await new Promise(res => setTimeout(res, 2000 + Math.random() * 5000));
                     } catch (err) {
                         // O loop principal NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 3000));
