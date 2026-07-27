@@ -75,6 +75,8 @@ class AutomationEngine {
             self.on('disconnect', () => {});
 
             try {
+                // Delay para logar na conta: 5s
+                await new Promise(res => setTimeout(res, 5000));
                 await self.login(token);
                 automation.clients.push(self);
                 onLog(`🟢 Logado com @${self.user.username}`, "success");
@@ -274,6 +276,9 @@ class AutomationEngine {
                                 const recentMsgs = await channel.messages.fetch({ limit: 10 });
                                 const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
                                 if (stillExists) return; // Já existe, não envia
+                                // Delay de "fingir digitar" antes de enviar mensagem: 6s (média entre 5s/7s)
+                                await channel.sendTyping();
+                                await new Promise(res => setTimeout(res, 6000));
                                 await channel.send(msgauto);
                                 onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
                             } catch (err) {
@@ -346,6 +351,9 @@ class AutomationEngine {
                                             if (mentionAlreadySent) return; // Já existe, não envia
                                             
                                             try {
+                                                // Delay de "fingir digitar" antes de menção: 6s
+                                                await channel.sendTyping();
+                                                await new Promise(res => setTimeout(res, 6000));
                                                 await channel.send(`<@${mentionUserId}>`);
                                                 automation.clickedMessages.add(mentionKey);
                                                 onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
@@ -444,8 +452,9 @@ class AutomationEngine {
                         try {
                             const now = Date.now();
                             const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                            if (timeSinceLastClick < 500) {
-                                await new Promise(res => setTimeout(res, 500 - timeSinceLastClick));
+                            // Delay entre cliques: 2s (evitar restrição)
+                            if (timeSinceLastClick < 2000) {
+                                await new Promise(res => setTimeout(res, 2000 - timeSinceLastClick));
                             }
                             automation.lastClickTime = Date.now();
 
@@ -702,8 +711,8 @@ class AutomationEngine {
                             automation.confirmedChannels.clear();
                         }
 
-                        // Delay mínimo entre servidores (seguro contra rate limit)
-                        await new Promise(res => setTimeout(res, 200));
+                        // Delay de trocar de servidor: 2.5s (média entre 2s/3s)
+                        await new Promise(res => setTimeout(res, 2500));
                     } catch (err) {
                         // O loop principal NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 3000));
