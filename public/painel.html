@@ -607,6 +607,7 @@ let updateInterval = null;
 document.addEventListener('DOMContentLoaded', () => {
     addLog('Sistema Pirate restaurado.', 'info');
     startFastUpdate();
+    loadTargets(); // Carregar alvos imediatamente
 });
 
 function startFastUpdate() {
@@ -685,9 +686,7 @@ async function fetchStatus() {
                 const cb = document.querySelector(`input[name="categoria"][value="${c}"]`);
                 if (cb) cb.checked = true;
             });
-            if (data.config.targets) {
-                renderTargets(data.config.targets);
-            }
+        // Alvos são carregados via loadTargets() no DOMContentLoaded
         }
     } catch (e) {}
 }
@@ -792,6 +791,8 @@ async function salvarConfiguracao() {
         formData.append('categories', JSON.stringify(categories));
         formData.append('modos', JSON.stringify(modos));
         formData.append('targets', JSON.stringify(getTargetsData()));
+        // Salvar a seleção de alvos antes de salvar a config geral
+        await saveSelectedTargets();
         const res = await fetch(`${API_URL}/save_config`, { method: 'POST', body: formData });
         if (res.ok) showToast('Tesouro salvo!', 'success');
         else showToast('Erro ao salvar!', 'error');
@@ -825,51 +826,76 @@ function addLog(msg, type = 'info') {
     elements.logs.scrollTop = elements.logs.scrollHeight;
 }
 
-function addTarget(data = { org: '', serverId: '', categoryId: '', categoryName: '' }) {
-    const container = document.getElementById('targetsList');
-    const div = document.createElement('div');
-    div.className = 'target-item';
-    div.innerHTML = `
-        <span class="remove-target" onclick="this.parentElement.remove()">×</span>
-        <div class="target-grid">
-            <div class="target-field">
-                <label>Nome da Org</label>
-                <input type="text" class="target-org" value="${data.org || ''}" placeholder="Ex: Org X">
-            </div>
-            <div class="target-field">
-                <label>ID do Servidor</label>
-                <input type="text" class="target-serverId" value="${data.serverId || ''}" placeholder="ID">
-            </div>
-            <div class="target-field">
-                <label>Nome da Categoria</label>
-                <input type="text" class="target-categoryName" value="${data.categoryName || ''}" placeholder="Ex: FILAS">
-            </div>
-            <div class="target-field">
-                <label>ID da Categoria</label>
-                <input type="text" class="target-categoryId" value="${data.categoryId || ''}" placeholder="ID">
-            </div>
-        </div>
-    `;
-    container.appendChild(div);
+let loadedTargets = [];
+
+async function loadTargets() {
+    try {
+        console.log("🔄 Carregando alvos do targets.json...");
+        const res = await fetch(`${API_URL}/api/targets`);
+        const data = await res.json();
+        loadedTargets = data.targets || [];
+        renderTargetsTable(loadedTargets);
+    } catch (err) {
+        console.error("❌ Erro ao carregar alvos:", err);
+    }
 }
 
-function renderTargets(targets) {
-    const container = document.getElementById('targetsList');
-    container.innerHTML = '';
-    targets.forEach(t => addTarget(t));
+function renderTargetsTable(targets) {
+    const tbody = document.getElementById('targetsTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (targets.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 20px; opacity: 0.5;">Nenhum alvo no targets.json</td></tr>';
+        return;
+    }
+
+    targets.forEach((target, index) => {
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+        tr.innerHTML = `
+            <td style="padding: 8px; text-align: center;">
+                <input type="checkbox" class="target-checkbox" data-index="${index}" ${target.selected ? 'checked' : ''} style="width: 16px; height: 16px; accent-color: var(--primary);">
+            </td>
+            <td style="padding: 8px;">
+                <div style="display: flex; flex-direction: column;">
+                    <strong style="color: var(--secondary);">${target.orgName || target.org}</strong>
+                    <small style="font-size: 9px; opacity: 0.5;">${target.guildId || target.serverId}</small>
+                </div>
+            </td>
+            <td style="padding: 8px;">
+                <div style="display: flex; flex-direction: column;">
+                    <strong>${target.categoryName}</strong>
+                    <small style="font-size: 9px; opacity: 0.5;">${target.categoryId}</small>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
 }
 
 function getTargetsData() {
-    const targets = [];
-    document.querySelectorAll('.target-item').forEach(item => {
-        targets.push({
-            org: item.querySelector('.target-org').value.trim(),
-            serverId: item.querySelector('.target-serverId').value.trim(),
-            categoryName: item.querySelector('.target-categoryName').value.trim(),
-            categoryId: item.querySelector('.target-categoryId').value.trim()
-        });
+    const checkboxes = document.querySelectorAll('.target-checkbox');
+    checkboxes.forEach(cb => {
+        const index = cb.getAttribute('data-index');
+        if (loadedTargets[index]) {
+            loadedTargets[index].selected = cb.checked;
+        }
     });
-    return targets;
+    return loadedTargets;
+}
+
+async function saveSelectedTargets() {
+    const targets = getTargetsData();
+    try {
+        await fetch(`${API_URL}/api/targets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ targets })
+        });
+    } catch (err) {
+        console.error("❌ Erro ao salvar seleção:", err);
+    }
 }
 
 function showToast(msg, type = 'info') {
