@@ -386,21 +386,23 @@ class AutomationEngine {
                 try {
                     const msgs = await channel.messages.fetch({ limit: 15 });
                     const msgArray = [...msgs.values()];
-                    
-                    // ═══════════════════════════════════════════════════════════
-                    // COLETAR TODOS OS NOMES POSSÍVEIS DO BOT
-                    // ═══════════════════════════════════════════════════════════
-                    const myNames = [];
-                    if (self.user?.username) myNames.push(self.user.username);
-                    if (self.user?.displayName) myNames.push(self.user.displayName);
-                    if (self.user?.globalName) myNames.push(self.user.globalName);
-                    // Adicionar variações case-insensitive
-                    const myNamesLower = myNames.map(n => n.toLowerCase());
 
                     // ═══════════════════════════════════════════════════════════
-                    // HELPER: extrair TODO o texto de uma mensagem (content + embeds)
+                    // REGRAS INFALÍVEIS (Abordagem C)
+                    // 1. Percorre todas as mensagens linearmente
+                    // 2. Se botão está livre → clica
+                    // 3. Se botão está na fila → pula, tenta próximo
+                    // 4. Loop só para quando bate limite ou acabam mensagens
                     // ═══════════════════════════════════════════════════════════
-                    const getAllTextFromMessage = (msg) => {
+
+                    // Nomes do bot (case-insensitive)
+                    const myNamesLower = [];
+                    if (self.user?.username) myNamesLower.push(self.user.username.toLowerCase());
+                    if (self.user?.displayName) myNamesLower.push(self.user.displayName.toLowerCase());
+                    if (self.user?.globalName) myNamesLower.push(self.user.globalName.toLowerCase());
+
+                    // Extrair todo o texto de uma mensagem
+                    const getAllText = (msg) => {
                         const texts = [];
                         if (msg.content) texts.push(msg.content);
                         if (msg.embeds) {
@@ -420,40 +422,19 @@ class AutomationEngine {
                         return texts;
                     };
 
-                    // ═══════════════════════════════════════════════════════════
-                    // HELPER: verificar se o bot está na fila (qualquer texto)
-                    // ═══════════════════════════════════════════════════════════
-                    const isBotInQueue = (msg) => {
-                        const allTexts = getAllTextFromMessage(msg);
-                        for (const text of allTexts) {
-                            const textLower = text.toLowerCase();
-                            for (const name of myNamesLower) {
-                                if (textLower.includes(name.toLowerCase())) return true;
-                            }
-                        }
-                        return false;
-                    };
-
-                    // ═══════════════════════════════════════════════════════════
-                    // HELPER: verificar se o bot está na fila de um botão ESPECÍFICO
-                    // Ex: "Gelo Normal | @annezinha" → bot está na fila de "Gelo Normal"
-                    // ═══════════════════════════════════════════════════════════
+                    // Verifica se o bot está na fila de um botão específico
+                    // Compara linha a linha: se nome do bot aparece na mesma linha do label do botão
                     const isBotInButtonQueue = (msg, buttonLabel) => {
-                        const allTexts = getAllTextFromMessage(msg);
-                        const buttonLabelLower = (buttonLabel || "").toLowerCase();
-                        
-                        for (const text of allTexts) {
+                        if (!buttonLabel || myNamesLower.length === 0) return false;
+                        const labelLower = buttonLabel.toLowerCase();
+                        for (const text of getAllText(msg)) {
                             const lines = text.split("\n");
                             for (const line of lines) {
                                 const lineLower = line.toLowerCase();
-                                for (const name of myNamesLower) {
-                                    // Verifica se o nome do bot está na mesma linha que o label do botão
-                                    if (lineLower.includes(name.toLowerCase()) && buttonLabelLower && lineLower.includes(buttonLabelLower)) {
-                                        return true;
-                                    }
-                                    // Fallback: se o nome do bot aparece em qualquer lugar e o botão é da mensagem
-                                    if (lineLower.includes(name.toLowerCase())) {
-                                        return true;
+                                // Se a linha contém o nome do bot E o label do botão → está na fila
+                                if (lineLower.includes(labelLower)) {
+                                    for (const name of myNamesLower) {
+                                        if (lineLower.includes(name)) return true;
                                     }
                                 }
                             }
@@ -461,20 +442,16 @@ class AutomationEngine {
                         return false;
                     };
 
-                    // ═══════════════════════════════════════════════════════════
-                    // HELPER: fazer clique em uma mensagem
-                    // ═══════════════════════════════════════════════════════════
+                    // Fazer clique (só loga/conta se realmente funcionar)
                     const doClick = async (msg, button) => {
                         try {
                             const now = Date.now();
                             const timeSinceLastClick = now - (automation.lastClickTime || 0);
                             if (timeSinceLastClick < 500) {
-                                const waitTime = 500 - timeSinceLastClick;
-                                await new Promise(res => setTimeout(res, waitTime));
+                                await new Promise(res => setTimeout(res, 500 - timeSinceLastClick));
                             }
                             automation.lastClickTime = Date.now();
 
-                            // SÓ incrementar contadores E registrar log DEPOIS do clique funcionar
                             await msg.clickButton(button.customId);
                             automation.clickedMessages.add(msg.id);
 
@@ -493,55 +470,44 @@ class AutomationEngine {
                     };
 
                     // ═══════════════════════════════════════════════════════════
-                    // LOOP PRINCIPAL: iterar mensagens do canal
-                    // Continua procurando até bater o limite ou acabar as mensagens
+                    // LOOP: percorre todas as mensagens, clica no que está livre
                     // ═══════════════════════════════════════════════════════════
                     for (const msg of msgArray) {
                         if (!automation.isRunning) break;
-                        
-                        const currentModeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
-                        if (currentModeClicks >= modeLimit) break;
+                        if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
                         if (!msg.components?.length || automation.clickedMessages.has(msg.id)) continue;
 
-                        // ── Coletar TODOS os botões válidos da mensagem ──
-                        const allButtons = [];
+                        // Coletar botões válidos (excluir "Sair", "Sair da Fila", etc.)
+                        const buttons = [];
                         for (const row of msg.components) {
-                            for (const component of row.components) {
-                                if (component.type === "BUTTON" || component.customId) {
-                                    if (!IGNORED_BUTTONS.includes(component.customId?.toLowerCase())) {
-                                        if (!(component.label && IGNORED_BUTTONS.includes(component.label.toLowerCase()))) {
-                                            allButtons.push(component);
-                                        }
-                                    }
+                            for (const comp of row.components) {
+                                if (comp.type === "BUTTON" || comp.customId) {
+                                    const cid = comp.customId?.toLowerCase() || "";
+                                    const lbl = (comp.label || "").toLowerCase();
+                                    if (IGNORED_BUTTONS.includes(cid) || IGNORED_BUTTONS.includes(lbl)) continue;
+                                    buttons.push(comp);
                                 }
                             }
                         }
+                        if (buttons.length === 0) continue;
 
-                        if (allButtons.length === 0) continue;
-
-                        // ── Tentar TODOS os botões da mensagem (não só o primeiro) ──
-                        let clickedThisMsg = false;
-                        for (const button of allButtons) {
+                        // Tentar cada botão da mensagem
+                        for (const button of buttons) {
                             if (!automation.isRunning) break;
                             if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
-                            if (clickedThisMsg) break;
 
-                            // Verificar se o botão é o correto para as categorias
-                            const testButtons = [button];
-                            const testMatch = findCorrectButton(testButtons, categories);
-                            if (!testMatch) continue; // Este botão não é o que queremos
+                            // Verificar se este botão é o correto para as categorias
+                            const match = findCorrectButton([button], categories);
+                            if (!match) continue;
 
-                            // ── VERIFICAÇÃO: o bot já está na fila deste botão específico? ──
+                            // Verificar se o bot já está na fila deste botão específico
                             if (isBotInButtonQueue(msg, button.label)) {
-                                // Bot já está na fila deste botão → pular este botão, tentar outro
-                                continue;
+                                continue; // Pular este botão, tentar próximo da mensagem
                             }
 
-                            // ── CLIQUE ──
-                            const clicked = await doClick(msg, button);
-                            if (clicked) {
-                                clickedThisMsg = true;
-                            }
+                            // Clicar!
+                            const ok = await doClick(msg, button);
+                            if (ok) break; // Só clica 1 botão por mensagem, vai para próxima
                         }
                     }
                 } catch (err) {
