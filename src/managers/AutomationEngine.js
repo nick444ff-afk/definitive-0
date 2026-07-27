@@ -699,8 +699,6 @@ class AutomationEngine {
                             const guildId = channel.guild?.id;
                             if (automation.blacklistedGuilds.has(guildId)) continue;
                             if (automation.processing.has(channel.id)) continue;
-                            
-                            const guildId = channel.guild?.id;
                             // Verificar limite por servidor+modo
                             const channelMode = getChannelMode(channel);
                             const modeCountKey = `${guildId}:${channelMode || "unknown"}`;
