@@ -35,6 +35,7 @@ class AutomationEngine {
                 guildClickCountByMode: new Map(),     // "guildId:modo" -> cliques naquele modo
                 msgAutoSentThisSession: new Set(),
                 confirmedChannels: new Set(),
+                failedButtons: new Map(),     // "msgId:buttonLabel" -> falhas
                 lastClickTime: 0,
                 activeTasks: new Set(),
                 limitesPorModo: {},
@@ -128,11 +129,10 @@ class AutomationEngine {
 
             // Keywords de botões extras: gelo e modos especiais
             const BUTTON_KEYWORDS = [
-                "gelo normal", "gelo inf", "gelo infinito",
-                "full ump xm8", "full ump e xm8"
+                "gelo normal", "gelo inf", "gelo infinito"
             ];
 
-            const IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair", "sair da fila"];
+            const IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair", "sair da fila", "entrar na fila"];
 
             const findCorrectButton = (buttons, activeCategories) => {
                 let bestMatch = null;
@@ -444,6 +444,8 @@ class AutomationEngine {
 
                             await msg.clickButton(button.customId);
                             automation.clickedMessages.add(msg.id);
+                            // Remover falhas anteriores se clicou com sucesso
+                            automation.failedButtons.delete(`${msg.id}:${button.label || button.customId}`);
 
                             const newModeCount = (automation.guildClickCountByMode.get(modeCountKey) || 0) + 1;
                             automation.guildClickCountByMode.set(modeCountKey, newModeCount);
@@ -454,7 +456,12 @@ class AutomationEngine {
                             if (onStats) onStats({ entradas: totalClicks });
                             return true;
                         } catch (err) {
+                            // Registrar falha deste botão nesta mensagem
+                            const failKey = `${msg.id}:${button.label || button.customId}`;
+                            const failCount = (automation.failedButtons.get(failKey) || 0) + 1;
+                            automation.failedButtons.set(failKey, failCount);
                             onLog(`⚠️ Falha ao clicar | ${channel.guild?.name || '?'} | #${channel.name || '?'} | Botão: ${button.label || button.customId} | Erro: ${err.message || err}`, "warn");
+                            // NÃO marca como clicada quando falha
                             return false;
                         }
                     };
@@ -567,6 +574,13 @@ class AutomationEngine {
                             // Verificar se o bot já está na fila deste botão específico
                             if (isBotInButtonQueue(msg, button.label)) {
                                 continue; // Pular este botão, tentar próximo da mensagem
+                            }
+
+                            // Pular botões que falharam 3+ vezes consecutivas nesta sessão
+                            const failKey = `${msg.id}:${button.label || button.customId}`;
+                            const failCount = automation.failedButtons.get(failKey) || 0;
+                            if (failCount >= 3) {
+                                continue; // Botão com falha persistente, pular
                             }
 
                             // Clicar!
