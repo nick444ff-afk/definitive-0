@@ -299,6 +299,14 @@ input:focus, textarea:focus {
     border-color: var(--primary);
 }
 
+.config-section {
+    background: rgba(0,0,0,0.3);
+    border-radius: 14px;
+    padding: 15px;
+    margin-top: 16px;
+    border: 1px solid rgba(255, 140, 0, 0.15);
+}
+
 .orgs-box {
     background: #000;
     border-radius: 14px;
@@ -496,26 +504,41 @@ input:focus, textarea:focus {
             <label class="org-item"><input type="checkbox" id="modo4x4" name="modo" value="4v4" checked><span>4x4</span></label>
         </div>
 
-        <label>Mensagem Automática</label>
-        <input type="text" id="mensagem" placeholder="Digite a mensagem">
+        <div class="config-section">
+            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">MENSAGEM AUTOMÁTICA</h3>
+            <label>Mensagem</label>
+            <input type="text" id="mensagem" placeholder="Digite a mensagem">
 
-        <label>Delay da Mensagem (s)</label>
-        <input type="text" id="msgdelay" placeholder="Tempo para enviar a mensagem (ex: 12)">
+            <label>Delay da Mensagem (s)</label>
+            <input type="text" id="msgdelay" placeholder="Tempo para enviar a mensagem (ex: 12)">
+        </div>
 
-        <label>Limite de Cliques</label>
-        <input type="text" id="limiteCliques" placeholder="Cliques por servidor (ex: 5)">
+        <div class="config-section">
+            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">MENÇÕES</h3>
+            <label>Menção Automática (s)</label>
+            <input type="text" id="mencao" placeholder="Tempo para mencionar (ex: 5)">
+        </div>
 
-        <label>Menção Automática (s)</label>
-        <input type="text" id="mencao" placeholder="Tempo para mencionar (ex: 5)">
+        <div class="config-section">
+            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">CONFIRMAÇÃO</h3>
+            <label>Confirmação Automática (s)</label>
+            <input type="text" id="confirmauto" placeholder="Tempo para confirmar (ex: 2)">
+        </div>
 
-        <label>Confirmação Automática (s)</label>
-        <input type="text" id="confirmauto" placeholder="Tempo para confirmar (ex: 2)">
+        <div class="config-section">
+            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">LIMITE DE CLIQUES</h3>
+            <label>Cliques por Servidor</label>
+            <input type="text" id="limiteCliques" placeholder="Cliques por servidor (ex: 5)">
+        </div>
 
-        <label>Valor Mínimo (R$)</label>
-        <input type="text" id="valorMinimo" placeholder="Mínimo para entrar na fila (ex: 1.00)">
+        <div class="config-section">
+            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">FILTRO DE VALOR</h3>
+            <label>Valor Mínimo (R$)</label>
+            <input type="text" id="valorMinimo" placeholder="Mínimo para entrar na fila (ex: 1.00)">
 
-        <label>Valor Máximo (R$)</label>
-        <input type="text" id="valorMaximo" placeholder="Máximo para entrar na fila (ex: 5.00)">
+            <label>Valor Máximo (R$)</label>
+            <input type="text" id="valorMaximo" placeholder="Máximo para entrar na fila (ex: 5.00)">
+        </div>
 
         <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
     </div>
