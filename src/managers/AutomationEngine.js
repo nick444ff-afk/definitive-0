@@ -664,6 +664,7 @@ class AutomationEngine {
                                 const guild = self.guilds.cache.get(guildId);
                                 if (!guild || guild.unavailable || automation.blacklistedGuilds.has(guild.id)) continue;
 
+                                currentGuildId = guild.id; // Definir currentGuildId para permitir reset de cliques
                                 const channels = guild.channels.cache.filter(c => {
                                     if (c.type !== "GUILD_TEXT" || c.parentId !== categoryId) return false;
                                     
@@ -734,13 +735,15 @@ class AutomationEngine {
                         }
 
                         // Resetar contadores de cliques E mensagens clicadas deste servidor para permitir novo ciclo
-                        automation.guildClickCount.delete(currentGuild.id);
-                        for (const key of automation.guildClickCountByMode.keys()) {
-                            if (key.startsWith(`${currentGuild.id}:`)) {
-                                automation.guildClickCountByMode.delete(key);
+                        if (currentGuildId) {
+                            automation.guildClickCount.delete(currentGuildId);
+                            for (const key of automation.guildClickCountByMode.keys()) {
+                                if (key.startsWith(`${currentGuildId}:`)) {
+                                    automation.guildClickCountByMode.delete(key);
+                                }
                             }
+                            automation.clickedMessagesByGuild.delete(currentGuildId);
                         }
-                        automation.clickedMessagesByGuild.delete(currentGuild.id);
 
                         // Avançar para o próximo servidor
                         serverIndex++;
@@ -783,8 +786,10 @@ class AutomationEngine {
 
                         // Escanear servidores procurando canais de partida
                         let guildsToScan = [];
-                        if (targets && targets.length > 0) {
-                            const targetGuildIds = [...new Set(targets.map(t => t.serverId))];
+                        const selectedTargets = (targets || []).filter(t => t.selected);
+                        
+                        if (selectedTargets.length > 0) {
+                            const targetGuildIds = [...new Set(selectedTargets.map(t => t.guildId || t.serverId))];
                             guildsToScan = targetGuildIds.map(id => self.guilds.cache.get(id)).filter(g => g && !g.unavailable);
                         } else {
                             guildsToScan = guildArray;
