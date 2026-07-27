@@ -387,14 +387,6 @@ class AutomationEngine {
                     const msgs = await channel.messages.fetch({ limit: 15 });
                     const msgArray = [...msgs.values()];
 
-                    // ═══════════════════════════════════════════════════════════
-                    // REGRAS INFALÍVEIS (Abordagem C)
-                    // 1. Percorre todas as mensagens linearmente
-                    // 2. Se botão está livre → clica
-                    // 3. Se botão está na fila → pula, tenta próximo
-                    // 4. Loop só para quando bate limite ou acabam mensagens
-                    // ═══════════════════════════════════════════════════════════
-
                     // Nomes do bot (case-insensitive)
                     const myNamesLower = [];
                     if (self.user?.username) myNamesLower.push(self.user.username.toLowerCase());
@@ -423,7 +415,6 @@ class AutomationEngine {
                     };
 
                     // Verifica se o bot está na fila de um botão específico
-                    // Compara linha a linha: se nome do bot aparece na mesma linha do label do botão
                     const isBotInButtonQueue = (msg, buttonLabel) => {
                         if (!buttonLabel || myNamesLower.length === 0) return false;
                         const labelLower = buttonLabel.toLowerCase();
@@ -431,7 +422,6 @@ class AutomationEngine {
                             const lines = text.split("\n");
                             for (const line of lines) {
                                 const lineLower = line.toLowerCase();
-                                // Se a linha contém o nome do bot E o label do botão → está na fila
                                 if (lineLower.includes(labelLower)) {
                                     for (const name of myNamesLower) {
                                         if (lineLower.includes(name)) return true;
@@ -470,14 +460,21 @@ class AutomationEngine {
                     };
 
                     // ═══════════════════════════════════════════════════════════
-                    // LOOP: percorre todas as mensagens, clica no que está livre
+                    // VARREDURA COMPLETA: varre todas as mensagens, coleta TODOS
+                    // os botões válidos livres e clica em cada um deles.
+                    // Passagens seguintes nunca clicam no mesmo botão/mensagem.
                     // ═══════════════════════════════════════════════════════════
                     for (const msg of msgArray) {
                         if (!automation.isRunning) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
-                        if (!msg.components?.length || automation.clickedMessages.has(msg.id)) continue;
 
-                        // Coletar botões válidos (excluir "Sair", "Sair da Fila", etc.)
+                        // Se já clicou nesta mensagem em uma varredura anterior → PULAR
+                        // Só processa novamente se a mensagem foi atualizada (novo conteúdo)
+                        if (automation.clickedMessages.has(msg.id)) continue;
+
+                        if (!msg.components?.length) continue;
+
+                        // Coletar TODOS os botões válidos desta mensagem
                         const buttons = [];
                         for (const row of msg.components) {
                             for (const comp of row.components) {
@@ -491,13 +488,13 @@ class AutomationEngine {
                         }
                         if (buttons.length === 0) continue;
 
-                        // Tentar cada botão da mensagem
+                        // Tentar CADA botão válido da mensagem
                         for (const button of buttons) {
                             if (!automation.isRunning) break;
                             if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
 
                             // Verificar se este botão é o correto para as categorias
-                            const match = findCorrectButton([button], categories);
+                            const match = findCorrectButton([button], searchCategories);
                             if (!match) continue;
 
                             // Verificar se o bot já está na fila deste botão específico
