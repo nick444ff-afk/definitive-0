@@ -1,11 +1,11 @@
 {
   "targets": [
     {
-      "orgName": "Exemplo Org",
-      "guildId": "123456789",
-      "categoryName": "GERAL",
-      "categoryId": "987654321",
-      "selected": false
+      "orgName": "PARIS",
+      "guildId": "1311409719499427911",
+      "categoryName": "MOBILE",
+      "categoryId": "1326266302117183619",
+      "selected": true
     }
   ]
 }
