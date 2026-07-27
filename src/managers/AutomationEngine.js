@@ -126,10 +126,18 @@ class AutomationEngine {
                 tatico: ["tatico", "tático", "tat", "❗"]
             };
 
+            // Keywords de botões extras: gelo e modos especiais
+            const BUTTON_KEYWORDS = [
+                "gelo normal", "gelo inf", "gelo infinito",
+                "full ump xm8", "full ump e xm8"
+            ];
+
             const IGNORED_BUTTONS = ["leave_player", "cancelar", "fechar", "finalizar", "recusar", "sair", "sair da fila"];
 
             const findCorrectButton = (buttons, activeCategories) => {
                 let bestMatch = null;
+                
+                // 1) Buscar por categoria (mobile, emulador, misto, tatico)
                 for (const cat of activeCategories) {
                     const keywords = CATEGORY_KEYWORDS[cat.toLowerCase()] || [cat.toLowerCase()];
                     for (const button of buttons) {
@@ -145,6 +153,21 @@ class AutomationEngine {
                     if (bestMatch) break;
                 }
 
+                // 2) Buscar por botões extras (gelo, full ump, etc)
+                if (!bestMatch) {
+                    for (const button of buttons) {
+                        if (IGNORED_BUTTONS.includes(button.customId?.toLowerCase())) continue;
+                        if (button.label && IGNORED_BUTTONS.includes(button.label.toLowerCase())) continue;
+
+                        const searchText = `${button.customId} ${button.label} ${button.emoji?.name}`.toLowerCase();
+                        if (BUTTON_KEYWORDS.some(kw => searchText.includes(kw))) {
+                            bestMatch = button;
+                            break;
+                        }
+                    }
+                }
+
+                // 3) Fallback: join_player
                 if (!bestMatch) {
                     bestMatch = buttons.find(b => 
                         b.customId === "join_player" || 
