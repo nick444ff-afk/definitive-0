@@ -6,8 +6,10 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 const InstanceManager = require("./managers/InstanceManager");
 const { us } = require("./databases");
+const fs = require("fs");
 
 const app = express();
+const TARGETS_PATH = path.join(__dirname, 'targets.json');
 const PORT = process.env.PORT || 8000;
 
 // ═══════════════════════════════════════════════════════════════
@@ -346,6 +348,37 @@ app.get("/painel", (req, res) => {
 // Fallback para servir painel.html na raiz também
 app.get("/painel.html", (req, res) => {
     res.sendFile(path.join(__dirname, "../public/painel.html"));
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ROTAS - ALVOS (TARGETS)
+// ═══════════════════════════════════════════════════════════════
+
+// Endpoint para obter alvos
+app.get('/api/targets', authMiddleware, (req, res) => {
+    try {
+        if (!fs.existsSync(TARGETS_PATH)) {
+            fs.writeFileSync(TARGETS_PATH, JSON.stringify({ targets: [] }, null, 2));
+        }
+        const data = JSON.parse(fs.readFileSync(TARGETS_PATH, 'utf8'));
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao ler targets.json" });
+    }
+});
+
+// Endpoint para salvar alvos
+app.post('/api/targets', authMiddleware, (req, res) => {
+    try {
+        const { targets } = req.body;
+        if (!Array.isArray(targets)) {
+            return res.status(400).json({ error: 'Formato inválido' });
+        }
+        fs.writeFileSync(TARGETS_PATH, JSON.stringify({ targets }, null, 2));
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: "Erro ao salvar targets.json" });
+    }
 });
 
 // ═══════════════════════════════════════════════════════════════

@@ -652,19 +652,25 @@ class AutomationEngine {
                         let canaisFila = [];
                         let currentGuildId = null;
 
-                        if (targets && targets.length > 0) {
-                            // MODO ALVOS MANUAIS: Apenas processa o que foi cadastrado
-                            for (const target of targets) {
-                                const guild = self.guilds.cache.get(target.serverId);
+                        // Filtrar apenas alvos selecionados
+                        const selectedTargets = (targets || []).filter(t => t.selected);
+
+                        if (selectedTargets.length > 0) {
+                            // MODO ALVOS MANUAIS: Apenas processa o que foi selecionado
+                            for (const target of selectedTargets) {
+                                const guildId = target.guildId || target.serverId;
+                                const categoryId = target.categoryId;
+                                
+                                const guild = self.guilds.cache.get(guildId);
                                 if (!guild || guild.unavailable || automation.blacklistedGuilds.has(guild.id)) continue;
 
                                 const channels = guild.channels.cache.filter(c => 
                                     c.type === "GUILD_TEXT" && 
-                                    c.parentId === target.categoryId
+                                    c.parentId === categoryId
                                 );
                                 canaisFila.push(...channels.values());
                             }
-                            // Embaralhar os canais dos alvos
+                            // Embaralhar os canais dos alvos para comportamento humano
                             canaisFila = canaisFila.sort(() => Math.random() - 0.5);
                         } else {
                             // MODO VARREDURA AUTOMÁTICA (Fallback)

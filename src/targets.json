@@ -1,0 +1,11 @@
+{
+  "targets": [
+    {
+      "orgName": "Exemplo Org",
+      "guildId": "123456789",
+      "categoryName": "GERAL",
+      "categoryId": "987654321",
+      "selected": false
+    }
+  ]
+}
