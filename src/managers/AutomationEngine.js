@@ -6,6 +6,7 @@ const { Client } = require('discord.js-selfbot-v13');
  * FIX: Tratamento robusto de erros 50013 (Missing Permissions)
  * FIX: Fila controlada para mensagens/menções com agendamento no tempo certo
  * FIX: Rotina paralela de monitoramento de partidas independente do loop de cliques
+ * UPDATE: Mecanismo de timeout e skip para servidores problemáticos (castigo, bot offline, erro de intenção)
  */
 class AutomationEngine {
     constructor() {
@@ -36,6 +37,8 @@ class AutomationEngine {
                 msgAutoSentThisSession: new Set(),
                 confirmedChannels: new Set(),
                 failedButtons: new Map(),     // "msgId:buttonLabel" -> falhas
+                guildErrorCount: new Map(),   // guildId -> contador de erros consecutivos
+                blacklistedGuilds: new Set(), // guildId -> servidores ignorados temporariamente
                 lastClickTime: 0,
                 activeTasks: new Set(),
                 limitesPorModo: {},
@@ -384,7 +387,11 @@ class AutomationEngine {
                 if (modeClicks >= modeLimit) return;
 
                 try {
-                    const msgs = await channel.messages.fetch({ limit: 15 });
+                    // Implementar um timeout para o fetch de mensagens
+                    const fetchPromise = channel.messages.fetch({ limit: 15 });
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout fetch')), 5000));
+                    
+                    const msgs = await Promise.race([fetchPromise, timeoutPromise]);
                     const msgArray = [...msgs.values()];
 
                     // Nomes do bot (case-insensitive)
@@ -442,13 +449,20 @@ class AutomationEngine {
                             }
                             automation.lastClickTime = Date.now();
 
-                            await msg.clickButton(button.customId);
+                            // Adicionar timeout ao clique do botão
+                            const clickPromise = msg.clickButton(button.customId);
+                            const clickTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout clique')), 8000));
+                            
+                            await Promise.race([clickPromise, clickTimeout]);
+                            
                             if (!automation.clickedMessagesByGuild.has(guildId)) {
                                 automation.clickedMessagesByGuild.set(guildId, new Set());
                             }
                             automation.clickedMessagesByGuild.get(guildId).add(msg.id);
+                            
                             // Remover falhas anteriores se clicou com sucesso
                             automation.failedButtons.delete(`${msg.id}:${button.label || button.customId}`);
+                            automation.guildErrorCount.delete(guildId); // Resetar erros do servidor ao ter sucesso
 
                             const newModeCount = (automation.guildClickCountByMode.get(modeCountKey) || 0) + 1;
                             automation.guildClickCountByMode.set(modeCountKey, newModeCount);
@@ -463,8 +477,21 @@ class AutomationEngine {
                             const failKey = `${msg.id}:${button.label || button.customId}`;
                             const failCount = (automation.failedButtons.get(failKey) || 0) + 1;
                             automation.failedButtons.set(failKey, failCount);
-                            onLog(`⚠️ Falha ao clicar | ${channel.guild?.name || '?'} | #${channel.name || '?'} | Botão: ${button.label || button.customId} | Erro: ${err.message || err}`, "warn");
-                            // NÃO marca como clicada quando falha
+                            
+                            // Incrementar erros do servidor
+                            const guildErrors = (automation.guildErrorCount.get(guildId) || 0) + 1;
+                            automation.guildErrorCount.set(guildId, guildErrors);
+                            
+                            onLog(`⚠️ Falha ao clicar | ${channel.guild?.name || '?'} | #${channel.name || '?'} | Erro: ${err.message || err}`, "warn");
+                            
+                            // Se muitos erros seguidos no servidor, colocar em blacklist temporária
+                            if (guildErrors >= 5) {
+                                automation.blacklistedGuilds.add(guildId);
+                                onLog(`🚫 Servidor ${channel.guild?.name} suspenso temporariamente por excesso de falhas.`, "error");
+                                // Agendar remoção da blacklist após 10 minutos
+                                setTimeout(() => automation.blacklistedGuilds.delete(guildId), 10 * 60 * 1000);
+                            }
+                            
                             return false;
                         }
                     };
@@ -540,6 +567,7 @@ class AutomationEngine {
                     // ═══════════════════════════════════════════════════════════
                     for (const msg of msgArray) {
                         if (!automation.isRunning) break;
+                        if (automation.blacklistedGuilds.has(guildId)) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
 
                         // Se já clicou nesta mensagem nesta volta do servidor → PULAR
@@ -556,9 +584,6 @@ class AutomationEngine {
                         for (const row of msg.components) {
                             for (const comp of row.components) {
                                 if (comp.type === "BUTTON" || comp.customId) {
-                                    const cid = comp.customId?.toLowerCase() || "";
-                                    const lbl = (comp.label || "").toLowerCase();
-                                    if (IGNORED_BUTTONS.includes(cid) || IGNORED_BUTTONS.includes(lbl)) continue;
                                     buttons.push(comp);
                                 }
                             }
@@ -568,6 +593,7 @@ class AutomationEngine {
                         // Tentar CADA botão válido da mensagem
                         for (const button of buttons) {
                             if (!automation.isRunning) break;
+                            if (automation.blacklistedGuilds.has(guildId)) break;
                             if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
 
                             // Verificar se este botão é o correto para as categorias
@@ -592,7 +618,8 @@ class AutomationEngine {
                         }
                     }
                 } catch (err) {
-                    // Erro ao fetchar mensagens - ignorar e continuar
+                    // Erro ao fetchar mensagens ou timeout
+                    onLog(`⚠️ Erro ao acessar canal #${channel.name} em ${channel.guild?.name}: ${err.message}`, "warn");
                 }
             };
 
@@ -616,6 +643,12 @@ class AutomationEngine {
                         serverIndex = serverIndex % guildArray.length;
                         const currentGuild = guildArray[serverIndex];
 
+                        // PULAR servidores na blacklist
+                        if (automation.blacklistedGuilds.has(currentGuild.id)) {
+                            serverIndex++;
+                            continue;
+                        }
+
                         // ESCANEAMENTO DE CANAIS DE FILA E CLIQUES
                         const canaisFila = currentGuild.channels.cache.filter(c => {
                             if (c.type !== "GUILD_TEXT") return false;
@@ -628,6 +661,7 @@ class AutomationEngine {
 
                         for (const [, channel] of canaisFila) {
                             if (!automation.isRunning) break;
+                            if (automation.blacklistedGuilds.has(currentGuild.id)) break;
                             if (automation.processing.has(channel.id)) continue;
                             
                             const guildId = channel.guild?.id;
@@ -640,9 +674,13 @@ class AutomationEngine {
 
                             automation.processing.add(channel.id);
                             try {
-                                await processChannel(channel);
+                                // Adicionar um timeout global para o processamento do canal
+                                const processPromise = processChannel(channel);
+                                const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 20000));
+                                
+                                await Promise.race([processPromise, globalTimeout]);
                             } catch (err) {
-                                // Erro no processChannel - silencioso
+                                onLog(`⚠️ Canal #${channel.name} ignorado: ${err.message}`, "warn");
                             }
                             setTimeout(() => automation.processing.delete(channel.id), 300);
                         }
@@ -695,6 +733,8 @@ class AutomationEngine {
                         // Escanear TODOS os servidores procurando canais de partida
                         for (const guild of guildArray) {
                             if (!automation.isRunning) break;
+                            if (automation.blacklistedGuilds.has(guild.id)) continue;
+                            
                             try {
                                 const canaisPartida = guild.channels.cache.filter(channel =>
                                     (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
