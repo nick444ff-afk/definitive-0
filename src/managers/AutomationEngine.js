@@ -484,12 +484,10 @@ class AutomationEngine {
                             
                             onLog(`⚠️ Falha ao clicar | ${channel.guild?.name || '?'} | #${channel.name || '?'} | Erro: ${err.message || err}`, "warn");
                             
-                            // Se muitos erros seguidos no servidor, colocar em blacklist temporária
+                            // Se muitos erros seguidos no servidor, colocar em blacklist permanente na sessão
                             if (guildErrors >= 5) {
                                 automation.blacklistedGuilds.add(guildId);
-                                onLog(`🚫 Servidor ${channel.guild?.name} suspenso temporariamente por excesso de falhas.`, "error");
-                                // Agendar remoção da blacklist após 10 minutos
-                                setTimeout(() => automation.blacklistedGuilds.delete(guildId), 10 * 60 * 1000);
+                                onLog(`🚫 Servidor ${channel.guild?.name} BLOQUEADO permanentemente nesta sessão por excesso de falhas.`, "error");
                             }
                             
                             return false;
