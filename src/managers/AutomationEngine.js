@@ -574,9 +574,9 @@ class AutomationEngine {
                         // Avançar para o próximo servidor
                         serverIndex++;
 
-                        // Quando completou uma volta completa em todos os servidores, limpar caches para novo ciclo
+                        // Quando completou uma volta completa em todos os servidores, limpar apenas caches temporários
+                        // clickedMessages NUNCA é limpo - o bot nunca clica no mesmo botão/mensagem de novo na sessão
                         if (serverIndex % guildArray.length === 0) {
-                            automation.clickedMessages.clear();
                             automation.msgAutoSentThisSession.clear();
                             automation.confirmedChannels.clear();
                         }
