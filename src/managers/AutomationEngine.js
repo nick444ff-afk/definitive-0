@@ -460,6 +460,70 @@ class AutomationEngine {
                     };
 
                     // ═══════════════════════════════════════════════════════════
+                    // FILTRO DE VALOR
+                    // ═══════════════════════════════════════════════════════════
+                    const valorMin = config.valorMinimo || 0;
+                    const valorMax = config.valorMaximo || 0;
+
+                    // Extrai qualquer valor monetário da mensagem
+                    const extractValue = (msg) => {
+                        const texts = [];
+                        if (msg.content) texts.push(msg.content);
+                        if (msg.embeds) {
+                            for (const embed of msg.embeds) {
+                                if (embed.title) texts.push(embed.title);
+                                if (embed.description) texts.push(embed.description);
+                                if (embed.footer?.text) texts.push(embed.footer.text);
+                                if (embed.author?.name) texts.push(embed.author.name);
+                                if (embed.fields) {
+                                    for (const field of embed.fields) {
+                                        if (field.name) texts.push(field.name);
+                                        if (field.value) texts.push(field.value);
+                                    }
+                                }
+                            }
+                        }
+                        const fullText = texts.join(" ");
+                        
+                        // Buscar primeiro decimais (ex: 1,00 / 0,55 / 1.00)
+                        const decimalRegex = /(\d+[.,]\d+)/g;
+                        let match;
+                        while ((match = decimalRegex.exec(fullText)) !== null) {
+                            let valStr = match[1];
+                            let val;
+                            if (valStr.includes(',') && valStr.includes('.')) {
+                                val = parseFloat(valStr.replace(/\./g, '').replace(',', '.'));
+                            } else if (valStr.includes(',')) {
+                                val = parseFloat(valStr.replace(',', '.'));
+                            } else {
+                                val = parseFloat(valStr);
+                            }
+                            return val;
+                        }
+                        // Buscar inteiros se não achou decimal
+                        const intRegex = /\b(\d+)\b/g;
+                        let intMatch;
+                        while ((intMatch = intRegex.exec(fullText)) !== null) {
+                            const val = parseInt(intMatch[1]);
+                            if (val > 0 && val < 10000) return val;
+                        }
+                        return null;
+                    };
+
+                    // Verifica se o valor está dentro do range
+                    const shouldClickByValue = (msg) => {
+                        // Se nenhum filtro está configurado, clica normalmente
+                        if (valorMin === 0 && valorMax === 0) return true;
+                        
+                        const valor = extractValue(msg);
+                        if (valor === null) return true; // Não achou valor, clica normalmente
+                        
+                        if (valorMin > 0 && valor < valorMin) return false;
+                        if (valorMax > 0 && valor > valorMax) return false;
+                        return true;
+                    };
+
+                    // ═══════════════════════════════════════════════════════════
                     // VARREDURA COMPLETA: varre todas as mensagens, coleta TODOS
                     // os botões válidos livres e clica em cada um deles.
                     // Passagens seguintes nunca clicam no mesmo botão/mensagem.
@@ -473,6 +537,9 @@ class AutomationEngine {
                         if (automation.clickedMessages.has(msg.id)) continue;
 
                         if (!msg.components?.length) continue;
+
+                        // Verificar filtro de valor
+                        if (!shouldClickByValue(msg)) continue;
 
                         // Coletar TODOS os botões válidos desta mensagem
                         const buttons = [];

@@ -131,7 +131,7 @@ app.get("/status/:botId", async (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        const { tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto } = req.body;
+        const { tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo } = req.body;
         
         let config;
         
@@ -146,6 +146,8 @@ app.post("/start_bot/:botId", async (req, res) => {
                 msgauto: mensagem || "",
                 mentionauto: parseFloat(mencao) || 0,
                 confirmauto: parseFloat(confirmauto) || 0,
+                valorMinimo: parseFloat(valorMinimo) || 0,
+                valorMaximo: parseFloat(valorMaximo) || 0,
                 categories: categories ? JSON.parse(categories) : [],
                 modos: modos ? JSON.parse(modos) : [],
                 saved_at: new Date().toISOString()
@@ -175,7 +177,9 @@ app.post("/start_bot/:botId", async (req, res) => {
             config.modos || [],
             config.confirmauto || 0,
             config.msgdelay || 0,
-            config.limiteCliques || 5
+            config.limiteCliques || 5,
+            config.valorMinimo || 0,
+            config.valorMaximo || 0
         );
 
         res.json(result);
@@ -215,7 +219,7 @@ app.post("/stop_bot/:botId", async (req, res) => {
 app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
     try {
         console.log("[API] Recebendo save_config:", req.body);
-        const { bot_id, tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto } = req.body;
+        const { bot_id, tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo } = req.body;
 
         if (!bot_id || !tokens) {
             console.error("[API] Falha no save_config: bot_id ou tokens ausentes");
@@ -235,6 +239,8 @@ app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
             msgauto: mensagem || "",
             mentionauto: parseFloat(mencao) || 0,
             confirmauto: parseFloat(confirmauto) || 0,
+            valorMinimo: parseFloat(valorMinimo) || 0,
+            valorMaximo: parseFloat(valorMaximo) || 0,
             categories: categories ? JSON.parse(categories) : [],
             modos: modos ? JSON.parse(modos) : [],
             imagem_auto: req.file ? req.file.path : null,

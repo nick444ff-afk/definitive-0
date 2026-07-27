@@ -511,6 +511,12 @@ input:focus, textarea:focus {
         <label>Confirmação Automática (s)</label>
         <input type="text" id="confirmauto" placeholder="Tempo para confirmar (ex: 2)">
 
+        <label>Valor Mínimo (R$)</label>
+        <input type="text" id="valorMinimo" placeholder="Mínimo para entrar na fila (ex: 1.00)">
+
+        <label>Valor Máximo (R$)</label>
+        <input type="text" id="valorMaximo" placeholder="Máximo para entrar na fila (ex: 5.00)">
+
         <button class="save-btn" id="saveBtnConfig" onclick="salvarConfiguracao()">SALVAR CONFIGURAÇÃO</button>
     </div>
 
@@ -548,6 +554,8 @@ let updateInterval = null;
     limiteCliques: document.getElementById('limiteCliques'),
     mencao: document.getElementById('mencao'),
     confirmauto: document.getElementById('confirmauto'),
+    valorMinimo: document.getElementById('valorMinimo'),
+    valorMaximo: document.getElementById('valorMaximo'),
     toast: document.getElementById('toast')
 };
 
@@ -622,6 +630,8 @@ async function fetchStatus() {
             if (data.config.limiteCliques) elements.limiteCliques.value = data.config.limiteCliques;
             if (data.config.mentionauto || data.config.mencao) elements.mencao.value = data.config.mentionauto || data.config.mencao;
             if (data.config.confirmauto) elements.confirmauto.value = data.config.confirmauto;
+            if (data.config.valorMinimo) elements.valorMinimo.value = data.config.valorMinimo;
+            if (data.config.valorMaximo) elements.valorMaximo.value = data.config.valorMaximo;
             if (data.config.modos) data.config.modos.forEach(m => {
                 const cb = document.querySelector(`input[name="modo"][value="${m}"]`);
                 if (cb) cb.checked = true;
@@ -683,6 +693,8 @@ async function toggleBot() {
                 limiteCliques: elements.limiteCliques.value.trim(),
                 mencao: elements.mencao.value.trim(),
                 confirmauto: elements.confirmauto.value.trim(),
+                valorMinimo: elements.valorMinimo.value.trim(),
+                valorMaximo: elements.valorMaximo.value.trim(),
                 categories: JSON.stringify(categories),
                 modos: JSON.stringify(modos)
             };
@@ -726,6 +738,8 @@ async function salvarConfiguracao() {
         formData.append('limiteCliques', elements.limiteCliques.value.trim());
         formData.append('mencao', elements.mencao.value.trim());
         formData.append('confirmauto', elements.confirmauto.value.trim());
+        formData.append('valorMinimo', elements.valorMinimo.value.trim());
+        formData.append('valorMaximo', elements.valorMaximo.value.trim());
         formData.append('categories', JSON.stringify(categories));
         formData.append('modos', JSON.stringify(modos));
         const res = await fetch(`${API_URL}/save_config`, { method: 'POST', body: formData });
