@@ -492,6 +492,7 @@ class AutomationEngine {
 
                     // ═══════════════════════════════════════════════════════════
                     // LOOP PRINCIPAL: iterar mensagens do canal
+                    // Continua procurando até bater o limite ou acabar as mensagens
                     // ═══════════════════════════════════════════════════════════
                     for (const msg of msgArray) {
                         if (!automation.isRunning) break;
@@ -501,36 +502,13 @@ class AutomationEngine {
                         if (!msg.components?.length || automation.clickedMessages.has(msg.id)) continue;
 
                         // ── VERIFICAÇÃO 1: o bot já está na fila desta mensagem? ──
-                        const botInQueue = isBotInQueue(msg);
-                        
-                        if (botInQueue) {
-                            // Já está na fila → buscar mensagem ANTERIOR (acima) para clicar
-                            const msgIndex = msgArray.indexOf(msg);
-                            for (let i = msgIndex - 1; i >= 0; i--) {
-                                const aboveMsg = msgArray[i];
-                                if (!aboveMsg.components?.length) continue;
-                                if (automation.clickedMessages.has(aboveMsg.id)) continue;
-                                // Verificar se também já está na fila dessa mensagem
-                                if (isBotInQueue(aboveMsg)) continue;
-
-                                const aboveButtons = [];
-                                for (const row of aboveMsg.components) {
-                                    for (const component of row.components) {
-                                        if (component.type === "BUTTON" || component.customId) aboveButtons.push(component);
-                                    }
-                                }
-                                const aboveButton = findCorrectButton(aboveButtons, categories);
-                                if (aboveButton) {
-                                    const clicked = await doClick(aboveMsg, aboveButton);
-                                    if (clicked) break;
-                                }
-                                
-                                if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
-                            }
-                            continue; // Não clicar na mensagem atual
+                        if (isBotInQueue(msg)) {
+                            // Já está na fila → NÃO clicar nesta mensagem
+                            // Mas continua o loop para as próximas mensagens (abaixo)
+                            continue;
                         }
 
-                        // ── VERIFICAÇÃO 2: antes de clicar, verificar o botão específico ──
+                        // ── Coletar botões da mensagem ──
                         const allButtons = [];
                         for (const row of msg.components) {
                             for (const component of row.components) {
@@ -541,30 +519,9 @@ class AutomationEngine {
                         const correctButton = findCorrectButton(allButtons, categories);
 
                         if (correctButton) {
-                            // ── VERIFICAÇÃO 3: checar se o bot já está na fila deste botão ──
+                            // ── VERIFICAÇÃO 2: checar se o bot já está na fila deste botão específico ──
                             if (isBotInButtonQueue(msg, correctButton.label)) {
-                                // Bot já está na fila deste botão, buscar acima
-                                const msgIndex = msgArray.indexOf(msg);
-                                for (let i = msgIndex - 1; i >= 0; i--) {
-                                    const aboveMsg = msgArray[i];
-                                    if (!aboveMsg.components?.length) continue;
-                                    if (automation.clickedMessages.has(aboveMsg.id)) continue;
-                                    if (isBotInQueue(aboveMsg)) continue;
-
-                                    const aboveButtons = [];
-                                    for (const row of aboveMsg.components) {
-                                        for (const component of row.components) {
-                                            if (component.type === "BUTTON" || component.customId) aboveButtons.push(component);
-                                        }
-                                    }
-                                    const aboveButton = findCorrectButton(aboveButtons, categories);
-                                    if (aboveButton) {
-                                        const clicked = await doClick(aboveMsg, aboveButton);
-                                        if (clicked) break;
-                                    }
-                                    
-                                    if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
-                                }
+                                // Bot já está na fila deste botão → pular, mas continua o loop
                                 continue;
                             }
 
