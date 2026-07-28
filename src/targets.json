@@ -1,11 +1,431 @@
 {
   "targets": [
     {
+      "orgName": "ALFA",
+      "guildId": "1264645522795532348",
+      "categoryName": "MOBILE",
+      "categoryId": "1264645525295206565",
+      "selected": false
+    },
+    {
+      "orgName": "ANJO",
+      "guildId": "1405801906411933777",
+      "categoryName": "MOBILE",
+      "categoryId": "1503814756732108880",
+      "selected": false
+    },
+    {
+      "orgName": "ASGARD",
+      "guildId": "1314427041332068373",
+      "categoryName": "MOBILE",
+      "categoryId": "1314427134936088656",
+      "selected": false
+    },
+    {
+      "orgName": "ASTRA",
+      "guildId": "1282459963628982342",
+      "categoryName": "MOBILE",
+      "categoryId": "1396073810188570625",
+      "selected": false
+    },
+    {
+      "orgName": "BATMAN",
+      "guildId": "1435020521354952797",
+      "categoryName": "MOBILE",
+      "categoryId": "1487762465738719313",
+      "selected": false
+    },
+    {
+      "orgName": "BLAZE",
+      "guildId": "1414409040603381874",
+      "categoryName": "MOBILE",
+      "categoryId": "1426705396256608367",
+      "selected": false
+    },
+    {
+      "orgName": "CIPHER",
+      "guildId": "1362580702536798370",
+      "categoryName": "MOBILE",
+      "categoryId": "1462551199403344097",
+      "selected": false
+    },
+    {
+      "orgName": "COLOMBIA",
+      "guildId": "1419780835418181632",
+      "categoryName": "MOBILE",
+      "categoryId": "1419780839914471508",
+      "selected": false
+    },
+    {
+      "orgName": "COMPLEXO",
+      "guildId": "1293459542797062165",
+      "categoryName": "MOBILE",
+      "categoryId": "1293493222634422314",
+      "selected": false
+    },
+    {
+      "orgName": "COROLLA",
+      "guildId": "1408417892806164531",
+      "categoryName": "MOBILE",
+      "categoryId": "1528912952542101604",
+      "selected": false
+    },
+    {
+      "orgName": "CORUJA",
+      "guildId": "1437528401996021894",
+      "categoryName": "MOBILE",
+      "categoryId": "1437559264326451303",
+      "selected": false
+    },
+    {
+      "orgName": "CROW",
+      "guildId": "1489003133274161262",
+      "categoryName": "MOBILE",
+      "categoryId": "1489066814439690331",
+      "selected": false
+    },
+    {
+      "orgName": "CRYSTAL F1",
+      "guildId": "1347277469958541332",
+      "categoryName": "MOBILE",
+      "categoryId": "1363125991198822482",
+      "selected": false
+    },
+    {
+      "orgName": "DELRIO",
+      "guildId": "1327005027255975966",
+      "categoryName": "MOBILE",
+      "categoryId": "1373401435479343286",
+      "selected": false
+    },
+    {
+      "orgName": "DUBAI",
+      "guildId": "1399582688377307247",
+      "categoryName": "MOBILE",
+      "categoryId": "1399590444375085096",
+      "selected": false
+    },
+    {
+      "orgName": "DUCK",
+      "guildId": "1360733107908509738",
+      "categoryName": "MOBILE",
+      "categoryId": "1389806466780762195",
+      "selected": false
+    },
+    {
+      "orgName": "EGITO",
+      "guildId": "1410794222965227603",
+      "categoryName": "MOBILE",
+      "categoryId": "1410794624968167486",
+      "selected": false
+    },
+    {
+      "orgName": "FAIT",
+      "guildId": "1336484728819286117",
+      "categoryName": "MOBILE",
+      "categoryId": "1336484729951752214",
+      "selected": false
+    },
+    {
+      "orgName": "FALCAO",
+      "guildId": "1403442108299345951",
+      "categoryName": "MOBILE",
+      "categoryId": "1453090490110054571",
+      "selected": false
+    },
+    {
+      "orgName": "FISH",
+      "guildId": "1468837559181512777",
+      "categoryName": "MOBILE",
+      "categoryId": "1469087048311902501",
+      "selected": false
+    },
+    {
+      "orgName": "FURIA",
+      "guildId": "1357739668350697543",
+      "categoryName": "MOBILE",
+      "categoryId": "1357743915217715220",
+      "selected": false
+    },
+    {
+      "orgName": "FUSION",
+      "guildId": "1419756481544323254",
+      "categoryName": "MOBILE",
+      "categoryId": "1419756482664337580",
+      "selected": false
+    },
+    {
+      "orgName": "GALINHAS",
+      "guildId": "1459138997975777322",
+      "categoryName": "MOBILE",
+      "categoryId": "1459138999133274265",
+      "selected": false
+    },
+    {
+      "orgName": "HELIPA",
+      "guildId": "1359673398501970081",
+      "categoryName": "MOBILE",
+      "categoryId": "1359673400791928879",
+      "selected": false
+    },
+    {
+      "orgName": "ICE",
+      "guildId": "1364619575597207664",
+      "categoryName": "MOBILE",
+      "categoryId": "1364619576477745295",
+      "selected": false
+    },
+    {
+      "orgName": "INFINITY",
+      "guildId": "1475654212343038066",
+      "categoryName": "MOBILE",
+      "categoryId": "1475654213123047502",
+      "selected": false
+    },
+    {
+      "orgName": "JAGUAR",
+      "guildId": "1442574065943707752",
+      "categoryName": "MOBILE",
+      "categoryId": "1442611899219972147",
+      "selected": false
+    },
+    {
+      "orgName": "KING",
+      "guildId": "1335708301136236554",
+      "categoryName": "MOBILE",
+      "categoryId": "1335708936631746692",
+      "selected": false
+    },
+    {
+      "orgName": "KONG",
+      "guildId": "1409278327876751410",
+      "categoryName": "MOBILE",
+      "categoryId": "1410039614697115740",
+      "selected": false
+    },
+    {
+      "orgName": "LUCKY",
+      "guildId": "1370988682214903808",
+      "categoryName": "MOBILE",
+      "categoryId": "1428199521602502688",
+      "selected": false
+    },
+    {
+      "orgName": "MORCEGO",
+      "guildId": "1354661282057424916",
+      "categoryName": "MOBILE",
+      "categoryId": "1354661283135492284",
+      "selected": false
+    },
+    {
+      "orgName": "NEON",
+      "guildId": "1455567585830637721",
+      "categoryName": "MOBILE",
+      "categoryId": "1457169007361789962",
+      "selected": false
+    },
+    {
+      "orgName": "NEXUS",
+      "guildId": "1349892804075192380",
+      "categoryName": "MOBILE",
+      "categoryId": "1359387845420126259",
+      "selected": false
+    },
+    {
+      "orgName": "PANDA",
+      "guildId": "1384303916405231807",
+      "categoryName": "MOBILE",
+      "categoryId": "1458507099473580226",
+      "selected": false
+    },
+    {
+      "orgName": "PANTERA",
+      "guildId": "1454165234091688088",
+      "categoryName": "MOBILE",
+      "categoryId": "1459381618929172703",
+      "selected": false
+    },
+    {
       "orgName": "PARIS",
       "guildId": "1311409719499427911",
       "categoryName": "MOBILE",
       "categoryId": "1326266302117183619",
       "selected": true
+    },
+    {
+      "orgName": "PATO",
+      "guildId": "1452843272186757328",
+      "categoryName": "MOBILE",
+      "categoryId": "1456491281164402739",
+      "selected": false
+    },
+    {
+      "orgName": "QUEBRADA",
+      "guildId": "1430291537958277272",
+      "categoryName": "MOBILE",
+      "categoryId": "1443047444295192587",
+      "selected": false
+    },
+    {
+      "orgName": "RABBIT",
+      "guildId": "1453177640688156816",
+      "categoryName": "MOBILE",
+      "categoryId": "1454328944471052289",
+      "selected": false
+    },
+    {
+      "orgName": "REVOADA",
+      "guildId": "1450611292753891390",
+      "categoryName": "MOBILE",
+      "categoryId": "1465199934952312833",
+      "selected": false
+    },
+    {
+      "orgName": "ROMENIA",
+      "guildId": "1425935863732244542",
+      "categoryName": "MOBILE",
+      "categoryId": "1426100866074546229",
+      "selected": false
+    },
+    {
+      "orgName": "ROYAL",
+      "guildId": "1418360925676900494",
+      "categoryName": "MOBILE",
+      "categoryId": "1418360926859427845",
+      "selected": false
+    },
+    {
+      "orgName": "RYZEN",
+      "guildId": "1470118383340093550",
+      "categoryName": "MOBILE",
+      "categoryId": "1470130387610107996",
+      "selected": false
+    },
+    {
+      "orgName": "SACI",
+      "guildId": "1465118621360586786",
+      "categoryName": "MOBILE",
+      "categoryId": "1473082402246098954",
+      "selected": false
+    },
+    {
+      "orgName": "SE7E",
+      "guildId": "1351919917129269348",
+      "categoryName": "MOBILE",
+      "categoryId": "1352276940085788702",
+      "selected": false
+    },
+    {
+      "orgName": "SEVEN",
+      "guildId": "1331746838205693952",
+      "categoryName": "MOBILE",
+      "categoryId": "1356118992758243531",
+      "selected": false
+    },
+    {
+      "orgName": "SHADOW",
+      "guildId": "1464031347101139160",
+      "categoryName": "MOBILE",
+      "categoryId": "1464031354202099989",
+      "selected": false
+    },
+    {
+      "orgName": "SHARK",
+      "guildId": "1352610088531136583",
+      "categoryName": "MOBILE",
+      "categoryId": "1352613335295856692",
+      "selected": false
+    },
+    {
+      "orgName": "SMOKE",
+      "guildId": "1450235282128371767",
+      "categoryName": "MOBILE",
+      "categoryId": "1450235285311979545",
+      "selected": false
+    },
+    {
+      "orgName": "SPARTA",
+      "guildId": "1049073854905065503",
+      "categoryName": "MOBILE",
+      "categoryId": "1492177349435719771",
+      "selected": false
+    },
+    {
+      "orgName": "STRICK",
+      "guildId": "1383603896164945960",
+      "categoryName": "MOBILE",
+      "categoryId": "1416965785657671756",
+      "selected": false
+    },
+    {
+      "orgName": "SURF",
+      "guildId": "1395120020681392138",
+      "categoryName": "MOBILE",
+      "categoryId": "1395130356729909308",
+      "selected": false
+    },
+    {
+      "orgName": "TEMIDOS",
+      "guildId": "1380263444715933796",
+      "categoryName": "MOBILE",
+      "categoryId": "1519356797444427836",
+      "selected": false
+    },
+    {
+      "orgName": "TIGER",
+      "guildId": "1345478949072932944",
+      "categoryName": "MOBILE",
+      "categoryId": "1441134112516870374",
+      "selected": false
+    },
+    {
+      "orgName": "TOKIO",
+      "guildId": "1363914882033909902",
+      "categoryName": "MOBILE",
+      "categoryId": "1363914883694989324",
+      "selected": false
+    },
+    {
+      "orgName": "VENOM",
+      "guildId": "1442976596272353320",
+      "categoryName": "MOBILE",
+      "categoryId": "1462516592779722978",
+      "selected": false
+    },
+    {
+      "orgName": "VISION",
+      "guildId": "1442424206196477964",
+      "categoryName": "MOBILE",
+      "categoryId": "1442425715357253632",
+      "selected": false
+    },
+    {
+      "orgName": "VOID",
+      "guildId": "1455231465645281365",
+      "categoryName": "MOBILE",
+      "categoryId": "1455231467234918543",
+      "selected": false
+    },
+    {
+      "orgName": "WAVES",
+      "guildId": "1406631336080441424",
+      "categoryName": "MOBILE",
+      "categoryId": "1406631498194485278",
+      "selected": false
+    },
+    {
+      "orgName": "WHALE",
+      "guildId": "1175260357355388979",
+      "categoryName": "MOBILE",
+      "categoryId": "1405767890581459045",
+      "selected": false
+    },
+    {
+      "orgName": "WURF",
+      "guildId": "1408806505880359077",
+      "categoryName": "MOBILE",
+      "categoryId": "1408933648362901585",
+      "selected": false
     }
   ]
 }
