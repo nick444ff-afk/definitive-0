@@ -85,6 +85,13 @@
       "selected": false
     },
     {
+      "orgName": "CRUZEIRO",
+      "guildId": "1405368425475473478",
+      "categoryName": "MOBILE",
+      "categoryId": "1527430530042167437",
+      "selected": false
+    },
+    {
       "orgName": "CRYSTAL F1",
       "guildId": "1347277469958541332",
       "categoryName": "MOBILE",
@@ -96,6 +103,20 @@
       "guildId": "1327005027255975966",
       "categoryName": "MOBILE",
       "categoryId": "1373401435479343286",
+      "selected": false
+    },
+    {
+      "orgName": "DOG",
+      "guildId": "1442615487715610677",
+      "categoryName": "MOBILE",
+      "categoryId": "1449514373155651664",
+      "selected": false
+    },
+    {
+      "orgName": "DRAGON",
+      "guildId": "1326006986344497303",
+      "categoryName": "MOBILE",
+      "categoryId": "1519356056126623968",
       "selected": false
     },
     {
@@ -162,6 +183,13 @@
       "selected": false
     },
     {
+      "orgName": "GRECIA",
+      "guildId": "1418455728741417075",
+      "categoryName": "MOBILE",
+      "categoryId": "1469477626614911172",
+      "selected": false
+    },
+    {
       "orgName": "HELIPA",
       "guildId": "1359673398501970081",
       "categoryName": "MOBILE",
@@ -204,10 +232,24 @@
       "selected": false
     },
     {
+      "orgName": "LAS VEGAS",
+      "guildId": "1450588835695165606",
+      "categoryName": "MOBILE",
+      "categoryId": "1450588836941009097",
+      "selected": false
+    },
+    {
       "orgName": "LUCKY",
       "guildId": "1370988682214903808",
       "categoryName": "MOBILE",
       "categoryId": "1428199521602502688",
+      "selected": false
+    },
+    {
+      "orgName": "MONKEY",
+      "guildId": "1358858207782502451",
+      "categoryName": "MOBILE",
+      "categoryId": "1397778678112456745",
       "selected": false
     },
     {
@@ -222,6 +264,13 @@
       "guildId": "1455567585830637721",
       "categoryName": "MOBILE",
       "categoryId": "1457169007361789962",
+      "selected": false
+    },
+    {
+      "orgName": "NESCAU",
+      "guildId": "1476032885717864658",
+      "categoryName": "MOBILE",
+      "categoryId": "1476033509712990330",
       "selected": false
     },
     {
@@ -260,6 +309,13 @@
       "selected": false
     },
     {
+      "orgName": "POPAYE",
+      "guildId": "1369866805924986970",
+      "categoryName": "MOBILE",
+      "categoryId": "1369875966662283355",
+      "selected": false
+    },
+    {
       "orgName": "QUEBRADA",
       "guildId": "1430291537958277272",
       "categoryName": "MOBILE",
@@ -278,6 +334,13 @@
       "guildId": "1450611292753891390",
       "categoryName": "MOBILE",
       "categoryId": "1465199934952312833",
+      "selected": false
+    },
+    {
+      "orgName": "ROMA",
+      "guildId": "1465405700527226991",
+      "categoryName": "MOBILE",
+      "categoryId": "1479971528060960870",
       "selected": false
     },
     {
@@ -344,10 +407,24 @@
       "selected": false
     },
     {
+      "orgName": "SPACE",
+      "guildId": "1428523861405728871",
+      "categoryName": "MOBILE",
+      "categoryId": "1504164861544894659",
+      "selected": false
+    },
+    {
       "orgName": "SPARTA",
       "guildId": "1049073854905065503",
       "categoryName": "MOBILE",
       "categoryId": "1492177349435719771",
+      "selected": false
+    },
+    {
+      "orgName": "SPIDER",
+      "guildId": "1401065822390325369",
+      "categoryName": "MOBILE",
+      "categoryId": "1502198431119183872",
       "selected": false
     },
     {
@@ -376,6 +453,13 @@
       "guildId": "1345478949072932944",
       "categoryName": "MOBILE",
       "categoryId": "1441134112516870374",
+      "selected": false
+    },
+    {
+      "orgName": "TITA",
+      "guildId": "1405773123348856843",
+      "categoryName": "MOBILE",
+      "categoryId": "1474898241555267595",
       "selected": false
     },
     {
@@ -425,6 +509,13 @@
       "guildId": "1408806505880359077",
       "categoryName": "MOBILE",
       "categoryId": "1408933648362901585",
+      "selected": false
+    },
+    {
+      "orgName": "ZEUS",
+      "guildId": "1477317537493422334",
+      "categoryName": "MOBILE",
+      "categoryId": "1477328428196696226",
       "selected": false
     }
   ]
