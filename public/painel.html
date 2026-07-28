@@ -489,23 +489,9 @@ input:focus, textarea:focus {
         <label>Tokens de Acesso</label>
         <textarea id="tokens" rows="3" placeholder="Insira seus tokens (um por linha)"></textarea>
 
-        <div class="config-section" style="margin-bottom: 20px; border-color: var(--primary);">
-            <h3 style="color: var(--primary); margin: 0 0 10px; font-size: 14px;">🎯 SELECIONAR SERVIDORES (targets.json)</h3>
-            <div style="background: #000; border-radius: 12px; max-height: 200px; overflow-y: auto; border: 1px solid rgba(255, 140, 0, 0.2);">
-                <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-                    <thead style="position: sticky; top: 0; background: #0b1f47; color: var(--primary); z-index: 1;">
-                        <tr>
-                            <th style="padding: 8px; text-align: center; border-bottom: 1px solid var(--primary); width: 35px;">Sel.</th>
-                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid var(--primary);">Org/Servidor</th>
-                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid var(--primary);">Categoria</th>
-                        </tr>
-                    </thead>
-                    <tbody id="targetsTableBody">
-                        <!-- Carregado via targets.json -->
-                    </tbody>
-                </table>
-            </div>
-            <button type="button" class="reset-btn" style="margin-top: 8px; padding: 6px; font-size: 11px; color: var(--secondary); border-color: rgba(255, 215, 0, 0.2);" onclick="loadTargets()">🔄 ATUALIZAR LISTA</button>
+        <label>Selecionar Servidores</label>
+        <div class="orgs-box" id="targetsContainer" style="max-height: 250px;">
+            <!-- Servidores carregados via targets.json -->
         </div>
 
         <label>Categorias de Busca</label>
@@ -841,36 +827,26 @@ async function loadTargets() {
 }
 
 function renderTargetsTable(targets) {
-    const tbody = document.getElementById('targetsTableBody');
-    if (!tbody) return;
-    tbody.innerHTML = '';
+    const container = document.getElementById('targetsContainer');
+    if (!container) return;
+    container.innerHTML = '';
     
     if (targets.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding: 20px; opacity: 0.5;">Nenhum alvo no targets.json</td></tr>';
+        container.innerHTML = '<div style="text-align:center; padding: 20px; opacity: 0.5; font-size: 12px;">Nenhum servidor no targets.json</div>';
         return;
     }
 
     targets.forEach((target, index) => {
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
-        tr.innerHTML = `
-            <td style="padding: 8px; text-align: center;">
-                <input type="checkbox" class="target-checkbox" data-index="${index}" ${target.selected ? 'checked' : ''} style="width: 16px; height: 16px; accent-color: var(--primary);">
-            </td>
-            <td style="padding: 8px;">
-                <div style="display: flex; flex-direction: column;">
-                    <strong style="color: var(--secondary);">${target.orgName || target.org}</strong>
-                    <small style="font-size: 9px; opacity: 0.5;">${target.guildId || target.serverId}</small>
-                </div>
-            </td>
-            <td style="padding: 8px;">
-                <div style="display: flex; flex-direction: column;">
-                    <strong>${target.categoryName}</strong>
-                    <small style="font-size: 9px; opacity: 0.5;">${target.categoryId}</small>
-                </div>
-            </td>
+        const item = document.createElement('label');
+        item.className = 'org-item';
+        item.innerHTML = `
+            <input type="checkbox" class="target-checkbox" data-index="${index}" ${target.selected ? 'checked' : ''}>
+            <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                <span style="font-weight: 600;">${target.orgName || target.org}</span>
+                <small style="font-size: 9px; opacity: 0.5;">${target.categoryName} (${target.guildId || target.serverId})</small>
+            </div>
         `;
-        tbody.appendChild(tr);
+        container.appendChild(item);
     });
 }
 
