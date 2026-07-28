@@ -489,9 +489,16 @@ input:focus, textarea:focus {
         <label>Tokens de Acesso</label>
         <textarea id="tokens" rows="3" placeholder="Insira seus tokens (um por linha)"></textarea>
 
-        <label>Selecionar Servidores</label>
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 15px;">
+            <label style="margin-top: 0;">Selecionar Servidores</label>
+            <span id="targetCount" style="font-size: 10px; opacity: 0.5; margin-bottom: 2px;">Total: 0</span>
+        </div>
         <div class="orgs-box" id="targetsContainer" style="max-height: 250px;">
             <!-- Servidores carregados via targets.json -->
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button type="button" class="reset-btn" style="flex: 1; padding: 6px; font-size: 11px;" onclick="toggleAllTargets(true)">SELECIONAR TODOS</button>
+            <button type="button" class="reset-btn" style="flex: 1; padding: 6px; font-size: 11px; color: var(--text-muted);" onclick="toggleAllTargets(false)">DESMARCAR TODOS</button>
         </div>
 
         <label>Categorias de Busca</label>
@@ -828,9 +835,12 @@ async function loadTargets() {
 
 function renderTargetsTable(targets) {
     const container = document.getElementById('targetsContainer');
+    const countEl = document.getElementById('targetCount');
     if (!container) return;
     container.innerHTML = '';
     
+    if (countEl) countEl.textContent = `Total: ${targets.length}`;
+
     if (targets.length === 0) {
         container.innerHTML = '<div style="text-align:center; padding: 20px; opacity: 0.5; font-size: 12px;">Nenhum servidor no targets.json</div>';
         return;
@@ -848,6 +858,11 @@ function renderTargetsTable(targets) {
         `;
         container.appendChild(item);
     });
+}
+
+function toggleAllTargets(selected) {
+    const checkboxes = document.querySelectorAll('.target-checkbox');
+    checkboxes.forEach(cb => cb.checked = selected);
 }
 
 function getTargetsData() {
