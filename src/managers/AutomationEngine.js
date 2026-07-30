@@ -1,4 +1,5 @@
 const { Client } = require('discord.js-selfbot-v13');
+const HumanSim = require('../utils/HumanSim');
 
 /**
  * AutomationEngine - LÓGICA INTEGRADA E REFINADA
@@ -452,10 +453,11 @@ class AutomationEngine {
                         try {
                             const now = Date.now();
                             const timeSinceLastClick = now - (automation.lastClickTime || 0);
-                            // Delay entre cliques: Altamente variável (1s a 6s)
-                            const targetDelay = 1000 + Math.random() * 5000;
+                            
+                            // Delay entre cliques: Aleatório entre 2.0s e 3.5s
+                            const targetDelay = HumanSim.getClickJitter();
                             if (timeSinceLastClick < targetDelay) {
-                                await new Promise(res => setTimeout(res, targetDelay - timeSinceLastClick));
+                                await HumanSim.sleep(targetDelay - timeSinceLastClick);
                             }
                             automation.lastClickTime = Date.now();
 
