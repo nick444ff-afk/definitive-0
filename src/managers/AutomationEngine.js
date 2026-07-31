@@ -688,11 +688,11 @@ class AutomationEngine {
                             canaisFila = canaisFila.sort(() => Math.random() - 0.5);
                         } else {
                             // MODO VARREDURA AUTOMÁTICA (Fallback)
-                            serverIndex = serverIndex % guildArray.length;
-                            
-                            // Embaralhar servidores a cada volta completa
-                            if (serverIndex % guildArray.length === 0) {
+                            // Embaralhar servidores SEMPRE no início de um novo ciclo
+                            if (serverIndex >= guildArray.length || serverIndex === 0) {
+                                serverIndex = 0;
                                 guildArray = guildArray.sort(() => Math.random() - 0.5);
+                                onLog(`🎲 Nova ordem aleatória de servidores gerada para o ciclo.`, "info");
                             }
 
                             const currentGuild = guildArray[serverIndex];
