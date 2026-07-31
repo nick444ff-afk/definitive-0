@@ -711,7 +711,6 @@ class AutomationEngine {
                                 return matchesFormat && matchesCategory;
                             });
                             canaisFila = [...canaisAuto.values()];
-                            serverIndex++;
                         }
 
                         for (const channel of canaisFila) {
