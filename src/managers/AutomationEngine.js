@@ -578,6 +578,7 @@ class AutomationEngine {
                     for (const msg of msgArray) {
                         if (!automation.isRunning) break;
                         if (automation.blacklistedGuilds.has(guildId)) break;
+                        if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
 
                         // Se já clicou nesta mensagem nesta volta do servidor → PULAR
                         const guildClicked = automation.clickedMessagesByGuild.get(guildId);
@@ -714,9 +715,12 @@ class AutomationEngine {
                             const guildId = channel.guild?.id;
                             if (automation.blacklistedGuilds.has(guildId)) continue;
                             if (automation.processing.has(channel.id)) continue;
-                            // Limites de cliques removidos para execução contínua
+                            // Verificar limite por servidor+modo
                             const channelMode = getChannelMode(channel);
                             const modeCountKey = `${guildId}:${channelMode || "unknown"}`;
+                            const modeLimit = automation.limitesPorModoNames[channelMode] || this.MAX_ENTRIES_PER_GUILD;
+                            const modeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
+                            if (modeClicks >= modeLimit) continue;
 
                             automation.processing.add(channel.id);
                             try {
@@ -732,8 +736,11 @@ class AutomationEngine {
                                 // 3. Delay de Observação/Foco (1.5s a 4s) antes de agir
                                 await HumanSim.sleep(HumanSim.getObservationDelay());
 
-                                // Processamento contínuo sem timeout global
-                                await processChannel(channel);
+                                // Adicionar um timeout global para o processamento do canal
+                                const processPromise = processChannel(channel);
+                                const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 40000));
+                                
+                                await Promise.race([processPromise, globalTimeout]);
                             } catch (err) {
                                 onLog(`⚠️ Canal #${channel.name} ignorado: ${err.message}`, "warn");
                             }
@@ -741,7 +748,7 @@ class AutomationEngine {
                             setTimeout(() => automation.processing.delete(channel.id), 2000 + Math.random() * 1000);
                         }
 
-                        // Resetar caches para permitir novo ciclo contínuo imediato
+                        // Resetar contadores de cliques E mensagens clicadas deste servidor para permitir novo ciclo
                         if (currentGuildId) {
                             automation.guildClickCount.delete(currentGuildId);
                             for (const key of automation.guildClickCountByMode.keys()) {
@@ -749,7 +756,6 @@ class AutomationEngine {
                                     automation.guildClickCountByMode.delete(key);
                                 }
                             }
-                            // Limpar mensagens clicadas para permitir re-processamento no próximo ciclo
                             automation.clickedMessagesByGuild.delete(currentGuildId);
                         }
 
