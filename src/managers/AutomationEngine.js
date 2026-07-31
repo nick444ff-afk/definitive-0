@@ -571,18 +571,22 @@ class AutomationEngine {
                     };
 
                     // ═══════════════════════════════════════════════════════════
-                    // VARREDURA COMPLETA: varre todas as mensagens, coleta TODOS
-                    // os botões válidos livres e clica em cada um deles.
-                    // Passagens seguintes nunca clicam no mesmo botão/mensagem.
+                    // VARREDURA INTELIGENTE: Prioriza mensagens novas, mas permite
+                    // re-clique em mensagens antigas se não houver nada novo.
                     // ═══════════════════════════════════════════════════════════
-                    for (const msg of msgArray) {
+                    
+                    // Separar mensagens em "Novas" (não clicadas nesta volta) e "Antigas" (já clicadas)
+                    const guildClicked = automation.clickedMessagesByGuild.get(guildId) || new Set();
+                    const novasMsgs = msgArray.filter(m => !guildClicked.has(m.id));
+                    const antigasMsgs = msgArray.filter(m => guildClicked.has(m.id));
+
+                    // Tentar primeiro as mensagens NOVAS, depois as ANTIGAS (re-clique)
+                    const processQueue = [...novasMsgs, ...antigasMsgs];
+
+                    for (const msg of processQueue) {
                         if (!automation.isRunning) break;
                         if (automation.blacklistedGuilds.has(guildId)) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
-
-                        // Se já clicou nesta mensagem nesta volta do servidor → PULAR
-                        const guildClicked = automation.clickedMessagesByGuild.get(guildId);
-                        if (guildClicked && guildClicked.has(msg.id)) continue;
 
                         if (!msg.components?.length) continue;
 
@@ -624,7 +628,7 @@ class AutomationEngine {
 
                             // Clicar!
                             const ok = await doClick(msg, button);
-                            if (ok) break; // Só clica 1 botão por mensagem, vai para próxima
+                            if (ok) break; // Se clicou com sucesso, vai para a próxima mensagem
                         }
                     }
                 } catch (err) {
