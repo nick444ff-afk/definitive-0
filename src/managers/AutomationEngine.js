@@ -724,18 +724,21 @@ class AutomationEngine {
 
                             automation.processing.add(channel.id);
                             try {
-                                // 1. Simulação de "Olhar/Visitar" o canal via Ack (Leitura)
+                                // 1. Entrada Real no Canal via Gateway (Opcode 14)
+                                await HumanSim.enterChannel(self, channel);
+
+                                // 2. Simulação de Leitura (Ack)
                                 try {
                                     const lastMsg = channel.lastMessage || (await channel.messages.fetch({ limit: 1 })).first();
                                     if (lastMsg) await lastMsg.markRead();
                                 } catch (e) {}
 
-                                // 2. Delay de Observação/Foco (1.5s a 4s) antes de agir
+                                // 3. Delay de Observação/Foco (1.5s a 4s) antes de agir
                                 await HumanSim.sleep(HumanSim.getObservationDelay());
 
                                 // Adicionar um timeout global para o processamento do canal
                                 const processPromise = processChannel(channel);
-                                const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 30000));
+                                const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 40000));
                                 
                                 await Promise.race([processPromise, globalTimeout]);
                             } catch (err) {
@@ -760,17 +763,11 @@ class AutomationEngine {
                         serverIndex++;
 
                         // Quando completou uma volta completa em todos os servidores, limpar apenas caches temporários
-                        // clickedMessages NUNCA é limpo - o bot nunca clica no mesmo botão/mensagem de novo na sessão
                         if (serverIndex % guildArray.length === 0) {
                             automation.msgAutoSentThisSession.clear();
                             automation.confirmedChannels.clear();
-                            // Descanso após volta completa: 5s a 10s
-                            onLog(`⏳ Ciclo completo. Reiniciando em breve...`, "info");
-                            await new Promise(res => setTimeout(res, 5000 + Math.random() * 5000));
+                            onLog(`🔄 Ciclo completo. Reiniciando varredura contínua...`, "info");
                         }
-
-                        // Delay de trocar de servidor: Imprevisível (2s a 7s)
-                        await new Promise(res => setTimeout(res, 2000 + Math.random() * 5000));
                     } catch (err) {
                         // O loop principal NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 3000));
