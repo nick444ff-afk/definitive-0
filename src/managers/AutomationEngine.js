@@ -40,6 +40,7 @@ class AutomationEngine {
                 failedButtons: new Map(),     // "msgId:buttonLabel" -> falhas
                 guildErrorCount: new Map(),   // guildId -> contador de erros consecutivos
                 blacklistedGuilds: new Set(), // guildId -> servidores ignorados temporariamente
+                blacklistedChannels: new Set(), // channelId -> canais sem permissão
                 lastClickTime: 0,
                 activeTasks: new Set(),
                 limitesPorModo: {},
@@ -654,56 +655,58 @@ class AutomationEngine {
                             continue;
                         }
 
-                        // --- LÓGICA DE SELEÇÃO DE CANAIS ---
+                        // --- LÓGICA DE SELEÇÃO DE SERVIDOR ---
+                        const selectedTargets = (targets || []).filter(t => t.selected);
+                        let currentGuild = null;
                         let canaisFila = [];
                         let currentGuildId = null;
 
-                        // Filtrar apenas alvos selecionados
-                        const selectedTargets = (targets || []).filter(t => t.selected);
-
                         if (selectedTargets.length > 0) {
-                            // MODO ALVOS MANUAIS: Apenas processa o que foi selecionado
-                            for (const target of selectedTargets) {
-                                const guildId = target.guildId || target.serverId;
-                                const categoryId = target.categoryId;
-                                
-                                const guild = self.guilds.cache.get(guildId);
-                                if (!guild || guild.unavailable || automation.blacklistedGuilds.has(guild.id)) continue;
-
-                                currentGuildId = guild.id; // Definir currentGuildId para permitir reset de cliques
-                                const channels = guild.channels.cache.filter(c => {
-                                    if (c.type !== "GUILD_TEXT" || c.parentId !== categoryId) return false;
-                                    
-                                    // Aplicar filtro de Modos de Jogo (1x1, 2x2, etc.)
-                                    const nome = c.name.toLowerCase();
-                                    const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
-                                    
-                                    // Se houver modos selecionados, o canal deve conter pelo menos um deles no nome
-                                    const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
-                                    return matchesFormat;
-                                });
-                                canaisFila.push(...channels.values());
+                            // MODO ALVOS MANUAIS (74 Servidores)
+                            if (serverIndex >= selectedTargets.length || serverIndex === 0) {
+                                serverIndex = 0;
+                                selectedTargets.sort(() => Math.random() - 0.5);
+                                onLog(`🎲 Nova ordem aleatória de ALVOS gerada para o ciclo.`, "info");
                             }
-                            // Embaralhar os canais dos alvos para comportamento humano
-                            canaisFila = canaisFila.sort(() => Math.random() - 0.5);
+
+                            const target = selectedTargets[serverIndex];
+                            const guildId = target.guildId || target.serverId;
+                            const categoryId = target.categoryId;
+                            
+                            currentGuild = self.guilds.cache.get(guildId);
+                            if (!currentGuild || currentGuild.unavailable || automation.blacklistedGuilds.has(guildId)) {
+                                if (!currentGuild) onLog(`ℹ️ Servidor ${target.orgName || guildId} ausente. Pulando...`, "info");
+                                serverIndex++;
+                                continue;
+                            }
+
+                            currentGuildId = guildId;
+                            const channels = currentGuild.channels.cache.filter(c => {
+                                if (c.type !== "GUILD_TEXT" || c.parentId !== categoryId) return false;
+                                if (!c.viewable || automation.blacklistedChannels.has(c.id)) return false;
+                                const nome = c.name.toLowerCase();
+                                const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
+                                return searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
+                            });
+                            canaisFila = [...channels.values()];
                         } else {
                             // MODO VARREDURA AUTOMÁTICA (Fallback)
-                            // Embaralhar servidores SEMPRE no início de um novo ciclo
                             if (serverIndex >= guildArray.length || serverIndex === 0) {
                                 serverIndex = 0;
-                                guildArray = guildArray.sort(() => Math.random() - 0.5);
+                                guildArray.sort(() => Math.random() - 0.5);
                                 onLog(`🎲 Nova ordem aleatória de servidores gerada para o ciclo.`, "info");
                             }
 
-                            const currentGuild = guildArray[serverIndex];
+                            currentGuild = guildArray[serverIndex];
                             currentGuildId = currentGuild.id;
-                            if (automation.blacklistedGuilds.has(currentGuild.id)) {
+                            if (automation.blacklistedGuilds.has(currentGuildId)) {
                                 serverIndex++;
                                 continue;
                             }
 
                             const canaisAuto = currentGuild.channels.cache.filter(c => {
                                 if (c.type !== "GUILD_TEXT") return false;
+                                if (!c.viewable || automation.blacklistedChannels.has(c.id)) return false;
                                 const nome = c.name.toLowerCase();
                                 const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
                                 const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
@@ -725,6 +728,7 @@ class AutomationEngine {
                             const modeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
                             if (modeClicks >= modeLimit) continue;
 
+                            if (automation.blacklistedChannels.has(channel.id)) continue;
                             automation.processing.add(channel.id);
                             try {
                                 // 1. Entrada Real no Canal via Gateway (Opcode 14)
@@ -745,7 +749,12 @@ class AutomationEngine {
                                 
                                 await Promise.race([processPromise, globalTimeout]);
                             } catch (err) {
-                                onLog(`⚠️ Canal #${channel.name} ignorado: ${err.message}`, "warn");
+                                if (err.message.includes("Missing Permissions") || err.message.includes("Missing Access")) {
+                                    automation.blacklistedChannels.add(channel.id);
+                                    onLog(`🚫 Canal #${channel.name} bloqueado: Sem permissão de acesso.`, "error");
+                                } else {
+                                    onLog(`⚠️ Canal #${channel.name} ignorado: ${err.message}`, "warn");
+                                }
                             }
                             // Limpeza de cache de processamento sem delay artificial
                             automation.processing.delete(channel.id);
