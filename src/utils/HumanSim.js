@@ -7,7 +7,15 @@ const getClickJitter = () => {
     return Math.floor(2000 + Math.random() * 1500);
 };
 
+/**
+ * Retorna um delay de observação/foco no canal (1.5s a 4s)
+ */
+const getObservationDelay = () => {
+    return Math.floor(1500 + Math.random() * 2500);
+};
+
 module.exports = {
     sleep,
-    getClickJitter
+    getClickJitter,
+    getObservationDelay
 };

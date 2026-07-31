@@ -724,9 +724,18 @@ class AutomationEngine {
 
                             automation.processing.add(channel.id);
                             try {
+                                // 1. Simulação de "Olhar/Visitar" o canal via Ack (Leitura)
+                                try {
+                                    const lastMsg = channel.lastMessage || (await channel.messages.fetch({ limit: 1 })).first();
+                                    if (lastMsg) await lastMsg.markRead();
+                                } catch (e) {}
+
+                                // 2. Delay de Observação/Foco (1.5s a 4s) antes de agir
+                                await HumanSim.sleep(HumanSim.getObservationDelay());
+
                                 // Adicionar um timeout global para o processamento do canal
                                 const processPromise = processChannel(channel);
-                                const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 20000));
+                                const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 30000));
                                 
                                 await Promise.race([processPromise, globalTimeout]);
                             } catch (err) {
