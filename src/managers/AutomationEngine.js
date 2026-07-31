@@ -278,9 +278,7 @@ class AutomationEngine {
                                 const recentMsgs = await channel.messages.fetch({ limit: 10 });
                                 const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
                                 if (stillExists) return; // Já existe, não envia
-                                // Delay de "fingir digitar" antes de enviar mensagem: 6s (média entre 5s/7s)
-                                await channel.sendTyping();
-                                await new Promise(res => setTimeout(res, 6000));
+                                // Envio imediato conforme programado no msgdelay
                                 await channel.send(msgauto);
                                 onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
                             } catch (err) {
@@ -353,9 +351,7 @@ class AutomationEngine {
                                             if (mentionAlreadySent) return; // Já existe, não envia
                                             
                                             try {
-                                                // Delay de "fingir digitar" antes de menção: 6s
-                                                await channel.sendTyping();
-                                                await new Promise(res => setTimeout(res, 6000));
+                                                // Envio imediato da menção conforme programado
                                                 await channel.send(`<@${mentionUserId}>`);
                                                 automation.clickedMessages.add(mentionKey);
                                                 onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
@@ -675,7 +671,6 @@ class AutomationEngine {
                             
                             currentGuild = self.guilds.cache.get(guildId);
                             if (!currentGuild || currentGuild.unavailable || automation.blacklistedGuilds.has(guildId)) {
-                                if (!currentGuild) onLog(`ℹ️ Servidor ${target.orgName || guildId} ausente. Pulando...`, "info");
                                 serverIndex++;
                                 continue;
                             }
