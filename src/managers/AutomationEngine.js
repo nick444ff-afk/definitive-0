@@ -819,6 +819,12 @@ class AutomationEngine {
                                 for (const [, channel] of canaisPartida) {
                                     if (!automation.isRunning) break;
                                     try {
+                                        // Entrada Real no Canal via Gateway (Opcode 14) para monitoramento de mensagens
+                                        await HumanSim.enterChannel(self, channel);
+                                        
+                                        // Delay orgânico de observação (0.5s a 1.5s) para leitura de mensagens
+                                        await HumanSim.sleep(500 + Math.random() * 1000);
+
                                         await scheduleMatchTasks(channel);
                                     } catch (err) {
                                         // Erro ao agendar - ignorar e continuar
