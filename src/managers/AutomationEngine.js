@@ -748,11 +748,11 @@ class AutomationEngine {
                             } catch (err) {
                                 onLog(`⚠️ Canal #${channel.name} ignorado: ${err.message}`, "warn");
                             }
-                            // Delay entre canais do mesmo servidor: 2s a 3s
-                            setTimeout(() => automation.processing.delete(channel.id), 2000 + Math.random() * 1000);
+                            // Limpeza de cache de processamento sem delay artificial
+                            automation.processing.delete(channel.id);
                         }
 
-                        // Resetar contadores de cliques E mensagens clicadas deste servidor para permitir novo ciclo
+                        // Resetar contadores para permitir novo ciclo imediato no mesmo servidor
                         if (currentGuildId) {
                             automation.guildClickCount.delete(currentGuildId);
                             for (const key of automation.guildClickCountByMode.keys()) {
@@ -763,18 +763,18 @@ class AutomationEngine {
                             automation.clickedMessagesByGuild.delete(currentGuildId);
                         }
 
-                        // Avançar para o próximo servidor
+                        // Avançar para o próximo servidor instantaneamente
                         serverIndex++;
 
-                        // Quando completou uma volta completa em todos os servidores, limpar apenas caches temporários
+                        // Reinício imediato do ciclo global
                         if (serverIndex % guildArray.length === 0) {
                             automation.msgAutoSentThisSession.clear();
                             automation.confirmedChannels.clear();
-                            onLog(`🔄 Ciclo completo. Reiniciando varredura contínua...`, "info");
+                            onLog(`🔄 Varredura contínua ativa.`, "info");
                         }
                     } catch (err) {
-                        // O loop principal NUNCA deve parar por erro
-                        await new Promise(res => setTimeout(res, 3000));
+                        // O loop principal NUNCA deve parar, reinício rápido em caso de erro
+                        await new Promise(res => setTimeout(res, 500));
                     }
                 }
             })();
