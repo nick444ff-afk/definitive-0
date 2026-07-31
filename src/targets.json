@@ -517,6 +517,48 @@
       "categoryName": "MOBILE",
       "categoryId": "1477328428196696226",
       "selected": false
+    },
+    {
+      "orgName": "LISBOA",
+      "guildId": "1441120940485513308",
+      "categoryName": "MOBILE",
+      "categoryId": "1441121594171854960",
+      "selected": true
+    },
+    {
+      "orgName": "CRYSTAL F2",
+      "guildId": "1324972402903482460",
+      "categoryName": "MOBILE",
+      "categoryId": "1530731281975869440",
+      "selected": true
+    },
+    {
+      "orgName": "FOX",
+      "guildId": "1464641490570449095",
+      "categoryName": "MOBILE",
+      "categoryId": "1464641492210548959",
+      "selected": true
+    },
+    {
+      "orgName": "SCORPION",
+      "guildId": "1419020536004087928",
+      "categoryName": "MOBILE",
+      "categoryId": "1466176426507243803",
+      "selected": true
+    },
+    {
+      "orgName": "FALCON",
+      "guildId": "1326335027738447902",
+      "categoryName": "MOBILE",
+      "categoryId": "1326335199893520455",
+      "selected": true
+    },
+    {
+      "orgName": "WAZE",
+      "guildId": "1360754474758570004",
+      "categoryName": "MOBILE",
+      "categoryId": "1427160049687592973",
+      "selected": true
     }
   ]
 }
