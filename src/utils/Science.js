@@ -131,6 +131,33 @@ class Science {
             message_id: messageId
         });
     }
+
+    /**
+     * Simula o foco ou perda de foco da janela do navegador
+     */
+    async trackWindowFocus(focused = true) {
+        await this.sendEvent(focused ? 'window_focus' : 'window_blur', {
+            focused: focused
+        });
+    }
+
+    /**
+     * Simula a rolagem do chat
+     */
+    async trackScroll(channelId) {
+        await this.sendEvent('text_area_scrolled', {
+            channel_id: channelId
+        });
+    }
+
+    /**
+     * Simula a abertura das configurações
+     */
+    async trackSettingsOpened() {
+        await this.sendEvent('settings_viewed', {
+            section: 'USER_SETTINGS'
+        });
+    }
 }
 
 module.exports = Science;

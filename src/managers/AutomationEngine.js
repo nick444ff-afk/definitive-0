@@ -19,18 +19,35 @@ class AutomationEngine {
 
     async _performWhiteNoise(client, guild, onLog) {
         try {
-            // Escolher um canal aleatório (regras, avisos, geral)
-            const randomChannel = guild.channels.cache.find(c => 
-                c.type === "GUILD_TEXT" && 
-                (c.name.includes("regras") || c.name.includes("rules") || c.name.includes("geral") || c.name.includes("announcements"))
-            );
-
-            if (randomChannel) {
-                // Simular visita lateral
-                await HumanSim.enterChannel(client, randomChannel);
-                if (client.science) await client.science.trackChannelOpened(guild.id, randomChannel.id);
-                await HumanSim.sleep(2000 + Math.random() * 3000); // Ficar olhando por 2-5s
-                // onLog(`🕵️ Ruído Branco: Visitou #${randomChannel.name} em ${guild.name}`, "info");
+            const rand = Math.random();
+            
+            // 1. Visita a Canal de Texto (Regras/Geral)
+            if (rand < 0.7) {
+                const randomChannel = guild.channels.cache.find(c => 
+                    c.type === "GUILD_TEXT" && 
+                    (c.name.includes("regras") || c.name.includes("rules") || c.name.includes("geral") || c.name.includes("announcements"))
+                );
+                if (randomChannel) {
+                    await HumanSim.enterChannel(client, randomChannel);
+                    if (client.science) await client.science.trackChannelOpened(guild.id, randomChannel.id);
+                    await HumanSim.sleep(2000 + Math.random() * 3000);
+                }
+            } 
+            // 2. Entrada Rápida em Canal de Voz (Simula erro ou conferência)
+            else if (rand < 0.9) {
+                const voiceChannel = guild.channels.cache.find(c => c.type === "GUILD_VOICE" && c.viewable);
+                if (voiceChannel) {
+                    try {
+                        const connection = await voiceChannel.join({ selfMute: true, selfDeaf: true });
+                        await HumanSim.sleep(5000 + Math.random() * 10000);
+                        voiceChannel.leave();
+                    } catch (e) {}
+                }
+            }
+            // 3. Simulação de Lag de Rede (Jitter Artificial)
+            else {
+                const lag = 2000 + Math.random() * 3000;
+                await HumanSim.sleep(lag);
             }
         } catch (e) {
             // Silencioso
@@ -128,6 +145,17 @@ class AutomationEngine {
                 // Iniciar Heartbeat de Telemetria
                 science.startHeartbeat();
 
+                // 1. Mudança de Status Dinâmico (Loop de fundo)
+                const statusPhrases = ["Calculando...", "Vendo as filas", "AFK", "Ouvindo Spotify", "Comendo", "Trabalhando"];
+                setInterval(async () => {
+                    if (!automation.isRunning) return;
+                    const phrase = statusPhrases[Math.floor(Math.random() * statusPhrases.length)];
+                    try {
+                        await self.user.setPresence({ activities: [{ name: phrase, type: "CUSTOM" }] });
+                        if (science) await science.trackSettingsOpened(); // Simular que abriu settings para mudar status
+                    } catch (e) {}
+                }, 15 * 60 * 1000); // A cada 15 minutos
+
                 automation.clients.push(self);
                 onLog(`🟢 Logado com @${self.user.username} (Headers Sincronizados)`, "success");
             } catch (err) {
@@ -151,29 +179,10 @@ class AutomationEngine {
             const searchCategories = (categories || []).map(cat => categoriaMap[cat.toLowerCase()] || cat.toLowerCase());
 
             // ═══════════════════════════════════════════════════════
-            // LIMITE DE CLIQUES COM DIVISÃO JUSTA POR MODO
+            // LIMITE DE CLIQUES GERAL (MÁX 4 CONFORME SOLICITADO)
             // ═══════════════════════════════════════════════════════
-            const limiteCliques = config.limiteCliques || 5;
-            const numModos = searchFormats.length || 1;
-            const basePorModo = Math.max(1, Math.floor(limiteCliques / numModos));
-            const sobra = limiteCliques - (basePorModo * numModos);
-            
-            // Distribuir sobra: primeiros modos ficam com +1
-            const limitesPorModo = {};
-            (modos || []).forEach((m, i) => {
-                limitesPorModo[m.toLowerCase()] = basePorModo + (i < sobra ? 1 : 0);
-            });
-            // Se só 1 modo, usa o limite inteiro
-            if (numModos === 1 && (modos || []).length === 1) {
-                limitesPorModo[(modos || [])[0].toLowerCase()] = limiteCliques;
-            }
-            
-            automation.limitesPorModo = limitesPorModo;
-            automation.limitesPorModoNames = {};
-            (modos || []).forEach(m => {
-                const normalized = m.toLowerCase().replace(/v|x/g, " ").replace(/-|_/g, " ").replace(/\s+/g, " ").trim();
-                automation.limitesPorModoNames[normalized] = limitesPorModo[m.toLowerCase()] || basePorModo;
-            });
+            const limiteCliquesGeral = 4;
+            automation.limiteCliquesGeral = limiteCliquesGeral;
 
             const CATEGORY_KEYWORDS = {
                 mobile: ["mobile", "mob", "celular", "📱"],
@@ -326,6 +335,11 @@ class AutomationEngine {
                                 const recentMsgs = await channel.messages.fetch({ limit: 10 });
                                 const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
                                 if (stillExists) return; // Já existe, não envia
+                                // Delay Orgânico "Até 15s"
+                                const maxDelay = 15000;
+                                const organicDelay = Math.floor(Math.random() * maxDelay);
+                                await HumanSim.sleep(organicDelay);
+
                                 // Variação de Conteúdo (Spinning)
                                 let finalMsg = msgauto;
                                 if (Math.random() > 0.7) {
@@ -333,8 +347,14 @@ class AutomationEngine {
                                     finalMsg += " " + emojis[Math.floor(Math.random() * emojis.length)];
                                 }
 
-                                // Envio imediato conforme programado no msgdelay
-                                await channel.send(finalMsg);
+                                // Envio da Mensagem
+                                const sentMsg = await channel.send(finalMsg);
+
+                                // Simulação de Erro Humano (Typos/Edição) - 5% de chance
+                                if (Math.random() < 0.05) {
+                                    await HumanSim.sleep(2000 + Math.random() * 3000);
+                                    await sentMsg.edit(finalMsg + "."); // Edição sutil
+                                }
                                 onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
                             } catch (err) {
                                 // Erro ao enviar mensagem - silencioso
@@ -406,7 +426,11 @@ class AutomationEngine {
                                             if (mentionAlreadySent) return; // Já existe, não envia
                                             
                                             try {
-                                                // Envio imediato da menção conforme programado
+                                                // Delay Orgânico para Menção "Até 15s"
+                                                const organicMentionDelay = Math.floor(Math.random() * 15000);
+                                                await HumanSim.sleep(organicMentionDelay);
+
+                                                // Envio da menção
                                                 await channel.send(`<@${mentionUserId}>`);
                                                 automation.clickedMessages.add(mentionKey);
                                                 onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
@@ -684,6 +708,18 @@ class AutomationEngine {
                                 continue; // Botão com falha persistente, pular
                             }
 
+                            // Simulação de Erro Humano (Cliques Errados) - 3% de chance
+                            if (Math.random() < 0.03) {
+                                const siblingChannels = channel.guild.channels.cache.filter(c => c.type === "GUILD_TEXT" && c.id !== channel.id);
+                                const randomSibling = siblingChannels.first();
+                                if (randomSibling) {
+                                    await HumanSim.enterChannel(self, randomSibling);
+                                    if (self.science) await self.science.trackChannelOpened(channel.guild.id, randomSibling.id);
+                                    await HumanSim.sleep(1000 + Math.random() * 2000);
+                                    onLog(`🤏 Erro Humano: Clicou no canal errado (#${randomSibling.name}) antes de voltar.`, "info");
+                                }
+                            }
+
                             // Simulação de Erro Humano (Chance de 2% de "ignorar" um clique)
                             if (Math.random() < 0.02) {
                                 onLog(`🤏 Simulação de Erro: Bot "ignorou" um clique propositalmente.`, "info");
@@ -718,167 +754,100 @@ class AutomationEngine {
             };
 
                         // ═══════════════════════════════════════════════════════════
-            // LOOP CONTÍNUO DE CLIQUES (apenas cliques em canais de fila)
+            // LOOP CONTÍNUO INTERCALADO (NÍVEL HUMANO)
             // ═══════════════════════════════════════════════════════════
-            let serverIndex = 0;
+            let guildQueue = [];
 
             (async () => {
                 while (true) {
                     if (!automation.isRunning) break;
                     try {
-                        const guilds = self.guilds.cache.filter(g => !g.unavailable);
-                        let guildArray = [...guilds.values()];
+                        // 1. Foco da Janela (Window Focus/Blur)
+                        if (self.science && Math.random() > 0.8) {
+                            const isFocus = Math.random() > 0.3;
+                            await self.science.trackWindowFocus(isFocus);
+                            if (!isFocus) await HumanSim.sleep(5000 + Math.random() * 10000); // "Saiu da aba"
+                        }
 
-                        if (guildArray.length === 0) {
-                            await new Promise(res => setTimeout(res, 5000));
+                        // 2. Lógica de Fila de Servidores (Intercalada)
+                        if (guildQueue.length === 0) {
+                            const selectedTargets = (targets || []).filter(t => t.selected);
+                            if (selectedTargets.length > 0) {
+                                guildQueue = [...selectedTargets].sort(() => Math.random() - 0.5);
+                            } else {
+                                const guilds = self.guilds.cache.filter(g => !g.unavailable);
+                                guildQueue = [...guilds.values()].sort(() => Math.random() - 0.5);
+                            }
+                            onLog(`🎲 Nova fila intercalada de ${guildQueue.length} servidores gerada.`, "info");
+                        }
+
+                        const currentTarget = guildQueue.shift();
+                        const guildId = currentTarget.guildId || currentTarget.id;
+                        const currentGuild = self.guilds.cache.get(guildId);
+
+                        if (!currentGuild || currentGuild.unavailable || automation.blacklistedGuilds.has(guildId)) {
                             continue;
                         }
 
-                        // --- LÓGICA DE SELEÇÃO DE SERVIDOR ---
-                        const selectedTargets = (targets || []).filter(t => t.selected);
-                        let currentGuild = null;
-                        let canaisFila = [];
-                        let currentGuildId = null;
+                        // 3. Seleção de Canais do Servidor
+                        const categoryId = currentTarget.categoryId;
+                        const canaisFila = currentGuild.channels.cache.filter(c => {
+                            if (c.type !== "GUILD_TEXT") return false;
+                            if (categoryId && c.parentId !== categoryId) return false;
+                            if (!c.viewable || automation.blacklistedChannels.has(c.id)) return false;
+                            const nome = c.name.toLowerCase();
+                            const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
+                            const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
+                            return matchesFormat;
+                        });
 
-                        if (selectedTargets.length > 0) {
-                            // MODO ALVOS MANUAIS (74 Servidores)
-                            if (serverIndex >= selectedTargets.length || serverIndex === 0) {
-                                serverIndex = 0;
-                                selectedTargets.sort(() => Math.random() - 0.5);
-                                onLog(`🎲 Nova ordem aleatória de ALVOS gerada para o ciclo.`, "info");
-                            }
+                        if (canaisFila.size === 0) continue;
 
-                            const target = selectedTargets[serverIndex];
-                            const guildId = target.guildId || target.serverId;
-                            const categoryId = target.categoryId;
-                            
-                            currentGuild = self.guilds.cache.get(guildId);
-                            if (!currentGuild || currentGuild.unavailable || automation.blacklistedGuilds.has(guildId)) {
-                                serverIndex++;
-                                continue;
-                            }
+                        // 4. Ações no Servidor (1 a 2 cliques por visita para intercalar)
+                        const maxActionsPerVisit = Math.floor(Math.random() * 2) + 1;
+                        let actionsDone = 0;
 
-                            currentGuildId = guildId;
-                            const channels = currentGuild.channels.cache.filter(c => {
-                                if (c.type !== "GUILD_TEXT" || c.parentId !== categoryId) return false;
-                                if (!c.viewable || automation.blacklistedChannels.has(c.id)) return false;
-                                const nome = c.name.toLowerCase();
-                                const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
-                                return searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
-                            });
-                            canaisFila = [...channels.values()];
-                        } else {
-                            // MODO VARREDURA AUTOMÁTICA (Fallback)
-                            if (serverIndex >= guildArray.length || serverIndex === 0) {
-                                serverIndex = 0;
-                                guildArray.sort(() => Math.random() - 0.5);
-                                onLog(`🎲 Nova ordem aleatória de servidores gerada para o ciclo.`, "info");
-                            }
-
-                            currentGuild = guildArray[serverIndex];
-                            currentGuildId = currentGuild.id;
-                            if (automation.blacklistedGuilds.has(currentGuildId)) {
-                                serverIndex++;
-                                continue;
-                            }
-
-                            const canaisAuto = currentGuild.channels.cache.filter(c => {
-                                if (c.type !== "GUILD_TEXT") return false;
-                                if (!c.viewable || automation.blacklistedChannels.has(c.id)) return false;
-                                const nome = c.name.toLowerCase();
-                                const nomeNormalized = nome.replace(/[-_xv]/g, " ").replace(/\s+/g, " ").trim();
-                                const matchesFormat = searchFormats.length === 0 || searchFormats.some(f => nomeNormalized.includes(f));
-                                const matchesCategory = searchCategories.length === 0 || searchCategories.some(cat => nome.includes(cat) || nomeNormalized.includes(cat));
-                                return matchesFormat && matchesCategory;
-                            });
-                            canaisFila = [...canaisAuto.values()];
-                        }
-
-                        // Delay de transição entre servidores (3s a 7s) para comportamento humano
-                        const transitionDelay = HumanSim.getServerTransitionDelay();
-                        await HumanSim.sleep(transitionDelay);
-
-                        for (const channel of canaisFila) {
-                            if (!automation.isRunning) break;
-                            const guildId = channel.guild?.id;
-                            if (automation.blacklistedGuilds.has(guildId)) continue;
+                        for (const channel of canaisFila.values()) {
+                            if (actionsDone >= maxActionsPerVisit || !automation.isRunning) break;
                             if (automation.processing.has(channel.id)) continue;
-                            // Verificar limite por servidor+modo
-                            const channelMode = getChannelMode(channel);
-                            const modeCountKey = `${guildId}:${channelMode || "unknown"}`;
-                            const modeLimit = automation.limitesPorModoNames[channelMode] || this.MAX_ENTRIES_PER_GUILD;
-                            const modeClicks = automation.guildClickCountByMode.get(modeCountKey) || 0;
-                            if (modeClicks >= modeLimit) continue;
 
-                            if (automation.blacklistedChannels.has(channel.id)) continue;
+                            // Verificar limite geral do servidor (MÁX 4)
+                            const totalClicks = automation.guildClickCount.get(guildId) || 0;
+                            if (totalClicks >= automation.limiteCliquesGeral) continue;
+
                             automation.processing.add(channel.id);
                             try {
-                                // 1. Entrada Real no Canal via Gateway (Opcode 14)
+                                // A) Simulação de Entrada e Scroll
                                 await HumanSim.enterChannel(self, channel);
-
-                                // 2. Telemetria Science: Rastro de Navegação
                                 if (self.science) {
-                                    await self.science.trackChannelOpened(channel.guild?.id, channel.id);
+                                    await self.science.trackChannelOpened(guildId, channel.id);
+                                    if (Math.random() > 0.5) await self.science.trackScroll(channel.id);
                                 }
 
-                                // 3. Simulação de Leitura (Ack)
-                                try {
-                                    const lastMsg = channel.lastMessage || (await channel.messages.fetch({ limit: 1 })).first();
-                                    if (lastMsg) {
-                                        if (self.science) await self.science.trackMessageViewed(channel.id, lastMsg.id);
-                                        await lastMsg.markRead();
-                                    }
-                                } catch (e) {}
-
-                                // 4. Delay de Observação/Foco (1.5s a 4s) antes de agir
+                                // B) Delay de Observação
                                 await HumanSim.sleep(HumanSim.getObservationDelay());
 
-                                // 5. Estratégia de Ruído Branco (Lateral Activity)
+                                // C) Processar Canal
+                                const ok = await processChannel(channel);
+                                if (ok) actionsDone++;
+
+                                // D) Ruído Branco Ocasional
                                 actionCounter++;
-                                if (actionCounter % 15 === 0) {
-                                    await this._performWhiteNoise(self, channel.guild, onLog);
+                                if (actionCounter % 10 === 0) {
+                                    await this._performWhiteNoise(self, currentGuild, onLog);
                                 }
-
-                                // Adicionar um timeout global para o processamento do canal
-                                const processPromise = processChannel(channel);
-                                const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 40000));
-                                
-                                await Promise.race([processPromise, globalTimeout]);
                             } catch (err) {
-                                if (err.message.includes("Missing Permissions") || err.message.includes("Missing Access")) {
-                                    automation.blacklistedChannels.add(channel.id);
-                                    onLog(`🚫 Canal #${channel.name} bloqueado: Sem permissão de acesso.`, "error");
-                                } else {
-                                    onLog(`⚠️ Canal #${channel.name} ignorado: ${err.message}`, "warn");
-                                }
+                                if (isPermissionError(err)) automation.blacklistedChannels.add(channel.id);
+                            } finally {
+                                automation.processing.delete(channel.id);
                             }
-                            // Limpeza de cache de processamento sem delay artificial
-                            automation.processing.delete(channel.id);
                         }
 
-                        // Resetar contadores para permitir novo ciclo imediato no mesmo servidor
-                        if (currentGuildId) {
-                            automation.guildClickCount.delete(currentGuildId);
-                            for (const key of automation.guildClickCountByMode.keys()) {
-                                if (key.startsWith(`${currentGuildId}:`)) {
-                                    automation.guildClickCountByMode.delete(key);
-                                }
-                            }
-                            automation.clickedMessagesByGuild.delete(currentGuildId);
-                        }
-
-                        // Avançar para o próximo servidor instantaneamente
-                        serverIndex++;
-
-                        // Reinício imediato do ciclo global
-                        if (serverIndex % guildArray.length === 0) {
-                            automation.msgAutoSentThisSession.clear();
-                            automation.confirmedChannels.clear();
-                            onLog(`🔄 Varredura contínua ativa.`, "info");
-                        }
+                        // Delay de transição entre servidores
+                        await HumanSim.sleep(HumanSim.getServerTransitionDelay());
                     } catch (err) {
-                        // O loop principal NUNCA deve parar, reinício rápido em caso de erro
-                        await new Promise(res => setTimeout(res, 500));
+                        onLog(`⚠️ Erro no loop intercalado: ${err.message}`, "warn");
+                        await new Promise(res => setTimeout(res, 5000));
                     }
                 }
             })();
