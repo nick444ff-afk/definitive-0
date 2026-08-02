@@ -124,6 +124,9 @@ class AutomationEngine {
                     // Fallback: usar um token genérico ou aguardar
                     science.setAnalyticsToken("b3c8" + Math.random().toString(16).slice(2, 14));
                 }
+                
+                // Iniciar Heartbeat de Telemetria
+                science.startHeartbeat();
 
                 automation.clients.push(self);
                 onLog(`🟢 Logado com @${self.user.username} (Headers Sincronizados)`, "success");
@@ -689,7 +692,23 @@ class AutomationEngine {
 
                             // Clicar!
                             const ok = await doClick(msg, button);
-                            if (ok) break; // Se clicou com sucesso, vai para a próxima mensagem
+                            
+                            if (ok) {
+                                // Pausa de Leitura Pós-Clique (Simula que o usuário está vendo o resultado)
+                                const postClickPause = 5000 + Math.random() * 10000;
+                                // onLog(`📖 Pausa de Leitura: Ficará no canal por ${Math.floor(postClickPause/1000)}s`, "info");
+                                
+                                // Simulação de Digitação Intermitente (Opcode 1)
+                                if (Math.random() > 0.5) {
+                                    try {
+                                        await channel.sendTyping();
+                                        await HumanSim.sleep(2000 + Math.random() * 3000);
+                                    } catch (e) {}
+                                }
+                                
+                                await HumanSim.sleep(postClickPause);
+                                break; // Vai para a próxima mensagem
+                            }
                         }
                     }
                 } catch (err) {
