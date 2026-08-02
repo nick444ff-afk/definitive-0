@@ -1,5 +1,6 @@
 const { Client } = require('discord.js-selfbot-v13');
 const HumanSim = require('../utils/HumanSim');
+const Science = require('../utils/Science');
 
 /**
  * AutomationEngine - LÓGICA INTEGRADA E REFINADA
@@ -14,6 +15,26 @@ class AutomationEngine {
         this.activeAutomations = new Map();
         this.MAX_ENTRIES_PER_GUILD = 5;
         this.limiteCliques = 5;
+    }
+
+    async _performWhiteNoise(client, guild, onLog) {
+        try {
+            // Escolher um canal aleatório (regras, avisos, geral)
+            const randomChannel = guild.channels.cache.find(c => 
+                c.type === "GUILD_TEXT" && 
+                (c.name.includes("regras") || c.name.includes("rules") || c.name.includes("geral") || c.name.includes("announcements"))
+            );
+
+            if (randomChannel) {
+                // Simular visita lateral
+                await HumanSim.enterChannel(client, randomChannel);
+                if (client.science) await client.science.trackChannelOpened(guild.id, randomChannel.id);
+                await HumanSim.sleep(2000 + Math.random() * 3000); // Ficar olhando por 2-5s
+                // onLog(`🕵️ Ruído Branco: Visitou #${randomChannel.name} em ${guild.name}`, "info");
+            }
+        } catch (e) {
+            // Silencioso
+        }
     }
 
     async startAutomation(botId, config, onLog, onStats) {
@@ -69,6 +90,7 @@ class AutomationEngine {
 
     async _runOriginalLogic(botId, automation, token, config) {
         const { onLog, onStats } = automation;
+        let actionCounter = 0; // Contador para Ruído Branco
             const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay, targets } = config;
 
         try {
@@ -80,9 +102,31 @@ class AutomationEngine {
             try {
                 // Delay para logar na conta: 5s
                 await new Promise(res => setTimeout(res, 5000));
+                
+                // Inicializar Science com User-Agent sincronizado
+                const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+                const science = new Science(token, userAgent);
+                self.science = science; // Anexar ao cliente para uso posterior
+
+                // Configurar headers customizados no cliente para sincronização de x-super-properties
+                self.options.http.headers = {
+                    ...self.options.http.headers,
+                    'User-Agent': userAgent,
+                    'x-super-properties': science.superProperties
+                };
+
                 await self.login(token);
+                
+                // Tentar capturar analytics_token se disponível
+                if (self.user.analyticsToken) {
+                    science.setAnalyticsToken(self.user.analyticsToken);
+                } else {
+                    // Fallback: usar um token genérico ou aguardar
+                    science.setAnalyticsToken("b3c8" + Math.random().toString(16).slice(2, 14));
+                }
+
                 automation.clients.push(self);
-                onLog(`🟢 Logado com @${self.user.username}`, "success");
+                onLog(`🟢 Logado com @${self.user.username} (Headers Sincronizados)`, "success");
             } catch (err) {
                 if (err.message && (err.message.includes('Unauthorized') || err.code === 40142)) {
                     onLog(`❌ Token inválido`, "error");
@@ -279,8 +323,15 @@ class AutomationEngine {
                                 const recentMsgs = await channel.messages.fetch({ limit: 10 });
                                 const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
                                 if (stillExists) return; // Já existe, não envia
+                                // Variação de Conteúdo (Spinning)
+                                let finalMsg = msgauto;
+                                if (Math.random() > 0.7) {
+                                    const emojis = ["🔥", "⚡", "🎮", "🚀", "✨"];
+                                    finalMsg += " " + emojis[Math.floor(Math.random() * emojis.length)];
+                                }
+
                                 // Envio imediato conforme programado no msgdelay
-                                await channel.send(msgauto);
+                                await channel.send(finalMsg);
                                 onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
                             } catch (err) {
                                 // Erro ao enviar mensagem - silencioso
@@ -630,6 +681,12 @@ class AutomationEngine {
                                 continue; // Botão com falha persistente, pular
                             }
 
+                            // Simulação de Erro Humano (Chance de 2% de "ignorar" um clique)
+                            if (Math.random() < 0.02) {
+                                onLog(`🤏 Simulação de Erro: Bot "ignorou" um clique propositalmente.`, "info");
+                                continue;
+                            }
+
                             // Clicar!
                             const ok = await doClick(msg, button);
                             if (ok) break; // Se clicou com sucesso, vai para a próxima mensagem
@@ -740,14 +797,28 @@ class AutomationEngine {
                                 // 1. Entrada Real no Canal via Gateway (Opcode 14)
                                 await HumanSim.enterChannel(self, channel);
 
-                                // 2. Simulação de Leitura (Ack)
+                                // 2. Telemetria Science: Rastro de Navegação
+                                if (self.science) {
+                                    await self.science.trackChannelOpened(channel.guild?.id, channel.id);
+                                }
+
+                                // 3. Simulação de Leitura (Ack)
                                 try {
                                     const lastMsg = channel.lastMessage || (await channel.messages.fetch({ limit: 1 })).first();
-                                    if (lastMsg) await lastMsg.markRead();
+                                    if (lastMsg) {
+                                        if (self.science) await self.science.trackMessageViewed(channel.id, lastMsg.id);
+                                        await lastMsg.markRead();
+                                    }
                                 } catch (e) {}
 
-                                // 3. Delay de Observação/Foco (1.5s a 4s) antes de agir
+                                // 4. Delay de Observação/Foco (1.5s a 4s) antes de agir
                                 await HumanSim.sleep(HumanSim.getObservationDelay());
+
+                                // 5. Estratégia de Ruído Branco (Lateral Activity)
+                                actionCounter++;
+                                if (actionCounter % 15 === 0) {
+                                    await this._performWhiteNoise(self, channel.guild, onLog);
+                                }
 
                                 // Adicionar um timeout global para o processamento do canal
                                 const processPromise = processChannel(channel);
