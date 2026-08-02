@@ -15,6 +15,13 @@ const getObservationDelay = () => {
 };
 
 /**
+ * Retorna um delay de transição entre servidores (3s a 7s)
+ */
+const getServerTransitionDelay = () => {
+    return Math.floor(3000 + Math.random() * 4000);
+};
+
+/**
  * Realiza uma entrada real no canal via Gateway (Opcode 14)
  * Simula o Lazy Loading de membros para indetectabilidade.
  */
@@ -48,5 +55,6 @@ module.exports = {
     sleep,
     getClickJitter,
     getObservationDelay,
+    getServerTransitionDelay,
     enterChannel
 };

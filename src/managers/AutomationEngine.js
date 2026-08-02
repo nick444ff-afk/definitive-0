@@ -41,6 +41,7 @@ class AutomationEngine {
                 guildErrorCount: new Map(),   // guildId -> contador de erros consecutivos
                 blacklistedGuilds: new Set(), // guildId -> servidores ignorados temporariamente
                 blacklistedChannels: new Set(), // channelId -> canais sem permissão
+                messageClickHistory: new Map(), // msgId -> timestamp do último clique
                 lastClickTime: 0,
                 activeTasks: new Set(),
                 limitesPorModo: {},
@@ -468,6 +469,7 @@ class AutomationEngine {
                                 automation.clickedMessagesByGuild.set(guildId, new Set());
                             }
                             automation.clickedMessagesByGuild.get(guildId).add(msg.id);
+                            automation.messageClickHistory.set(msg.id, Date.now()); // Registrar timestamp do clique
                             
                             // Remover falhas anteriores se clicou com sucesso
                             automation.failedButtons.delete(`${msg.id}:${button.label || button.customId}`);
@@ -584,6 +586,11 @@ class AutomationEngine {
                         if (!automation.isRunning) break;
                         if (automation.blacklistedGuilds.has(guildId)) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
+
+                        // REGRA DE COOLDOWN: Se já clicou nesta mensagem, esperar 5 minutos para re-clicar
+                        const lastMsgClick = automation.messageClickHistory.get(msg.id) || 0;
+                        const cooldownTime = 5 * 60 * 1000; // 5 minutos
+                        if (lastMsgClick > 0 && (Date.now() - lastMsgClick) < cooldownTime) continue;
 
                         if (!msg.components?.length) continue;
 
@@ -710,6 +717,10 @@ class AutomationEngine {
                             });
                             canaisFila = [...canaisAuto.values()];
                         }
+
+                        // Delay de transição entre servidores (3s a 7s) para comportamento humano
+                        const transitionDelay = HumanSim.getServerTransitionDelay();
+                        await HumanSim.sleep(transitionDelay);
 
                         for (const channel of canaisFila) {
                             if (!automation.isRunning) break;
