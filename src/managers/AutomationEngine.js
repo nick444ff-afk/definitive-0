@@ -341,7 +341,6 @@ class AutomationEngine {
                             } catch (err) {}
                         });
                     }
-                }
             };
 
             // Função para detectar qual modo um canal pertence

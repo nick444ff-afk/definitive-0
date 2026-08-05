@@ -219,41 +219,6 @@ class InstanceManager {
         this.addLog(botId, "⚠️ Estatísticas resetadas", "warn");
     }
 
-    /**
-     * Salva a configuração de uma instância
-     */
-    async saveConfig(botId, config) {
-        try {
-            const instance = this.getInstance(botId);
-            instance.config = config;
-            
-            // Salvar no banco de dados
-            await us.set(`${botId}.config`, config);
-            
-            this.addLog(botId, "✅ Configuração salva", "success");
-            return { status: "success", message: "Configuração salva" };
-        } catch (err) {
-            this.addLog(botId, `❌ Erro ao salvar config: ${err.message}`, "error");
-            return { status: "error", message: err.message };
-        }
-    }
-
-    /**
-     * Carrega a configuração de uma instância
-     */
-    async loadConfig(botId) {
-        try {
-            const config = await us.get(`${botId}.config`);
-            if (config) {
-                const instance = this.getInstance(botId);
-                instance.config = config;
-            }
-            return config || {};
-        } catch (err) {
-            this.addLog(botId, `❌ Erro ao carregar config: ${err.message}`, "error");
-            return {};
-        }
-    }
 }
 
 module.exports = new InstanceManager();
