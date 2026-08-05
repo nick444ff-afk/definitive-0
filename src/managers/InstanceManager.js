@@ -103,7 +103,6 @@ class InstanceManager {
                 msgdelay: parseFloat(msgdelay) || 0,
                 limiteCliques: 4, // Fixado internamente
                 mentionauto,
-                confirmauto: 2, // Fixado internamente (2s)
                 mensagem: msgauto,
                 mencao: mentionauto,
                 valorMinimo: 0.50, // Fixado internamente

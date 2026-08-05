@@ -147,7 +147,6 @@ app.post("/start_bot/:botId", async (req, res) => {
                 mencao: parseFloat(mencao) || 0,
                 msgauto: mensagem || "",
                 mentionauto: parseFloat(mencao) || 0,
-                confirmauto: 2, // Fixado internamente (2s)
                 valorMinimo: 0.50, // Fixado internamente
                 valorMaximo: 20.00, // Fixado internamente
                 categories: categories ? JSON.parse(categories) : [],
@@ -242,7 +241,6 @@ app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
             // Nomes originais para compatibilidade com AutomationEngine
             msgauto: mensagem || "",
             mentionauto: parseFloat(mencao) || 0,
-            confirmauto: 2, // Fixado internamente (2s)
             valorMinimo: 0.50, // Fixado internamente
             valorMaximo: 20.00, // Fixado internamente
             categories: categories ? JSON.parse(categories) : [],

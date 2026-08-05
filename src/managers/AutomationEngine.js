@@ -294,37 +294,7 @@ class AutomationEngine {
                     }
                 }
 
-                // --- CONFIRMAÇÃO AUTOMÁTICA ---
-                if (firstMsg) {
-                    const confKey = `conf_${channel.id}`;
-                    if (confirmauto > 0 && !automation.confirmedChannels.has(channel.id) && !scheduledTasks.has(confKey)) {
-                        automation.confirmedChannels.add(channel.id);
-                        const confDelayMs = confirmauto * 1000;
-
-                        scheduleTask(confKey, 'confirmação', channel, confDelayMs, async () => {
-                            try {
-                                let confirmed = false;
-                                for (const row of firstMsg.components) {
-                                    for (const button of row.components) {
-                                        if (confirmed) continue;
-                                        if (!button.customId || IGNORED_BUTTONS.includes(button.label?.toLowerCase())) continue;
-                                        if (button.customId === "leave_player") continue;
-
-                                        try {
-                                            await firstMsg.clickButton(button.customId);
-                                            confirmed = true;
-                                            automation.confirmedChannels.add(channel.id);
-                                            onLog(`✅ Confirmado | ${channel.guild?.name}`, "success");
-                                        } catch (err) {
-                                            // Erro ao confirmar - silencioso
-                                        }
-                                    }
-                                }
-                            } catch (err) {}
-                        });
-                    }
-
-                    // --- MENÇÃO AUTOMÁTICA (verifica se já existe no canal) ---
+                // --- MENÇÃO AUTOMÁTICA (verifica se já existe no canal) ---
                     const mentionKey = `mention_${channel.id}`;
                     if (mentionauto > 0 && !mentionSentChannels.has(channel.id)) {
                         mentionSentChannels.add(channel.id);
