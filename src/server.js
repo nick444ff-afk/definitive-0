@@ -133,7 +133,7 @@ app.get("/status/:botId", async (req, res) => {
 app.post("/start_bot/:botId", async (req, res) => {
     try {
         const { botId } = req.params;
-        const { tokens, mensagem, msgdelay, mencao, categories, modos, targets } = req.body;
+        const { tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo, targets } = req.body;
         
         let config;
         
@@ -143,13 +143,13 @@ app.post("/start_bot/:botId", async (req, res) => {
                 tokens: tokens.split("\n").map(t => t.trim()).filter(t => t),
                 mensagem: mensagem || "",
                 msgdelay: parseFloat(msgdelay) || 0,
-                limiteCliques: 4, // Fixado internamente
+                limiteCliques: parseInt(limiteCliques) || 5,
                 mencao: parseFloat(mencao) || 0,
                 msgauto: mensagem || "",
                 mentionauto: parseFloat(mencao) || 0,
-                confirmauto: 2, // Fixado internamente (2s)
-                valorMinimo: 0.50, // Fixado internamente
-                valorMaximo: 20.00, // Fixado internamente
+                confirmauto: parseFloat(confirmauto) || 0,
+                valorMinimo: parseFloat(valorMinimo) || 0,
+                valorMaximo: parseFloat(valorMaximo) || 0,
                 categories: categories ? JSON.parse(categories) : [],
                 modos: modos ? JSON.parse(modos) : [],
                 targets: targets ? JSON.parse(targets) : [],
@@ -223,7 +223,7 @@ app.post("/stop_bot/:botId", async (req, res) => {
 app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
     try {
         console.log("[API] Recebendo save_config:", req.body);
-        const { bot_id, tokens, mensagem, msgdelay, mencao, categories, modos, targets } = req.body;
+        const { bot_id, tokens, mensagem, msgdelay, limiteCliques, mencao, categories, modos, confirmauto, valorMinimo, valorMaximo, targets } = req.body;
 
         if (!bot_id || !tokens) {
             console.error("[API] Falha no save_config: bot_id ou tokens ausentes");
@@ -237,14 +237,14 @@ app.post("/save_config", upload.single("imagem_auto"), async (req, res) => {
             tokens: tokens.split("\n").map(t => t.trim()).filter(t => t),
             mensagem: mensagem || "",
             msgdelay: parseFloat(msgdelay) || 0,
-            limiteCliques: 4, // Fixado internamente
+            limiteCliques: parseInt(limiteCliques) || 5,
             mencao: parseFloat(mencao) || 0,
             // Nomes originais para compatibilidade com AutomationEngine
             msgauto: mensagem || "",
             mentionauto: parseFloat(mencao) || 0,
-            confirmauto: 2, // Fixado internamente (2s)
-            valorMinimo: 0.50, // Fixado internamente
-            valorMaximo: 20.00, // Fixado internamente
+            confirmauto: parseFloat(confirmauto) || 0,
+            valorMinimo: parseFloat(valorMinimo) || 0,
+            valorMaximo: parseFloat(valorMaximo) || 0,
             categories: categories ? JSON.parse(categories) : [],
             modos: modos ? JSON.parse(modos) : [],
             targets: targets ? JSON.parse(targets) : [],

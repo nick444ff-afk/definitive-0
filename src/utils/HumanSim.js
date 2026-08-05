@@ -15,15 +15,8 @@ const getObservationDelay = () => {
 };
 
 /**
- * Retorna um delay de transição entre servidores (3s a 7s)
- */
-const getServerTransitionDelay = () => {
-    return Math.floor(3000 + Math.random() * 4000);
-};
-
-/**
- * Realiza uma entrada real no canal via Gateway usando Opcode 37 (Bulk Subscriptions)
- * O Opcode 37 é o padrão moderno do Discord para 2026.
+ * Realiza uma entrada real no canal via Gateway (Opcode 14)
+ * Simula o Lazy Loading de membros para indetectabilidade.
  */
 const enterChannel = async (client, channel) => {
     try {
@@ -32,43 +25,22 @@ const enterChannel = async (client, channel) => {
         const shard = client.ws.shards.first();
         if (!shard) return;
 
-        // Opcode 37: GUILD_SUBSCRIPTIONS_BULK
         const payload = {
-            op: 37,
+            op: 14,
             d: {
-                subscriptions: {
-                    [channel.guildId]: {
-                        typing: true,
-                        threads: true,
-                        activities: true,
-                        members: [],
-                        member_updates: false,
-                        channels: {
-                            [channel.id]: [[0, 99]]
-                        }
-                    }
+                guild_id: channel.guildId,
+                typing: true,
+                activities: true,
+                threads: true,
+                channels: {
+                    [channel.id]: [[0, 99]]
                 }
             }
         };
 
         shard.send(payload);
-        
-        // Simulação de Lazy Loading de Membros (Opcode 8)
-        // Solicita pedaços da lista de membros para parecer que o usuário está rolando a lista
-        if (Math.random() > 0.5) {
-            const memberPayload = {
-                op: 8,
-                d: {
-                    guild_id: channel.guildId,
-                    query: "",
-                    limit: 10,
-                    presences: true
-                }
-            };
-            shard.send(memberPayload);
-        }
     } catch (err) {
-        // Silencioso
+        // Silencioso para não interromper o fluxo
     }
 };
 
@@ -76,6 +48,5 @@ module.exports = {
     sleep,
     getClickJitter,
     getObservationDelay,
-    getServerTransitionDelay,
     enterChannel
 };
