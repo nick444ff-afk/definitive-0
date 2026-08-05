@@ -532,26 +532,7 @@ input:focus, textarea:focus {
             <input type="text" id="mencao" placeholder="Tempo para mencionar (ex: 5)">
         </div>
 
-        <div class="config-section">
-            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">CONFIRMAÇÃO</h3>
-            <label>Confirmação Automática (s)</label>
-            <input type="text" id="confirmauto" placeholder="Tempo para confirmar (ex: 2)">
-        </div>
 
-        <div class="config-section">
-            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">LIMITE DE CLIQUES</h3>
-            <label>Cliques por Servidor</label>
-            <input type="text" id="limiteCliques" placeholder="Cliques por servidor (ex: 5)">
-        </div>
-
-        <div class="config-section">
-            <h3 style="color: var(--primary); margin: 0 0 12px; font-size: 14px;">FILTRO DE VALOR</h3>
-            <label>Valor Mínimo (R$)</label>
-            <input type="text" id="valorMinimo" placeholder="Mínimo para entrar na fila (ex: 1.00)">
-
-            <label>Valor Máximo (R$)</label>
-            <input type="text" id="valorMaximo" placeholder="Máximo para entrar na fila (ex: 5.00)">
-        </div>
 
 <!-- Seção de alvos manuais antiga removida -->
 
@@ -589,11 +570,7 @@ let updateInterval = null;
     tokens: document.getElementById('tokens'),
     mensagem: document.getElementById('mensagem'),
     msgdelay: document.getElementById('msgdelay'),
-    limiteCliques: document.getElementById('limiteCliques'),
     mencao: document.getElementById('mencao'),
-    confirmauto: document.getElementById('confirmauto'),
-    valorMinimo: document.getElementById('valorMinimo'),
-    valorMaximo: document.getElementById('valorMaximo'),
     toast: document.getElementById('toast')
 };
 
@@ -666,11 +643,7 @@ async function fetchStatus() {
             if (data.config.tokens) elements.tokens.value = data.config.tokens.join('\n');
             if (data.config.msgauto || data.config.mensagem) elements.mensagem.value = data.config.msgauto || data.config.mensagem;
             if (data.config.msgdelay) elements.msgdelay.value = data.config.msgdelay;
-            if (data.config.limiteCliques) elements.limiteCliques.value = data.config.limiteCliques;
             if (data.config.mentionauto || data.config.mencao) elements.mencao.value = data.config.mentionauto || data.config.mencao;
-            if (data.config.confirmauto) elements.confirmauto.value = data.config.confirmauto;
-            if (data.config.valorMinimo) elements.valorMinimo.value = data.config.valorMinimo;
-            if (data.config.valorMaximo) elements.valorMaximo.value = data.config.valorMaximo;
             if (data.config.modos) data.config.modos.forEach(m => {
                 const cb = document.querySelector(`input[name="modo"][value="${m}"]`);
                 if (cb) cb.checked = true;
@@ -708,9 +681,7 @@ function mudarBot(tabEl) {
     elements.tokens.value = '';
     elements.mensagem.value = '';
     elements.msgdelay.value = '';
-    elements.limiteCliques.value = '';
     elements.mencao.value = '';
-    elements.confirmauto.value = '';
     document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
     document.getElementById('instancia').textContent = `INSTÂNCIA ATIVA: ${bot.replace('BOT', 'Bot ')}`;
     showToast(`Navegando para ${bot}`, 'info');
@@ -730,11 +701,7 @@ async function toggleBot() {
                 tokens: elements.tokens.value.trim(),
                 mensagem: elements.mensagem.value.trim(),
                 msgdelay: elements.msgdelay.value.trim(),
-                limiteCliques: elements.limiteCliques.value.trim(),
                 mencao: elements.mencao.value.trim(),
-                confirmauto: elements.confirmauto.value.trim(),
-                valorMinimo: elements.valorMinimo.value.trim(),
-                valorMaximo: elements.valorMaximo.value.trim(),
                 categories: JSON.stringify(categories),
                 modos: JSON.stringify(modos),
                 targets: JSON.stringify(getTargetsData())
@@ -776,11 +743,7 @@ async function salvarConfiguracao() {
         formData.append('tokens', elements.tokens.value.trim());
         formData.append('mensagem', elements.mensagem.value.trim());
         formData.append('msgdelay', elements.msgdelay.value.trim());
-        formData.append('limiteCliques', elements.limiteCliques.value.trim());
         formData.append('mencao', elements.mencao.value.trim());
-        formData.append('confirmauto', elements.confirmauto.value.trim());
-        formData.append('valorMinimo', elements.valorMinimo.value.trim());
-        formData.append('valorMaximo', elements.valorMaximo.value.trim());
         formData.append('categories', JSON.stringify(categories));
         formData.append('modos', JSON.stringify(modos));
         formData.append('targets', JSON.stringify(getTargetsData()));

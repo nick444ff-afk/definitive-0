@@ -1,5 +1,6 @@
 const { Client } = require('discord.js-selfbot-v13');
 const HumanSim = require('../utils/HumanSim');
+const { HttpsProxyAgent } = require('https-proxy-agent');
 
 /**
  * AutomationEngine - LÓGICA INTEGRADA E REFINADA
@@ -71,7 +72,15 @@ class AutomationEngine {
             const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay, targets } = config;
 
         try {
-            const self = new Client();
+            // Configuração do Proxy Residencial IPRoyal
+            const proxyUrl = "http://ZeqtntclLJHUMUBP:If4gZBZfypVxq0zs@geo.iproyal.com:12321";
+            const proxyAgent = new HttpsProxyAgent(proxyUrl);
+
+            const self = new Client({
+                http: {
+                    agent: proxyAgent
+                }
+            });
             
             self.on('error', (err) => {});
             self.on('disconnect', () => {});
@@ -103,28 +112,25 @@ class AutomationEngine {
             const searchCategories = (categories || []).map(cat => categoriaMap[cat.toLowerCase()] || cat.toLowerCase());
 
             // ═══════════════════════════════════════════════════════
-            // LIMITE DE CLIQUES COM DIVISÃO JUSTA POR MODO
+            // LIMITE DE CLIQUES FIXO (MÁX 4) E DISTRIBUIÇÃO
             // ═══════════════════════════════════════════════════════
-            const limiteCliques = config.limiteCliques || 5;
+            const limiteCliques = 4; // Fixado internamente
+            automation.limiteCliquesGeral = 4;
+            automation.clickedModesInCycle = new Set();
+
             const numModos = searchFormats.length || 1;
-            const basePorModo = Math.max(1, Math.floor(limiteCliques / numModos));
-            const sobra = limiteCliques - (basePorModo * numModos);
+            const basePorModo = 1; // Forçar distribuição (1 por modo)
             
-            // Distribuir sobra: primeiros modos ficam com +1
             const limitesPorModo = {};
-            (modos || []).forEach((m, i) => {
-                limitesPorModo[m.toLowerCase()] = basePorModo + (i < sobra ? 1 : 0);
+            (modos || []).forEach((m) => {
+                limitesPorModo[m.toLowerCase()] = 1;
             });
-            // Se só 1 modo, usa o limite inteiro
-            if (numModos === 1 && (modos || []).length === 1) {
-                limitesPorModo[(modos || [])[0].toLowerCase()] = limiteCliques;
-            }
             
             automation.limitesPorModo = limitesPorModo;
             automation.limitesPorModoNames = {};
             (modos || []).forEach(m => {
                 const normalized = m.toLowerCase().replace(/v|x/g, " ").replace(/-|_/g, " ").replace(/\s+/g, " ").trim();
-                automation.limitesPorModoNames[normalized] = limitesPorModo[m.toLowerCase()] || basePorModo;
+                automation.limitesPorModoNames[normalized] = 1;
             });
 
             const CATEGORY_KEYWORDS = {
@@ -504,10 +510,10 @@ class AutomationEngine {
                     };
 
                     // ═══════════════════════════════════════════════════════════
-                    // FILTRO DE VALOR
+                    // FILTRO DE VALOR FIXO (0.50 - 20.00)
                     // ═══════════════════════════════════════════════════════════
-                    const valorMin = config.valorMinimo || 0;
-                    const valorMax = config.valorMaximo || 0;
+                    const valorMin = 0.50;
+                    const valorMax = 20.00;
 
                     // Extrai qualquer valor monetário da mensagem
                     const extractValue = (msg) => {
@@ -742,7 +748,13 @@ class AutomationEngine {
                                 const processPromise = processChannel(channel);
                                 const globalTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout global canal')), 40000));
                                 
-                                await Promise.race([processPromise, globalTimeout]);
+                                const clicked = await Promise.race([processPromise, globalTimeout]);
+
+                                // 4. FUGA IMEDIATA: Se clicou, mudar de servidor imediatamente
+                                if (clicked) {
+                                    onLog(`🏃 Fuga Imediata: Saindo de ${channel.guild.name} após clique bem-sucedido.`, "info");
+                                    break; 
+                                }
                             } catch (err) {
                                 if (err.message.includes("Missing Permissions") || err.message.includes("Missing Access")) {
                                     automation.blacklistedChannels.add(channel.id);

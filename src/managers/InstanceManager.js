@@ -101,13 +101,13 @@ class InstanceManager {
                 tokens: Array.isArray(tokens) ? tokens : tokens.split("\n").map(t => t.trim()).filter(t => t),
                 msgauto,
                 msgdelay: parseFloat(msgdelay) || 0,
-                limiteCliques: parseInt(limiteCliques) || 5,
+                limiteCliques: 4, // Fixado internamente
                 mentionauto,
-                confirmauto: parseFloat(confirmauto) || 0,
+                confirmauto: 2, // Fixado internamente (2s)
                 mensagem: msgauto,
                 mencao: mentionauto,
-                valorMinimo: parseFloat(valorMinimo) || 0,
-                valorMaximo: parseFloat(valorMaximo) || 0,
+                valorMinimo: 0.50, // Fixado internamente
+                valorMaximo: 20.00, // Fixado internamente
                 categories,
                 modos,
                 targets: targets || []
