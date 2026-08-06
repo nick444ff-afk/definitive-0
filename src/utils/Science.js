@@ -19,7 +19,7 @@ class Science {
             referrer_current: "",
             referring_domain_current: "",
             release_channel: "stable",
-            client_build_number: 315420,
+            client_build_number: 320420,
             client_event_source: null
         })).toString('base64');
     }

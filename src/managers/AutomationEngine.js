@@ -104,32 +104,31 @@ class AutomationEngine {
             // ═══════════════════════════════════════════════════════
             // CONFIGURAÇÃO DE PROXY E TRAVA DE SEGURANÇA (KILL-SWITCH)
             // ═══════════════════════════════════════════════════════
-            const proxyUrl = "http://ZeqtntclLJHUMUBP:lf4gZBZfypVxq0zs_cou@geo.iproyal.com:12321";
+            const proxyUrl = "http://ZeqtntclLJHUMUBP-country-br:lf4gZBZfypVxq0zs_cou@geo.iproyal.com:12321";
             const proxyAgent = new HttpsProxyAgent(proxyUrl);
 
             // Função para verificar IP e garantir que o Proxy está ativo
             const checkProxyIntegrity = async () => {
                 const axios = require('axios');
                 try {
-                    const res = await axios.get('https://api.ipify.org?format=json', { 
+                    const res = await axios.get('http://ip-api.com/json', { 
                         httpsAgent: proxyAgent,
-                        timeout: 10000 
+                        timeout: 15000 
                     });
-                    return res.data.ip;
+                    return res.data;
                 } catch (err) {
                     return null;
                 }
             };
 
-            const detectedIP = await checkProxyIntegrity();
+            const proxyData = await checkProxyIntegrity();
             
-            if (!detectedIP) {
+            if (!proxyData || !proxyData.query) {
                 onLog(`⚠️ ERRO CRÍTICO: Proxy Residencial não responde. Abortando para sua segurança.`, "error");
-                onLog(`💡 Dica: Verifique seu saldo no IPRoyal ou se o IP do Railway está bloqueado.`, "warn");
                 return;
             }
 
-            onLog(`🛡️ Segurança: Proxy Ativo | IP: ${detectedIP}`, "success");
+            onLog(`🛡️ Segurança: Proxy Ativo | IP: ${proxyData.query} (${proxyData.country})`, "success");
 
             const self = new Client({
                 http: {
