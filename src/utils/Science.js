@@ -3,23 +3,27 @@ const axios = require('axios');
 class Science {
     constructor(token, userAgent, proxyAgent = null) {
         this.token = token;
-        this.userAgent = userAgent; // User-Agent Mobile será passado pelo AutomationEngine
+        this.userAgent = userAgent;
         this.proxyAgent = proxyAgent;
         this.analyticsToken = null;
         this.sessionId = "5b8f" + Math.random().toString(16).slice(2, 14);
         
-        // Super Properties simulando Discord iOS (Agosto 2026)
-        // Isso permite coexistir com o usuário no Desktop/Web sem conflito
+        // Super Properties simulando Android Chrome (Agosto 2026)
+        // Identidade robusta para evitar restrições de dispositivo
         this.superProperties = Buffer.from(JSON.stringify({
-            os: "iOS",
-            browser: "Discord iOS",
-            device: "iPhone16,2",
+            os: "Android",
+            browser: "Chrome",
+            device: "",
             system_locale: "pt-BR",
-            client_version: "230.0",
+            browser_user_agent: userAgent,
+            browser_version: "128.0.0.0",
+            os_version: "13",
+            referrer: "https://www.google.com/",
+            referring_domain: "www.google.com",
+            referrer_current: "",
+            referring_domain_current: "",
             release_channel: "stable",
-            device_advertiser_id: "00000000-0000-0000-0000-000000000000",
-            os_version: "17.5.1",
-            client_build_number: 62500, 
+            client_build_number: 325000, 
             client_event_source: null,
             design_id: 0
         })).toString('base64');
@@ -41,7 +45,6 @@ class Science {
                         client_heartbeat_session_id: this.sessionId,
                         accessibility_features: 128,
                         rendered_at: Date.now() - 500,
-                        // Mobile Behavior: Sessão em segundo plano
                         window_focused: false,
                         is_active: false,
                         ...properties
@@ -59,8 +62,7 @@ class Science {
     }
 
     async trackChannelOpened(guildId, channelId) {
-        // Mobile raramente envia channel_opened da mesma forma que desktop
-        // Vamos suprimir para evitar conflito com o canal que o usuário está vendo
+        // Suprimido para evitar conflito com uso manual
     }
 
     async trackMessageInteraction(guildId, channelId, messageId) {
@@ -74,12 +76,12 @@ class Science {
     }
 
     startHeartbeat() {
-        // Heartbeat Mobile (mais espaçado)
+        // Heartbeat de aba de fundo Android
         setInterval(() => this.track('ui_performance', { 
             render_ms: Math.floor(10 + Math.random() * 20),
             window_focused: false,
             is_active: false
-        }), 180000); // 3 minutos
+        }), 150000); // 2.5 minutos
     }
 }
 

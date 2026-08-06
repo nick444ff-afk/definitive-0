@@ -130,8 +130,14 @@ class AutomationEngine {
 
             onLog(`🛡️ Segurança: Proxy Ativo | IP: ${proxyData.query} (${proxyData.country})`, "success");
 
-            // Configuração para simular Discord Mobile (iOS)
-            const userAgent = "Discord-iOS/230.0 (iPhone16,2; iOS 17.5.1; Scale/3.00)";
+            // Verificação estrita de IP nacional (Kill-Switch contra IP estrangeiro)
+            if (proxyData.country !== "Brazil") {
+                onLog(`❌ ERRO CRÍTICO: Proxy entregou IP estrangeiro (${proxyData.country}, ${proxyData.query}). Abortando imediatamente para proteger sua conta.`, "error");
+                return;
+            }
+
+            // Configuração para simular Android Chrome (Agosto 2026)
+            const userAgent = "Mozilla/5.0 (Linux; Android 13; SM-S918B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Mobile Safari/537.36";
             
             const self = new Client({
                 http: {
@@ -139,9 +145,9 @@ class AutomationEngine {
                 },
                 ws: {
                     properties: {
-                        $os: "iOS",
-                        $browser: "Discord iOS",
-                        $device: "iPhone16,2"
+                        $os: "Android",
+                        $browser: "Chrome",
+                        $device: ""
                     }
                 }
             });
