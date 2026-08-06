@@ -144,10 +144,18 @@ class AutomationEngine {
             self.on('error', (err) => {});
             self.on('disconnect', () => {});
             
+            automation.lastHumanActivity = 0;
+            self.on('messageCreate', (msg) => {
+                if (msg.author.id === self.user.id && !automation.msgAutoSentThisSession.has(msg.channel.id)) {
+                    automation.lastHumanActivity = Date.now();
+                }
+            });
+
             self.on('ready', () => {
                 // Capturar token de analytics se disponível
                 if (self.analyticsToken && automation.science) {
                     automation.science.setAnalyticsToken(self.analyticsToken);
+                    // O heartbeat agora é mais lento para não conflitar com sessões humanas
                     automation.science.startHeartbeat();
                 }
             });
@@ -630,6 +638,14 @@ class AutomationEngine {
 
                     for (const msg of processQueue) {
                         if (!automation.isRunning) break;
+                        
+                        // Pausa se houver atividade humana recente (60 segundos)
+                        const timeSinceHuman = Date.now() - (automation.lastHumanActivity || 0);
+                        if (timeSinceHuman < 60000) {
+                            onLog(`🤫 Modo Furtivo: Pausando para não conflitar com você (${Math.round((60000 - timeSinceHuman)/1000)}s restantes)`, "info");
+                            await HumanSim.sleep(10000);
+                            continue;
+                        }
                         if (automation.blacklistedGuilds.has(guildId)) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
 
