@@ -153,8 +153,8 @@ class AutomationEngine {
             });
 
             try {
-                // Delay para logar na conta: 5s
-                await new Promise(res => setTimeout(res, 5000));
+                // Delay de login: 3s/7s
+                await HumanSim.sleep(HumanSim.getLoginDelay());
                 await self.login(token);
                 automation.clients.push(self);
                 onLog(`🟢 Logado com @${self.user.username}`, "success");
@@ -493,8 +493,8 @@ class AutomationEngine {
                             const now = Date.now();
                             const timeSinceLastClick = now - (automation.lastClickTime || 0);
                             
-                            // Delay entre cliques: Aleatório entre 2.0s e 3.5s
-                            const targetDelay = HumanSim.getClickJitter();
+                            // Delay entre cliques: 1s/2s
+                            const targetDelay = HumanSim.getClickDelay();
                             if (timeSinceLastClick < targetDelay) {
                                 await HumanSim.sleep(targetDelay - timeSinceLastClick);
                             }
@@ -819,10 +819,9 @@ class AutomationEngine {
                             automation.clickedMessagesByGuild.delete(currentGuildId);
                         }
 
-                        // Avançar para o próximo servidor com delay humano (15-35s)
+                        // Avançar para o próximo servidor com delay variável (1s/2s)
                         serverIndex++;
-                        const serverSwitchDelay = Math.floor(15000 + Math.random() * 20000);
-                        await new Promise(res => setTimeout(res, serverSwitchDelay));
+                        await HumanSim.sleep(HumanSim.getServerSwitchDelay());
 
                         // Reinício do ciclo global
                         if (serverIndex % guildArray.length === 0) {
@@ -884,15 +883,15 @@ class AutomationEngine {
                                         // Entrada Real no Canal via Gateway (Opcode 14) para monitoramento de mensagens
                                         await HumanSim.enterChannel(self, channel);
                                         
-                                        // Delay orgânico de observação (0.5s a 1.5s) para leitura de mensagens
-                                        await HumanSim.sleep(500 + Math.random() * 1000);
+                                        // Delay entre canais: 1s/2s
+                                        await HumanSim.sleep(HumanSim.getChannelDelay());
 
                                         await scheduleMatchTasks(channel);
                                     } catch (err) {
                                         // Erro ao agendar - ignorar e continuar
                                     }
-                                    // Delay entre canais na rotina paralela: 1s a 2s
-                                    await new Promise(res => setTimeout(res, 1000 + Math.random() * 1000));
+                                    // Delay entre canais na rotina paralela: 1s/2s
+                                    await HumanSim.sleep(HumanSim.getChannelDelay());
                                 }
                             } catch (err) {
                                 // Erro ao processar servidor - continuar para o próximo
@@ -903,8 +902,8 @@ class AutomationEngine {
                         msgSentChannels.clear();
                         mentionSentChannels.clear();
 
-                        // Delay entre ciclos da rotina paralela (10s para não spammar)
-                        await new Promise(res => setTimeout(res, 10000));
+                        // Delay de escaneamento de servidores: 5s/10s
+                        await HumanSim.sleep(HumanSim.getScanDelay());
                     } catch (err) {
                         // A rotina paralela NUNCA deve parar por erro
                         await new Promise(res => setTimeout(res, 5000));

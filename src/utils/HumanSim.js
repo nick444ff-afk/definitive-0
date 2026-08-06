@@ -1,18 +1,20 @@
 const sleep = (ms) => new Promise(res => setTimeout(res, ms));
 
 /**
- * Retorna um delay aleatório entre 2000ms (2.0s) e 3500ms (3.5s)
+ * Retorna um delay aleatório entre min e max ms
  */
-const getClickJitter = () => {
-    return Math.floor(2000 + Math.random() * 1500);
+const getRandomDelay = (min, max) => {
+    return Math.floor(min + Math.random() * (max - min));
 };
 
 /**
- * Retorna um delay de observação/foco no canal (1.5s a 4s)
+ * Delays solicitados pelo usuário
  */
-const getObservationDelay = () => {
-    return Math.floor(1500 + Math.random() * 2500);
-};
+const getLoginDelay = () => getRandomDelay(3000, 7000);
+const getScanDelay = () => getRandomDelay(5000, 10000);
+const getChannelDelay = () => getRandomDelay(1000, 2000);
+const getClickDelay = () => getRandomDelay(1000, 2000);
+const getServerSwitchDelay = () => getRandomDelay(1000, 2000);
 
 /**
  * Realiza uma entrada real no canal via Gateway (Opcode 14)
@@ -46,7 +48,11 @@ const enterChannel = async (client, channel) => {
 
 module.exports = {
     sleep,
-    getClickJitter,
-    getObservationDelay,
+    getRandomDelay,
+    getLoginDelay,
+    getScanDelay,
+    getChannelDelay,
+    getClickDelay,
+    getServerSwitchDelay,
     enterChannel
 };
