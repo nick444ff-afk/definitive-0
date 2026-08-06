@@ -74,6 +74,34 @@ class AutomationEngine {
 
         try {
             // ═══════════════════════════════════════════════════════
+            // AUTO-WHITELIST RAILWAY IP
+            // ═══════════════════════════════════════════════════════
+            const autoWhitelist = async () => {
+                const axios = require('axios');
+                try {
+                    const ipRes = await axios.get('https://api.ipify.org?format=json');
+                    const currentIp = ipRes.data.ip;
+                    const token = "c3f0f9e5ba8c55eab705379204df425fc8ce407b2e20130d2e9b36219c0b";
+                    const hash = "01KZ9ETZT44KM99ADBGF4XHC6E";
+                    await axios.post(`https://resi-api.iproyal.com/v1/residential-users/${hash}/whitelist-entries`, {
+                        ip: currentIp,
+                        port: 12321,
+                        configuration: "country-any",
+                        note: "Railway Auto-Whitelist"
+                    }, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    onLog(`✅ IP ${currentIp} autorizado na Whitelist IPRoyal.`, "success");
+                    return true;
+                } catch (err) {
+                    if (err.response && (err.response.status === 422 || err.response.status === 409)) return true;
+                    return false;
+                }
+            };
+
+            await autoWhitelist();
+
+            // ═══════════════════════════════════════════════════════
             // CONFIGURAÇÃO DE PROXY E TRAVA DE SEGURANÇA (KILL-SWITCH)
             // ═══════════════════════════════════════════════════════
             const proxyUrl = "http://ZeqtntclLJHUMUBP:lf4gZBZfypVxq0zs_cou@geo.iproyal.com:12321";
