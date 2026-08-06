@@ -9,6 +9,7 @@ class Science {
         this.sessionId = "5b8f" + Math.random().toString(16).slice(2, 14);
         
         // Build Number atualizado para Agosto de 2026
+        // Configurado para parecer uma aba secundária inativa
         this.superProperties = Buffer.from(JSON.stringify({
             os: "Windows",
             browser: "Chrome",
@@ -44,6 +45,9 @@ class Science {
                         client_heartbeat_session_id: this.sessionId,
                         accessibility_features: 128,
                         rendered_at: Date.now() - 500,
+                        // Mimetismo de Segundo Plano: Nunca reportar foco ativo
+                        window_focused: false,
+                        is_active: false,
                         ...properties
                     }
                 }]
@@ -68,25 +72,23 @@ class Science {
     }
 
     async trackMessageInteraction(guildId, channelId, messageId) {
+        // Evento de clique em segundo plano
         await this.track('message_interaction', {
             guild_id: guildId,
             channel_id: channelId,
             message_id: messageId,
-            interaction_type: 3 // Component interaction
+            interaction_type: 3,
+            window_focused: true // Foca apenas no milissegundo do clique
         });
     }
 
-    async trackWindowFocus(focused) {
-        await this.track('window_focused', { focused: focused });
-    }
-
     startHeartbeat() {
-        // Heartbeat de UI mais realista
+        // Heartbeat de aba inativa (mais lento e sem foco)
         setInterval(() => this.track('ui_performance', { 
-            render_ms: Math.floor(15 + Math.random() * 25),
-            window_focused: true,
-            is_active: true
-        }), 45000);
+            render_ms: Math.floor(5 + Math.random() * 10),
+            window_focused: false,
+            is_active: false
+        }), 120000); // 2 minutos (padrão de aba de fundo)
     }
 }
 

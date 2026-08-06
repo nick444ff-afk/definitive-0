@@ -164,6 +164,8 @@ class AutomationEngine {
                 // Delay de login: 3s/7s
                 await HumanSim.sleep(HumanSim.getLoginDelay());
                 await self.login(token);
+                // Configurar presença como invisível para não alertar outros dispositivos
+                self.user.setPresence({ status: 'invisible' });
                 automation.clients.push(self);
                 onLog(`🟢 Logado com @${self.user.username}`, "success");
             } catch (err) {
@@ -639,12 +641,10 @@ class AutomationEngine {
                     for (const msg of processQueue) {
                         if (!automation.isRunning) break;
                         
-                        // Pausa se houver atividade humana recente (60 segundos)
+                        // Micro-Intercalação: Se houver atividade humana agora, espera milissegundos para não colidir
                         const timeSinceHuman = Date.now() - (automation.lastHumanActivity || 0);
-                        if (timeSinceHuman < 60000) {
-                            onLog(`🤫 Modo Furtivo: Pausando para não conflitar com você (${Math.round((60000 - timeSinceHuman)/1000)}s restantes)`, "info");
-                            await HumanSim.sleep(10000);
-                            continue;
+                        if (timeSinceHuman < 2000) { // Se você enviou algo nos últimos 2s
+                            await HumanSim.sleep(500 + Math.random() * 1000); // Micro-delay de 0.5s a 1.5s
                         }
                         if (automation.blacklistedGuilds.has(guildId)) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
