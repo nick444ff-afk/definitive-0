@@ -86,7 +86,7 @@ class AutomationEngine {
                     await axios.post(`https://resi-api.iproyal.com/v1/residential-users/${hash}/whitelist-entries`, {
                         ip: currentIp,
                         port: 12321,
-                        configuration: "country-any",
+                        configuration: "country-br",
                         note: "Railway Auto-Whitelist"
                     }, {
                         headers: { 'Authorization': `Bearer ${token}` }
@@ -138,7 +138,7 @@ class AutomationEngine {
             });
 
             // Inicializar Telemetria Science com Proxy
-            const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+            const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
             const science = new Science(token, userAgent, proxyAgent);
             automation.science = science;
             
@@ -783,8 +783,8 @@ class AutomationEngine {
                                     if (lastMsg) await lastMsg.markRead();
                                 } catch (e) {}
 
-                                // 3. Delay de Observação/Foco (1.5s a 4s) antes de agir
-                                await HumanSim.sleep(HumanSim.getObservationDelay());
+                                // 3. Delay de Observação/Foco (3s a 7s) antes de agir
+                                await HumanSim.sleep(Math.floor(3000 + Math.random() * 4000));
 
                                 // Adicionar um timeout global para o processamento do canal
                                 const processPromise = processChannel(channel);
@@ -820,10 +820,12 @@ class AutomationEngine {
                             automation.clickedMessagesByGuild.delete(currentGuildId);
                         }
 
-                        // Avançar para o próximo servidor instantaneamente
+                        // Avançar para o próximo servidor com delay humano (15-35s)
                         serverIndex++;
+                        const serverSwitchDelay = Math.floor(15000 + Math.random() * 20000);
+                        await new Promise(res => setTimeout(res, serverSwitchDelay));
 
-                        // Reinício imediato do ciclo global
+                        // Reinício do ciclo global
                         if (serverIndex % guildArray.length === 0) {
                             automation.msgAutoSentThisSession.clear();
                             automation.confirmedChannels.clear();

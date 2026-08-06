@@ -12,14 +12,14 @@ class Science {
             device: "",
             system_locale: "pt-BR",
             browser_user_agent: userAgent,
-            browser_version: "120.0.0.0",
+            browser_version: "126.0.0.0",
             os_version: "10",
-            referrer: "",
-            referring_domain: "",
+            referrer: "https://www.google.com/",
+            referring_domain: "www.google.com",
             referrer_current: "",
             referring_domain_current: "",
             release_channel: "stable",
-            client_build_number: 250000,
+            client_build_number: 315420,
             client_event_source: null
         })).toString('base64');
     }
