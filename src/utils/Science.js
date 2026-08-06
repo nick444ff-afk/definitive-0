@@ -6,21 +6,25 @@ class Science {
         this.userAgent = userAgent;
         this.proxyAgent = proxyAgent;
         this.analyticsToken = null;
+        this.sessionId = "5b8f" + Math.random().toString(16).slice(2, 14);
+        
+        // Build Number atualizado para Agosto de 2026
         this.superProperties = Buffer.from(JSON.stringify({
             os: "Windows",
             browser: "Chrome",
             device: "",
             system_locale: "pt-BR",
             browser_user_agent: userAgent,
-            browser_version: "126.0.0.0",
+            browser_version: "128.0.0.0",
             os_version: "10",
             referrer: "https://www.google.com/",
             referring_domain: "www.google.com",
             referrer_current: "",
             referring_domain_current: "",
             release_channel: "stable",
-            client_build_number: 320420,
-            client_event_source: null
+            client_build_number: 325000, 
+            client_event_source: null,
+            design_id: 0
         })).toString('base64');
     }
 
@@ -37,7 +41,9 @@ class Science {
                     type: eventName,
                     properties: {
                         client_track_timestamp: Date.now(),
-                        client_heartbeat_session_id: "5b8f" + Math.random().toString(16).slice(2, 14),
+                        client_heartbeat_session_id: this.sessionId,
+                        accessibility_features: 128,
+                        rendered_at: Date.now() - 500,
                         ...properties
                     }
                 }]
@@ -53,11 +59,21 @@ class Science {
     }
 
     async trackChannelOpened(guildId, channelId) {
-        await this.track('channel_opened', { guild_id: guildId, channel_id: channelId, channel_type: 0 });
+        await this.track('channel_opened', { 
+            guild_id: guildId, 
+            channel_id: channelId, 
+            channel_type: 0,
+            location: "guild_sidebar"
+        });
     }
 
-    async trackSettingsOpened() {
-        await this.track('settings_opened', { section: 'USER_SETTINGS', subsection: 'ACCOUNT' });
+    async trackMessageInteraction(guildId, channelId, messageId) {
+        await this.track('message_interaction', {
+            guild_id: guildId,
+            channel_id: channelId,
+            message_id: messageId,
+            interaction_type: 3 // Component interaction
+        });
     }
 
     async trackWindowFocus(focused) {
@@ -65,10 +81,12 @@ class Science {
     }
 
     startHeartbeat() {
+        // Heartbeat de UI mais realista
         setInterval(() => this.track('ui_performance', { 
-            render_ms: Math.floor(10 + Math.random() * 20),
-            window_focused: true 
-        }), 60000);
+            render_ms: Math.floor(15 + Math.random() * 25),
+            window_focused: true,
+            is_active: true
+        }), 45000);
     }
 }
 

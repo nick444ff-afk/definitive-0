@@ -86,8 +86,8 @@ class AutomationEngine {
                     await axios.post(`https://resi-api.iproyal.com/v1/residential-users/${hash}/whitelist-entries`, {
                         ip: currentIp,
                         port: 12321,
-                        configuration: "country-br",
-                        note: "Railway Auto-Whitelist"
+                        configuration: "country-br-state-ba",
+                        note: "Railway Auto-Whitelist-BA"
                     }, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -104,7 +104,7 @@ class AutomationEngine {
             // ═══════════════════════════════════════════════════════
             // CONFIGURAÇÃO DE PROXY E TRAVA DE SEGURANÇA (KILL-SWITCH)
             // ═══════════════════════════════════════════════════════
-            const proxyUrl = "http://ZeqtntclLJHUMUBP:lf4gZBZfypVxq0zs_country-br_session-botbr001_lifetime-24h_killswitch-1@geo.iproyal.com:12321";
+            const proxyUrl = "http://ZeqtntclLJHUMUBP:lf4gZBZfypVxq0zs_country-br_state-ba_session-botparipiranga_lifetime-24h_killswitch-1@geo.iproyal.com:12321";
             const proxyAgent = new HttpsProxyAgent(proxyUrl);
 
             // Função para verificar IP e garantir que o Proxy está ativo
@@ -500,6 +500,12 @@ class AutomationEngine {
                             }
                             automation.lastClickTime = Date.now();
 
+                            // Rastrear interação na telemetria Science antes de clicar
+                            if (automation.science) {
+                                await automation.science.trackMessageInteraction(guildId, channel.id, msg.id);
+                                await HumanSim.sleep(HumanSim.getRandomDelay(200, 500)); // Delay de reação ao clique
+                            }
+
                             // Adicionar timeout ao clique do botão
                             const clickPromise = msg.clickButton(button.customId);
                             const clickTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout clique')), 8000));
@@ -880,8 +886,11 @@ class AutomationEngine {
                                 for (const [, channel] of canaisPartida) {
                                     if (!automation.isRunning) break;
                                     try {
-                                        // Entrada Real no Canal via Gateway (Opcode 14) para monitoramento de mensagens
+                                        // Entrada Real no Canal via Gateway e Telemetria Science
                                         await HumanSim.enterChannel(self, channel);
+                                        if (automation.science) {
+                                            await automation.science.trackChannelOpened(guild.id, channel.id);
+                                        }
                                         
                                         // Delay entre canais: 1s/2s
                                         await HumanSim.sleep(HumanSim.getChannelDelay());
