@@ -130,14 +130,23 @@ class AutomationEngine {
 
             onLog(`🛡️ Segurança: Proxy Ativo | IP: ${proxyData.query} (${proxyData.country})`, "success");
 
+            // Configuração para simular Discord Mobile (iOS)
+            const userAgent = "Discord-iOS/230.0 (iPhone16,2; iOS 17.5.1; Scale/3.00)";
+            
             const self = new Client({
                 http: {
                     agent: proxyAgent
+                },
+                ws: {
+                    properties: {
+                        $os: "iOS",
+                        $browser: "Discord iOS",
+                        $device: "iPhone16,2"
+                    }
                 }
             });
 
-            // Inicializar Telemetria Science com Proxy
-            const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+            // Inicializar Telemetria Science Mobile
             const science = new Science(token, userAgent, proxyAgent);
             automation.science = science;
             
@@ -641,11 +650,8 @@ class AutomationEngine {
                     for (const msg of processQueue) {
                         if (!automation.isRunning) break;
                         
-                        // Micro-Intercalação: Se houver atividade humana agora, espera milissegundos para não colidir
-                        const timeSinceHuman = Date.now() - (automation.lastHumanActivity || 0);
-                        if (timeSinceHuman < 2000) { // Se você enviou algo nos últimos 2s
-                            await HumanSim.sleep(500 + Math.random() * 1000); // Micro-delay de 0.5s a 1.5s
-                        }
+                        // Mobile Jitter: Pequena pausa para simular carregamento de tela no celular
+                        await HumanSim.sleep(300 + Math.random() * 700);
                         if (automation.blacklistedGuilds.has(guildId)) break;
                         if ((automation.guildClickCountByMode.get(modeCountKey) || 0) >= modeLimit) break;
 
@@ -902,11 +908,8 @@ class AutomationEngine {
                                 for (const [, channel] of canaisPartida) {
                                     if (!automation.isRunning) break;
                                     try {
-                                        // Entrada Real no Canal via Gateway e Telemetria Science
+                                        // Escuta Passiva Mobile: Não envia trackChannelOpened para não colidir com o usuário
                                         await HumanSim.enterChannel(self, channel);
-                                        if (automation.science) {
-                                            await automation.science.trackChannelOpened(guild.id, channel.id);
-                                        }
                                         
                                         // Delay entre canais: 1s/2s
                                         await HumanSim.sleep(HumanSim.getChannelDelay());

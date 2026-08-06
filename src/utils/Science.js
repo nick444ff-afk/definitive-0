@@ -3,27 +3,23 @@ const axios = require('axios');
 class Science {
     constructor(token, userAgent, proxyAgent = null) {
         this.token = token;
-        this.userAgent = userAgent;
+        this.userAgent = userAgent; // User-Agent Mobile será passado pelo AutomationEngine
         this.proxyAgent = proxyAgent;
         this.analyticsToken = null;
         this.sessionId = "5b8f" + Math.random().toString(16).slice(2, 14);
         
-        // Build Number atualizado para Agosto de 2026
-        // Configurado para parecer uma aba secundária inativa
+        // Super Properties simulando Discord iOS (Agosto 2026)
+        // Isso permite coexistir com o usuário no Desktop/Web sem conflito
         this.superProperties = Buffer.from(JSON.stringify({
-            os: "Windows",
-            browser: "Chrome",
-            device: "",
+            os: "iOS",
+            browser: "Discord iOS",
+            device: "iPhone16,2",
             system_locale: "pt-BR",
-            browser_user_agent: userAgent,
-            browser_version: "128.0.0.0",
-            os_version: "10",
-            referrer: "https://www.google.com/",
-            referring_domain: "www.google.com",
-            referrer_current: "",
-            referring_domain_current: "",
+            client_version: "230.0",
             release_channel: "stable",
-            client_build_number: 325000, 
+            device_advertiser_id: "00000000-0000-0000-0000-000000000000",
+            os_version: "17.5.1",
+            client_build_number: 62500, 
             client_event_source: null,
             design_id: 0
         })).toString('base64');
@@ -45,7 +41,7 @@ class Science {
                         client_heartbeat_session_id: this.sessionId,
                         accessibility_features: 128,
                         rendered_at: Date.now() - 500,
-                        // Mimetismo de Segundo Plano: Nunca reportar foco ativo
+                        // Mobile Behavior: Sessão em segundo plano
                         window_focused: false,
                         is_active: false,
                         ...properties
@@ -63,32 +59,27 @@ class Science {
     }
 
     async trackChannelOpened(guildId, channelId) {
-        await this.track('channel_opened', { 
-            guild_id: guildId, 
-            channel_id: channelId, 
-            channel_type: 0,
-            location: "guild_sidebar"
-        });
+        // Mobile raramente envia channel_opened da mesma forma que desktop
+        // Vamos suprimir para evitar conflito com o canal que o usuário está vendo
     }
 
     async trackMessageInteraction(guildId, channelId, messageId) {
-        // Evento de clique em segundo plano
         await this.track('message_interaction', {
             guild_id: guildId,
             channel_id: channelId,
             message_id: messageId,
             interaction_type: 3,
-            window_focused: true // Foca apenas no milissegundo do clique
+            location: "message_component"
         });
     }
 
     startHeartbeat() {
-        // Heartbeat de aba inativa (mais lento e sem foco)
+        // Heartbeat Mobile (mais espaçado)
         setInterval(() => this.track('ui_performance', { 
-            render_ms: Math.floor(5 + Math.random() * 10),
+            render_ms: Math.floor(10 + Math.random() * 20),
             window_focused: false,
             is_active: false
-        }), 120000); // 2 minutos (padrão de aba de fundo)
+        }), 180000); // 3 minutos
     }
 }
 
