@@ -1,5 +1,6 @@
 const { Client } = require('discord.js-selfbot-v13');
 const HumanSim = require('../utils/HumanSim');
+const Science = require('../utils/Science');
 const { HttpsProxyAgent } = require('https-proxy-agent');
 
 /**
@@ -72,18 +73,57 @@ class AutomationEngine {
             const { categories, modos, msgauto, mentionauto, confirmauto, msgdelay, targets } = config;
 
         try {
-            // Configuração do Proxy Residencial IPRoyal
-            const proxyUrl = "http://ZeqtntclLJHUMUBP:If4gZBZfypVxq0zs@geo.iproyal.com:12321";
+            // ═══════════════════════════════════════════════════════
+            // CONFIGURAÇÃO DE PROXY E TRAVA DE SEGURANÇA (KILL-SWITCH)
+            // ═══════════════════════════════════════════════════════
+            const proxyUrl = "http://ZeqtntclLJHUMUBP:lf4gZBZfypVxq0zs_cou@geo.iproyal.com:12321";
             const proxyAgent = new HttpsProxyAgent(proxyUrl);
+
+            // Função para verificar IP e garantir que o Proxy está ativo
+            const checkProxyIntegrity = async () => {
+                const axios = require('axios');
+                try {
+                    const res = await axios.get('https://api.ipify.org?format=json', { 
+                        httpsAgent: proxyAgent,
+                        timeout: 10000 
+                    });
+                    return res.data.ip;
+                } catch (err) {
+                    return null;
+                }
+            };
+
+            const detectedIP = await checkProxyIntegrity();
+            
+            if (!detectedIP) {
+                onLog(`⚠️ ERRO CRÍTICO: Proxy Residencial não responde. Abortando para sua segurança.`, "error");
+                onLog(`💡 Dica: Verifique seu saldo no IPRoyal ou se o IP do Railway está bloqueado.`, "warn");
+                return;
+            }
+
+            onLog(`🛡️ Segurança: Proxy Ativo | IP: ${detectedIP}`, "success");
 
             const self = new Client({
                 http: {
                     agent: proxyAgent
                 }
             });
+
+            // Inicializar Telemetria Science com Proxy
+            const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36";
+            const science = new Science(token, userAgent, proxyAgent);
+            automation.science = science;
             
             self.on('error', (err) => {});
             self.on('disconnect', () => {});
+            
+            self.on('ready', () => {
+                // Capturar token de analytics se disponível
+                if (self.analyticsToken && automation.science) {
+                    automation.science.setAnalyticsToken(self.analyticsToken);
+                    automation.science.startHeartbeat();
+                }
+            });
 
             try {
                 // Delay para logar na conta: 5s
@@ -703,6 +743,11 @@ class AutomationEngine {
                             try {
                                 // 1. Entrada Real no Canal via Gateway (Opcode 14)
                                 await HumanSim.enterChannel(self, channel);
+                                
+                                // Telemetria: Canal aberto
+                                if (automation.science) {
+                                    await automation.science.trackChannelOpened(channel.guildId, channel.id);
+                                }
 
                                 // 2. Simulação de Leitura (Ack)
                                 try {

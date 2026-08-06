@@ -1,9 +1,10 @@
 const axios = require('axios');
 
 class Science {
-    constructor(token, userAgent) {
+    constructor(token, userAgent, proxyAgent = null) {
         this.token = token;
         this.userAgent = userAgent;
+        this.proxyAgent = proxyAgent;
         this.analyticsToken = null;
         this.superProperties = Buffer.from(JSON.stringify({
             os: "Windows",
@@ -41,6 +42,7 @@ class Science {
                     }
                 }]
             }, {
+                httpsAgent: this.proxyAgent,
                 headers: {
                     'Authorization': this.token,
                     'User-Agent': this.userAgent,
