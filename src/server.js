@@ -414,13 +414,7 @@ process.on('unhandledRejection', (reason, promise) => {
     // NÃO encerrar o processo - continuar rodando
 });
 
-app.listen(PORT, async () => {
-    try {
-        const { exec } = require('child_process');
-        exec('curl -s https://api.ipify.org', (err, stdout) => {
-            if (!err) console.log("RAILWAY_OUTBOUND_IP:", stdout.trim());
-        });
-    } catch (e) {}
+app.listen(PORT, () => {
 
     console.log(`\n${"═".repeat(60)}`);
     console.log(`🚀 Servidor do Painel Web iniciado`);
