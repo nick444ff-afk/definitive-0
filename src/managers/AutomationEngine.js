@@ -871,79 +871,39 @@ class AutomationEngine {
             })();
 
             // ═══════════════════════════════════════════════════════════
-            // ROTINA PARALELA: MONITORAMENTO DE PARTIDAS
-            // Escaneia TODOS os servidores de forma independente,
-            // agendando msg/menção/confirmação independente do loop de cliques.
+            // ARQUITETURA PASSIVA 100% REATIVA (ZERO REQUISIÇÕES DE BUSCA)
+            // O bot utiliza exclusivamente os targets configurados e cache local,
+            // aguardando eventos WebSocket (messageCreate / messageUpdate).
             // ═══════════════════════════════════════════════════════════
-            (async () => {
-                while (true) {
-                    if (!automation.isRunning) break;
-                    try {
-                        const guilds = self.guilds.cache.filter(g => !g.unavailable);
-                        const guildArray = [...guilds.values()];
+            const selectedTargets = (targets || []).filter(t => t.selected);
+            const targetChannelIds = new Set(selectedTargets.map(t => t.channelId));
+            const targetGuildIds = new Set(selectedTargets.map(t => t.guildId || t.serverId));
 
-                        if (guildArray.length === 0) {
-                            await new Promise(res => setTimeout(res, 5000));
-                            continue;
-                        }
+            self.on('messageCreate', async (message) => {
+                if (!automation.isRunning) return;
+                if (message.author.id === self.user.id) return;
+                
+                if (targetChannelIds.size > 0 && !targetChannelIds.has(message.channel.id)) return;
+                if (targetChannelIds.size === 0 && targetGuildIds.size > 0 && !targetGuildIds.has(message.guild?.id)) return;
 
-                        // Escanear servidores procurando canais de partida
-                        let guildsToScan = [];
-                        const selectedTargets = (targets || []).filter(t => t.selected);
-                        
-                        if (selectedTargets.length > 0) {
-                            const targetGuildIds = [...new Set(selectedTargets.map(t => t.guildId || t.serverId))];
-                            guildsToScan = targetGuildIds.map(id => self.guilds.cache.get(id)).filter(g => g && !g.unavailable);
-                        } else {
-                            guildsToScan = guildArray;
-                        }
+                try {
+                    await scheduleMatchTasks(message.channel);
+                } catch (e) {}
+            });
 
-                        for (const guild of guildsToScan) {
-                            if (!automation.isRunning) break;
-                            if (automation.blacklistedGuilds.has(guild.id)) continue;
-                            
-                            try {
-                                const canaisPartida = guild.channels.cache.filter(channel =>
-                                    (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
-                                    (channel.name?.toLowerCase().includes("aguardando") || 
-                                     channel.name?.toLowerCase().includes("partida") || 
-                                     channel.name?.toLowerCase().includes("fila")) &&
-                                    channel.viewable
-                                );
+            self.on('messageUpdate', async (oldMessage, newMessage) => {
+                if (!automation.isRunning) return;
+                const msg = newMessage.partial ? await newMessage.fetch().catch(() => null) : newMessage;
+                if (!msg || !msg.components?.length) return;
 
-                                for (const [, channel] of canaisPartida) {
-                                    if (!automation.isRunning) break;
-                                    try {
-                                        // Escuta Passiva Mobile: Não envia trackChannelOpened para não colidir com o usuário
-                                        await HumanSim.enterChannel(self, channel);
-                                        
-                                        // Delay entre canais: 1s/2s
-                                        await HumanSim.sleep(HumanSim.getChannelDelay());
+                if (targetChannelIds.size > 0 && !targetChannelIds.has(msg.channel.id)) return;
+                
+                try {
+                    await processChannel(msg.channel);
+                } catch (e) {}
+            });
 
-                                        await scheduleMatchTasks(channel);
-                                    } catch (err) {
-                                        // Erro ao agendar - ignorar e continuar
-                                    }
-                                    // Delay entre canais na rotina paralela: 1s/2s
-                                    await HumanSim.sleep(HumanSim.getChannelDelay());
-                                }
-                            } catch (err) {
-                                // Erro ao processar servidor - continuar para o próximo
-                            }
-                        }
-
-                        // Limpar flags de msg/menção enviadas para permitir novo ciclo
-                        msgSentChannels.clear();
-                        mentionSentChannels.clear();
-
-                        // Delay de escaneamento de servidores: 5s/10s
-                        await HumanSim.sleep(HumanSim.getScanDelay());
-                    } catch (err) {
-                        // A rotina paralela NUNCA deve parar por erro
-                        await new Promise(res => setTimeout(res, 5000));
-                    }
-                }
-            })();
+            onLog(`🛡️ Modo Silêncio Total Ativo: Escuta 100% passiva via WebSocket sem fetch de API.`, "success");
 
         } catch (err) {
             // Erro fatal no _runOriginalLogic - logar mas não crashar
