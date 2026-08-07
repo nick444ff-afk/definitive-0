@@ -111,12 +111,14 @@ class AutomationEngine {
             const checkProxyIntegrity = async () => {
                 const axios = require('axios');
                 try {
-                    const res = await axios.get('http://ip-api.com/json', { 
+                    const res = await axios.get('https://ip-api.com/json', { 
                         httpsAgent: proxyAgent,
+                        proxy: false,
                         timeout: 15000 
                     });
                     return res.data;
                 } catch (err) {
+                    onLog(`⚠️ Erro ao testar proxy: ${err.message}`, "warn");
                     return null;
                 }
             };
