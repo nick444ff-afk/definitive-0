@@ -104,7 +104,7 @@ class AutomationEngine {
             // ═══════════════════════════════════════════════════════
             // CONFIGURAÇÃO DE PROXY E TRAVA DE SEGURANÇA (KILL-SWITCH)
             // ═══════════════════════════════════════════════════════
-            const proxyUrl = "http://ZeqtntclLJHUMUBP:lf4gZBZfypVxq0zs_country-br_session-sgn34f3e_lifetime-24h_killswitch-1@geo.iproyal.com:12324";
+            const proxyUrl = "http://ZeqtntclLJHUMUBP:lf4gZBZfypVxq0zs_country-br@geo.iproyal.com:12321";
             const proxyAgent = new HttpsProxyAgent(proxyUrl);
 
             // Função para verificar IP e garantir que o Proxy está ativo
