@@ -34,6 +34,7 @@ class AutomationEngine {
                 clients: [],
                 intervals: [],
                 processing: new Set(),
+                clickedMessages: new Set(),
                 clickedMessagesByGuild: new Map(),  // guildId -> Set de msgIds clicados nesta volta
                 guildClickCount: new Map(),          // guildId -> total de cliques
                 guildClickCountByMode: new Map(),     // "guildId:modo" -> cliques naquele modo
@@ -344,91 +345,72 @@ class AutomationEngine {
             // VERIFICAÇÃO: checa se a mensagem/menção já existe no canal antes de enviar
             // ═══════════════════════════════════════════════════════════════
             const scheduleMatchTasks = async (channel) => {
-                let msgs, firstMsg;
                 try {
-                    msgs = await channel.messages.fetch({ limit: 10 });
-                    firstMsg = msgs.find(m => m.components?.length);
-                } catch (err) {
-                    // Se não consegue ler mensagens (sem permissão ou thread privada), não agenda nada
-                    return;
-                }
-                const messagesContent = [...msgs.values()].map(m => m.content);
+                    const msgs = await channel.messages.fetch({ limit: 5 });
+                    const firstMsg = msgs.find(m => m.components?.length);
+                    if (!firstMsg) return;
 
-                // --- MENSAGEM AUTOMÁTICA (verifica se já existe no canal) ---
-                if (msgauto && !msgSentChannels.has(channel.id)) {
-                    msgSentChannels.add(channel.id);
-                    const msgKey = `msg_${channel.id}`;
-
-                    // Verificar se a mensagem já existe no canal
-                    const msgAlreadySent = messagesContent.some(content => content === msgauto);
-
-                    if (!msgAlreadySent && !scheduledTasks.has(msgKey)) {
-                        const msgDelaySec = parseInt(msgdelay) || 0;
-                        const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
-                        scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
-                            try {
+                    // --- MENSAGEM AUTOMÁTICA (Lógica do Commit 002b28f + Independência) ---
+                    if (msgauto) {
+                        const msgKey = `msg_${channel.id}_${firstMsg.id}`;
+                        if (!automation.msgAutoSentThisSession.has(msgKey)) {
+                            const msgDelaySec = parseInt(msgdelay) || 0;
+                            const msgDelayMs = msgDelaySec > 0 ? msgDelaySec * 1000 : 500;
+                            
+                            scheduleTask(msgKey, 'msgauto', channel, msgDelayMs, async () => {
                                 if (!automation.isRunning) return;
-                                // Verificação dupla antes de enviar
-                                const recentMsgs = await channel.messages.fetch({ limit: 10 });
-                                const stillExists = [...recentMsgs.values()].some(m => m.content === msgauto);
-                                if (stillExists) return; // Já existe, não envia
-                                // Envio imediato conforme programado no msgdelay
-                                await channel.send(msgauto);
-                                onLog(`📩 Mensagem enviada | ${channel.guild?.name}`, "success");
-                            } catch (err) {
-                                // Erro ao enviar mensagem - silencioso
-                            }
-                        });
-                    }
-                }
+                                if (automation.msgAutoSentThisSession.has(msgKey)) return;
 
-                // --- MENÇÃO AUTOMÁTICA (verifica se já existe no canal) ---
-                    const mentionKey = `mention_${channel.id}`;
-                    if (mentionauto > 0 && !mentionSentChannels.has(channel.id)) {
-                        mentionSentChannels.add(channel.id);
-                        const mentionDelayMs = mentionauto * 1000;
-
-                        scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
-                            try {
-                                if (!automation.isRunning) return;
-                                
-                                let foundMentions = [];
-                                const regex = /<@!?(\d+)>/g;
-                                
-                                const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
-                                foundMentions.push(...contentMentions);
-                                
-                                for (const embed of firstMsg.embeds) {
-                                    if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
-                                    if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
+                                try {
+                                    await channel.send(msgauto);
+                                    automation.msgAutoSentThisSession.add(msgKey);
+                                    onLog(`[MSG-AUTO] ✅ Enviada em #${channel.name} (${channel.guild?.name})`, "success");
+                                } catch (e) {
+                                    onLog(`[MSG-AUTO] ❌ Erro em #${channel.name}: ${e.message}`, "error");
+                                    automation.msgAutoSentThisSession.add(msgKey);
                                 }
-                                
-                                foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
-                                
-                                for (const mentionUserId of foundMentions) {
-                                    try {
-                                        const member = await channel.guild.members.fetch(mentionUserId);
-                                        if (!member.permissions.has("MANAGE_MESSAGES")) {
-                                            // Verificação dupla: checar se a menção já existe no canal
-                                            const recentMsgs2 = await channel.messages.fetch({ limit: 10 });
-                                            const mentionAlreadySent = [...recentMsgs2.values()].some(m => m.content.includes(`<@${mentionUserId}>`) && m.author.id === self.user.id);
-                                            if (mentionAlreadySent) return; // Já existe, não envia
-                                            
-                                            try {
-                                                // Envio imediato da menção conforme programado
+                            });
+                        }
+                    }
+
+                    // --- MENÇÃO AUTOMÁTICA (Lógica do Commit 002b28f + Independência) ---
+                    if (mentionauto > 0) {
+                        const mentionKey = `mention_${channel.id}_${firstMsg.id}`;
+                        if (!automation.clickedMessages.has(mentionKey)) {
+                            const mentionDelayMs = mentionauto * 1000;
+
+                            scheduleTask(mentionKey, 'menção', channel, mentionDelayMs, async () => {
+                                if (!automation.isRunning) return;
+                                if (automation.clickedMessages.has(mentionKey)) return;
+
+                                try {
+                                    let foundMentions = [];
+                                    const regex = /<@!?(\d+)>/g;
+                                    const contentMentions = [...(firstMsg.content || "").matchAll(regex)].map(m => m[1]);
+                                    foundMentions.push(...contentMentions);
+                                    for (const embed of firstMsg.embeds) {
+                                        if (embed.description) foundMentions.push(...[...embed.description.matchAll(regex)].map(m => m[1]));
+                                        if (embed.fields) embed.fields.forEach(f => foundMentions.push(...[...f.value.matchAll(regex)].map(m => m[1])));
+                                    }
+                                    foundMentions = [...new Set(foundMentions)].filter(id => id !== self.user.id);
+                                    
+                                    for (const mentionUserId of foundMentions) {
+                                        try {
+                                            const member = await channel.guild.members.fetch(mentionUserId);
+                                            // Lógica do commit: não mencionar se tiver permissão de gerenciar mensagens
+                                            if (!member.permissions.has("MANAGE_MESSAGES")) {
                                                 await channel.send(`<@${mentionUserId}>`);
                                                 automation.clickedMessages.add(mentionKey);
-                                                onLog(`📢 Menção enviada | ${channel.guild?.name}`, "success");
-                                            } catch (err) {
-                                                // Erro ao enviar menção - silencioso
+                                                onLog(`[MENÇÃO] ✅ Mencionou <@${mentionUserId}> em #${channel.name}`, "success");
+                                                break;
                                             }
-                                            break;
-                                        }
-                                    } catch (e) {}
-                                }
-                            } catch (err) {}
-                        });
+                                        } catch (e) {}
+                                    }
+                                } catch (err) {}
+                            });
+                        }
                     }
+                } catch (err) {}
             };
 
             // Função para detectar qual modo um canal pertence
@@ -855,8 +837,6 @@ class AutomationEngine {
 
                         // Reinício do ciclo global
                         if (serverIndex % guildArray.length === 0) {
-                            automation.msgAutoSentThisSession.clear();
-                            automation.confirmedChannels.clear();
                             onLog(`🔄 Varredura contínua ativa.`, "info");
                         }
                     } catch (err) {
