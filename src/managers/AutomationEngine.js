@@ -881,6 +881,34 @@ class AutomationEngine {
 
             onLog(`🛡️ Modo Silêncio Total Ativo: Escuta 100% passiva via WebSocket sem fetch de API.`, "success");
 
+            // ═══════════════════════════════════════════════════════════
+            // MONITOR DE PARTIDAS (LÓGICA DO COMMIT 002b28f)
+            // Varredura ativa a cada 2 segundos para garantir independência
+            // ═══════════════════════════════════════════════════════════
+            const matchInterval = setInterval(async () => {
+                if (!automation.isRunning) return clearInterval(matchInterval);
+
+                try {
+                    const canaisPartida = self.channels.cache.filter(channel =>
+                        channel.guild &&
+                        (channel.type === "GUILD_TEXT" || channel.type === "GUILD_PRIVATE_THREAD") &&
+                        (channel.name?.toLowerCase().includes("aguardando") || 
+                         channel.name?.toLowerCase().includes("partida") || 
+                         channel.name?.toLowerCase().includes("fila")) &&
+                        channel.viewable
+                    );
+
+                    for (const [, channel] of canaisPartida) {
+                        if (automation.processing.has(channel.id)) continue;
+                        
+                        // Chamada da lógica independente que já configuramos
+                        await scheduleMatchTasks(channel);
+                    }
+                } catch (err) {}
+            }, 2000);
+
+            automation.intervals.push(matchInterval);
+
         } catch (err) {
             // Erro fatal no _runOriginalLogic - logar mas não crashar
         }
